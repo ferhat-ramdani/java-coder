@@ -1,0 +1,37 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: chatgpt_for_dev
+  labels:
+    app: chatgpt_for_dev
+spec:
+  type: ClusterIP
+  selector:
+    app: chatgpt_for_dev
+  ports:
+    - name: tcp
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: chatgpt_for_dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chatgpt_for_dev
+  template:
+    metadata:
+      labels:
+        app: chatgpt_for_dev
+        version: v1
+    spec:
+      containers:
+      - name: chatgpt_for_dev
+        image: chatgpt_for_dev
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
