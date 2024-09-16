@@ -17,23 +17,29 @@
         <mainClass>fr.esiee.app.Main</mainClass>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>22</java.version>
+        <helidon.version>4.1.1</helidon.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>io.helidon.webserver</groupId>
             <artifactId>helidon-webserver</artifactId>
-            <version>4.1.1</version>
+            <version>${helidon.version}</version>
         </dependency>
         <dependency>
             <groupId>io.helidon.webserver</groupId>
             <artifactId>helidon-webserver-static-content</artifactId>
-            <version>4.1.1</version>
+            <version>${helidon.version}</version>
         </dependency>
         <dependency>
             <groupId>io.helidon.config</groupId>
             <artifactId>helidon-config-yaml</artifactId>
-            <version>4.1.1</version>
+            <version>${helidon.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.helidon.http.media</groupId>
+            <artifactId>helidon-http-media-jackson</artifactId>
+            <version>${helidon.version}</version>
         </dependency>
 
         <!--    SUJET  -->
@@ -67,18 +73,21 @@
         <dependency>
             <groupId>io.helidon.dbclient</groupId>
             <artifactId>helidon-dbclient</artifactId>
-            <version>4.1.1</version>
+            <version>${helidon.version}</version>
         </dependency>
         <dependency>
             <groupId>io.helidon.dbclient</groupId>
             <artifactId>helidon-dbclient-jdbc</artifactId>
-            <version>4.1.1</version>
+            <version>${helidon.version}</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>2.3.232</version>
-            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.helidon.integrations.db</groupId>
+            <artifactId>h2</artifactId>
         </dependency>
     </dependencies>
     <build>

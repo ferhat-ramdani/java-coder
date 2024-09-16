@@ -2,6 +2,8 @@
 package fr.esiee.app;
 
 
+import io.helidon.common.context.Contexts;
+import io.helidon.dbclient.DbClient;
 import io.helidon.logging.common.LogConfig;
 import io.helidon.config.Config;
 import io.helidon.webserver.WebServer;
@@ -37,6 +39,9 @@ public class Main {
         Config config = Config.create();
         Config.global(config);
 
+        DbClient dbClient = DbClient.create(config.get("db"));
+        Contexts.globalContext().register(dbClient);
+
 
         WebServer server = WebServer.builder()
                 .config(config.get("server"))
@@ -57,6 +62,7 @@ public class Main {
         routing
                .register("/greet", new GreetService())
                 .register("/", StaticContentService.builder("/static").welcomeFileName("index.html").build())
-               .get("/simple-greet", (req, res) -> res.send("Hello World!")); 
+               .get("/simple-greet", (req, res) -> res.send("Hello World!"))
+                .register("/db", new DbService());
     }
 }
