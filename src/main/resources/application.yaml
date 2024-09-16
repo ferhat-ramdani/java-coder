@@ -13,9 +13,6 @@ db:
     password:
     initializationFailTimeout: -1
     connectionTimeout: 2000
-  health-check:
-    type: "query"
-    statementName: "health-check"
   init-schema: "false"
   init-data: "false"
 

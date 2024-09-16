@@ -1,5 +1,8 @@
 import logo from './logo.svg';
 import styles from './App.module.css';
+import {Router, Route} from "@solidjs/router";
+import Home from "./pages/Home";
+import About from "./pages/About";
 
 function App() {
   return (
@@ -9,6 +12,10 @@ function App() {
         <p>
           Edit <code>src/App.jsx</code> and save to reload.
         </p>
+        <Router>
+          <Route path="/" component={Home}/>
+          <Route path="/about" component={About}/>
+        </Router>
         <a
           class={styles.link}
           href="https://github.com/solidjs/solid"
