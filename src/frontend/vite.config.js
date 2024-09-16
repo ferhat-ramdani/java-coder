@@ -2,6 +2,10 @@ import { defineConfig } from 'vite';
 import solidPlugin from 'vite-plugin-solid';
 // import devtools from 'solid-devtools/vite';
 
+
+const outputDirectory = process.env.FRONT_OUTPUT_DIR || 'dist';  // 'dist' par défaut si la variable n'est pas définie
+
+
 export default defineConfig({
   plugins: [
     /* 
@@ -16,5 +20,6 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
+    outDir: outputDirectory
   },
 });
