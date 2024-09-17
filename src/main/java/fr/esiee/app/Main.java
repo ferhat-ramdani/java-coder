@@ -18,6 +18,9 @@ import io.helidon.webserver.staticcontent.StaticContentService;
  */
 public class Main {
 
+  private static final StaticContentService FRONT_STATIC_PATH =
+          StaticContentService.builder("/static").welcomeFileName("index.html").build();
+
 
   /**
    * Cannot be instantiated.
@@ -44,11 +47,7 @@ public class Main {
     Contexts.globalContext().register(dbClient);
 
 
-    WebServer server = WebServer.builder()
-            .config(config.get("server"))
-            .routing(Main::routing)
-            .build()
-            .start();
+    WebServer server = WebServer.builder().config(config.get("server")).routing(Main::routing).build().start();
 
 
     System.out.println("WEB server is up! http://localhost:" + server.port() + "/simple-greet");
@@ -60,19 +59,13 @@ public class Main {
    * Updates HTTP Routing.
    */
   static void routing(HttpRouting.Builder routing) {
-    routing
-            .register("/greet", new GreetService())
-            .register("/db", new DbService())
-            .get("/simple-greet", (req, res) -> res.send("Hello World!"))
-            .register("/", StaticContentService.builder("/static")
-                    .welcomeFileName("index.html")
-                    .build())
-            .any("/*", (req, res) -> {
-              System.out.println(1);
-              res.status(Status.MOVED_PERMANENTLY_301);
-              res.header(HeaderValues.createCached(HeaderNames.LOCATION, "/"));
-              res.send();
-            });
+    routing.register("/greet", new GreetService()).register("/db", new DbService())
+            .get("/simple-greet", (req, res) -> res.send("Hello World!"));
+    registerFrontEndRoutes(routing);
+  }
+
+  private static void registerFrontEndRoutes(HttpRouting.Builder routing) {
+    routing.register("/", FRONT_STATIC_PATH).register("/about", FRONT_STATIC_PATH);
   }
 
 

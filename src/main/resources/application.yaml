@@ -9,16 +9,15 @@ db:
   source: jdbc
   connection:
     url: "jdbc:h2:./data/db;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE"
-    username: sa
+    username: "sa"
     password:
+    poolName: h2
     initializationFailTimeout: -1
     connectionTimeout: 2000
   init-schema: "false"
   init-data: "false"
 
   statements:
-    # Health-check
-    health-check: "SELECT 0"
 
     # Table creation
     create-llm: "CREATE TABLE LLM (id INTEGER NOT NULL PRIMARY KEY, name VARCHAR(64) NOT NULL)"
