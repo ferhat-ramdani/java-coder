@@ -1,5 +1,5 @@
 [
-  { "id": 1, "name": "BasicLLM" },
-  { "id": 2, "name": "AdvancedLLM" },
-  { "id": 3, "name": "ExpertLLM" }
+  { "id": 1, "name": "BasicLLM", "model": "basic_model" },
+  { "id": 2, "name": "AdvancedLLM", "model": "advanced_model" },
+  { "id": 3, "name": "ExpertLLM", "model": "expert_model" }
 ]

@@ -1,7 +1,6 @@
 package fr.esiee.app;
 
-import fr.esiee.app.db.Chat;
-import fr.esiee.app.db.Prompt;
+import fr.esiee.app.db.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -37,9 +36,6 @@ public class DbService implements HttpService {
 
   private final DbClient dbClient;
 
-  /**
-   * Create a new service with a DB client.
-   */
   DbService() {
     Config config = Config.global().get("db");
     this.dbClient = Contexts.globalContext()
@@ -60,12 +56,14 @@ public class DbService implements HttpService {
       for (JsonNode llm : llms) {
         exec.namedInsert("insert-llm",
                 llm.get("id").asInt(),
-                llm.get("name").asText());
+                llm.get("name").asText(),
+                llm.get("model").asText());
       }
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
+
 
   private static void initChats(DbExecute exec) {
     try {
@@ -73,7 +71,9 @@ public class DbService implements HttpService {
       for (JsonNode chat : chats) {
         exec.namedInsert("insert-chat",
                 chat.get("id").asInt(),
-                chat.get("title").asText());
+                chat.get("title").asText(),
+                chat.get("last_activity_timestamp").asText(),
+                chat.get("llm_id").asInt());
       }
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -86,10 +86,11 @@ public class DbService implements HttpService {
       for (JsonNode prompt : prompts) {
         exec.namedInsert("insert-prompt",
                 prompt.get("id").asInt(),
-                prompt.get("user_message").asText(),
+                prompt.get("message").asText(),
+                prompt.get("author_type").asText(),
                 prompt.get("llm_response").asText(),
-                prompt.get("id_llm").asInt(),
-                prompt.get("id_chat").asInt());
+                prompt.get("chat_id").asInt(),
+                prompt.get("llm_id").asInt());
       }
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -97,29 +98,27 @@ public class DbService implements HttpService {
   }
 
   private boolean isAppInitialized() throws IOException {
-    var isInit = true;
     var properties = new Properties();
-    var path = Paths.get("app.properties");
+    var path = Paths.get("src/main/resources/app.properties");
     if (!Files.exists(path)) {
-      isInit = false;
       initializeAppProps(properties, path, StandardOpenOption.CREATE);
-    } else {
-      try (var input = new ByteArrayInputStream(Files.readAllBytes(path))) {
-        properties.load(input);
-      }
-      if (!"true".equals(properties.getProperty("initialized"))) {
-        isInit = false;
-        initializeAppProps(properties, path, StandardOpenOption.TRUNCATE_EXISTING);
-      }
+      return false;
     }
-    return isInit;
+    try (var input = Files.newInputStream(path)) {
+      properties.load(input);
+    }
+    if (!"true".equals(properties.getProperty("initialized").trim())) {
+      initializeAppProps(properties, path, StandardOpenOption.TRUNCATE_EXISTING);
+      return false;
+    }
+    return true;
   }
+
 
   private void initializeAppProps(Properties props, Path path, StandardOpenOption option) throws IOException {
     props.setProperty("initialized", "true");
-    try (var output = new ByteArrayOutputStream()) {
+    try (var output = Files.newOutputStream(path, option)) {
       props.store(output, null);
-      Files.write(path, output.toByteArray(), option);
     }
   }
 
@@ -200,43 +199,51 @@ public class DbService implements HttpService {
   private void index(ServerRequest request, ServerResponse response) {
     response.headers().contentType(MediaTypes.TEXT_PLAIN);
     response.send("""
-             DB Service Example:
-                  GET /llm                  - List all LLMs
-                  GET /chat                 - List all Chats
-                  GET /prompt               - List all Prompts
-                  GET /prompt/{id}          - Get Prompt by ID
-                  POST /prompt              - Insert new Prompt
-                  PUT /prompt               - Update Prompt
-                  DELETE /prompt/{id}       - Delete Prompt by ID
+           DB Service Example:
+                GET /llm                  - List all LLMs
+                GET /chat                 - List all Chats
+                GET /prompt               - List all Prompts
+                GET /prompt/{id}          - Get Prompt by ID
+                POST /prompt              - Insert new Prompt
+                PUT /prompt               - Update existing Prompt
+                DELETE /prompt/{id}       - Delete Prompt by ID
             
-                  GET /chat/{id}/prompts    - List all Prompts for a Chat
-                  POST /chat                - Insert new Chat
-                  PUT /chat                 - Update Chat
-                  DELETE /chat/{id}         - Delete Chat by ID
-            """);
+                GET /chat/{id}/prompts    - List all Prompts for a Chat
+                POST /chat                - Insert new Chat
+                PUT /chat                 - Update existing Chat (requires id, title, last_activity_timestamp, llm_id)
+                DELETE /chat/{id}         - Delete Chat by ID
+          """);
   }
+
 
   private void listLLMs(ServerRequest request, ServerResponse response) {
     ArrayNode llmsArray = OBJECT_MAPPER.createArrayNode();
     dbClient.execute()
             .namedQuery("select-all-llms")
             .forEach(row -> {
+              LLMMapper llmMapper = new LLMMapper();
+              LLM llm = llmMapper.read(row);
               ObjectNode llmJson = OBJECT_MAPPER.createObjectNode()
-                      .put("id", row.column("id").getInt())
-                      .put("name", row.column("name").getString());
+                      .put("id", llm.id())
+                      .put("name", llm.name())
+                      .put("model", llm.model());
               llmsArray.add(llmJson);
             });
     response.send(llmsArray);
   }
+
 
   private void listChats(ServerRequest request, ServerResponse response) {
     ArrayNode chatsArray = OBJECT_MAPPER.createArrayNode();
     dbClient.execute()
             .namedQuery("select-all-chats")
             .forEach(row -> {
+              ChatMapper chatMapper = new ChatMapper();
+              Chat chat = chatMapper.read(row);
               ObjectNode chatJson = OBJECT_MAPPER.createObjectNode()
-                      .put("id", row.column("id").getInt())
-                      .put("title", row.column("title").getString());
+                      .put("id", chat.id())
+                      .put("title", chat.title())
+                      .put("lastActivityTimestamp", chat.lastAcitivityTimestamp().toString());
               chatsArray.add(chatJson);
             });
     response.send(chatsArray);
@@ -247,49 +254,71 @@ public class DbService implements HttpService {
     dbClient.execute()
             .namedQuery("select-all-prompts")
             .forEach(row -> {
+              PromptMapper promptMapper = new PromptMapper();
+              Prompt prompt = promptMapper.read(row);
               ObjectNode promptJson = OBJECT_MAPPER.createObjectNode()
-                      .put("id", row.column("id").getInt())
-                      .put("user_message", row.column("user_message").getString())
-                      .put("llm_response", row.column("llm_response").getString())
-                      .put("id_chat", row.column("id_chat").getInt())
-                      .put("id_llm", row.column("id_llm").getInt());
+                      .put("id", prompt.id())
+                      .put("message", prompt.message())
+                      .put("authorType", prompt.authorType().name())
+                      .put("llmResponse", prompt.llmResponse())
+                      .put("chatId", prompt.chatId())
+                      .put("llmId", prompt.llmId());
               promptsArray.add(promptJson);
             });
     response.send(promptsArray);
   }
 
+
   private void getPromptById(ServerRequest request, ServerResponse response) {
     int promptId = Integer.parseInt(request.path().pathParameters().get("id"));
-    ObjectNode promptJson = dbClient.execute()
+    Prompt prompt = dbClient.execute()
             .createNamedGet("select-prompt-by-id")
             .addParam("id", promptId)
             .execute()
-            .map(row -> OBJECT_MAPPER.createObjectNode()
-                    .put("id", row.column("id").getInt())
-                    .put("user_message", row.column("user_message").getString())
-                    .put("llm_response", row.column("llm_response").getString())
-                    .put("id_chat", row.column("id_chat").getInt())
-                    .put("id_llm", row.column("id_llm").getInt()))
+            .map(row -> {
+              PromptMapper promptMapper = new PromptMapper();
+              return promptMapper.read(row);
+            })
             .orElseThrow(() -> new NotFoundException("Prompt " + promptId + " not found"));
+
+    ObjectNode promptJson = OBJECT_MAPPER.createObjectNode()
+            .put("id", prompt.id())
+            .put("message", prompt.message())
+            .put("authorType", prompt.authorType().name())
+            .put("llmResponse", prompt.llmResponse())
+            .put("chatId", prompt.chatId())
+            .put("llmId", prompt.llmId());
 
     response.send(promptJson);
   }
 
+
   private void insertPrompt(Prompt prompt, ServerResponse response) {
     dbClient.execute()
-            .namedInsert("insert-prompt", prompt.id(), prompt.userMessage(), prompt.llmResponse(),
-                    prompt.llmId(), prompt.chatId());
+            .namedInsert("insert-prompt",
+                    prompt.id(),
+                    prompt.message(),
+                    prompt.authorType().name(),
+                    prompt.llmResponse(),
+                    prompt.chatId(),
+                    prompt.llmId());
 
     response.status(Status.CREATED_201).send();
   }
 
   private void updatePrompt(Prompt prompt, ServerResponse response) {
     dbClient.execute()
-            .namedUpdate("update-prompt", prompt.userMessage(), prompt.llmResponse(),
-                    prompt.llmId(), prompt.chatId(), prompt.id());
+            .namedUpdate("update-prompt",
+                    prompt.message(),
+                    prompt.authorType().name(),
+                    prompt.llmResponse(),
+                    prompt.chatId(),
+                    prompt.llmId(),
+                    prompt.id());
 
     response.status(Status.NO_CONTENT_204).send();
   }
+
 
   private void deletePromptById(ServerRequest request, ServerResponse response) {
     int promptId = Integer.parseInt(request.path().pathParameters().get("id"));
@@ -302,20 +331,24 @@ public class DbService implements HttpService {
     response.status(Status.NO_CONTENT_204).send();
   }
 
+
   private void getPromptsByChatId(ServerRequest request, ServerResponse response) {
     int chatId = Integer.parseInt(request.path().pathParameters().get("id"));
     ArrayNode promptsArray = OBJECT_MAPPER.createArrayNode();
 
     dbClient.execute().createNamedQuery("select-prompts-by-chat-id")
-            .addParam("id_chat", chatId)
+            .addParam("chat_id", chatId)
             .execute()
             .forEach(row -> {
+              PromptMapper promptMapper = new PromptMapper();
+              Prompt prompt = promptMapper.read(row);
               ObjectNode promptJson = OBJECT_MAPPER.createObjectNode()
-                      .put("id", row.column("id").getInt())
-                      .put("user_message", row.column("user_message").getString())
-                      .put("llm_response", row.column("llm_response").getString())
-                      .put("id_chat", row.column("id_chat").getInt())
-                      .put("id_llm", row.column("id_llm").getInt());
+                      .put("id", prompt.id())
+                      .put("message", prompt.message())
+                      .put("authorType", prompt.authorType().name())
+                      .put("llmResponse", prompt.llmResponse())
+                      .put("chatId", prompt.chatId())
+                      .put("llmId", prompt.llmId());
               promptsArray.add(promptJson);
             });
 
@@ -324,14 +357,22 @@ public class DbService implements HttpService {
 
   private void insertChat(Chat chat, ServerResponse response) {
     dbClient.execute()
-            .namedInsert("insert-chat", chat.id(), chat.title());
+            .namedInsert("insert-chat",
+                    chat.id(),
+                    chat.title(),
+                    chat.lastAcitivityTimestamp(),
+                    chat.llmId());
 
     response.status(Status.CREATED_201).send();
   }
 
   private void updateChat(Chat chat, ServerResponse response) {
     dbClient.execute()
-            .namedUpdate("update-chat", chat.title(), chat.id());
+            .namedUpdate("update-chat",
+                    chat.title(),
+                    chat.lastAcitivityTimestamp(),
+                    chat.llmId(),
+                    chat.id());
 
     response.status(Status.NO_CONTENT_204).send();
   }
@@ -346,4 +387,5 @@ public class DbService implements HttpService {
     }
     response.status(Status.NO_CONTENT_204).send();
   }
+
 }

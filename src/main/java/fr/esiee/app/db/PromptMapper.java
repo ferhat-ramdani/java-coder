@@ -14,36 +14,39 @@ public record PromptMapper() implements DbMapper<Prompt> {
     @Override
     public Prompt read(DbRow row) {
         DbColumn id = row.column("id");
-        DbColumn userMessage = row.column("user_message");
+        DbColumn message = row.column("message");
+        DbColumn authorType = row.column("author_type");
         DbColumn llmResponse = row.column("llm_response");
-        DbColumn idChat = row.column("id_chat");
-        DbColumn idLLM = row.column("id_llm");
-
+        DbColumn chatId = row.column("chat_id");
+        DbColumn llmId = row.column("llm_id");
         return new Prompt(
                 id.get(Integer.class),
-                userMessage.get(String.class),
+                message.get(String.class),
+                AuthorType.valueOf(authorType.get(String.class)),
                 llmResponse.get(String.class),
-                idChat.get(Integer.class),
-                idLLM.get(Integer.class)
+                chatId.get(Integer.class),
+                llmId.get(Integer.class)
         );
     }
 
     @Override
     public Map<String, Object> toNamedParameters(Prompt value) {
-        Map<String, Object> map = new HashMap<>(5);
+        Map<String, Object> map = new HashMap<>(6);
         map.put("id", value.id());
-        map.put("user_message", value.userMessage());
+        map.put("message", value.message());
+        map.put("author_type", value.authorType().name());
         map.put("llm_response", value.llmResponse());
-        map.put("id_chat", value.chatId());
-        map.put("id_llm", value.llmId());
+        map.put("chat_id", value.chatId());
+        map.put("llm_id", value.llmId());
         return map;
     }
 
     @Override
     public List<Object> toIndexedParameters(Prompt value) {
-        List<Object> list = new ArrayList<>(5);
+        List<Object> list = new ArrayList<>(6);
         list.add(value.id());
-        list.add(value.userMessage());
+        list.add(value.message());
+        list.add(value.authorType().name());
         list.add(value.llmResponse());
         list.add(value.chatId());
         list.add(value.llmId());

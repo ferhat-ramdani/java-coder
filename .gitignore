@@ -36,3 +36,4 @@ nb-configuration.xml
 .classpath
 .factorypath
 
+src/main/resources/app.properties
