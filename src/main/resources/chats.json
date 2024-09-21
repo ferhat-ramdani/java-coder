@@ -1,7 +1,7 @@
 [
-  { "id": 1, "title": "Chat with Basic" },
-  { "id": 2, "title": "Chat with Advanced" },
-  { "id": 3, "title": "Chat with Expert" },
-  { "id": 4, "title": "Chat with Intermediate" },
-  { "id": 5, "title": "Chat with Specialist" }
+  { "id": 1, "title": "Chat with Basic", "last_activity_timestamp": "2024-01-01T10:00:00Z", "llm_id": 1 },
+  { "id": 2, "title": "Chat with Advanced", "last_activity_timestamp": "2024-01-02T11:00:00Z", "llm_id": 2 },
+  { "id": 3, "title": "Chat with Expert", "last_activity_timestamp": "2024-01-03T12:00:00Z", "llm_id": 3 },
+  { "id": 4, "title": "Chat with Intermediate", "last_activity_timestamp": "2024-01-04T13:00:00Z", "llm_id": 1 },
+  { "id": 5, "title": "Chat with Specialist", "last_activity_timestamp": "2024-01-05T14:00:00Z", "llm_id": 2 }
 ]
