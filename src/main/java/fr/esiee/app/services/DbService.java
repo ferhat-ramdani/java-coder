@@ -1,10 +1,13 @@
-package fr.esiee.app;
+package fr.esiee.app.services;
 
-import fr.esiee.app.db.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import fr.esiee.app.db.entities.Chat;
+import fr.esiee.app.db.entities.LLM;
+import fr.esiee.app.db.entities.Prompt;
+import fr.esiee.app.db.mapper.PromptMapper;
 import io.helidon.common.Weight;
 import io.helidon.common.context.Contexts;
 import io.helidon.common.media.type.MediaTypes;
@@ -36,7 +39,7 @@ public class DbService implements HttpService {
 
   private final DbClient dbClient;
 
-  DbService() {
+  public DbService() {
     Config config = Config.global().get("db");
     this.dbClient = Contexts.globalContext()
             .get(DbClient.class)
@@ -199,72 +202,44 @@ public class DbService implements HttpService {
   private void index(ServerRequest request, ServerResponse response) {
     response.headers().contentType(MediaTypes.TEXT_PLAIN);
     response.send("""
-           DB Service Example:
-                GET /llm                  - List all LLMs
-                GET /chat                 - List all Chats
-                GET /prompt               - List all Prompts
-                GET /prompt/{id}          - Get Prompt by ID
-                POST /prompt              - Insert new Prompt
-                PUT /prompt               - Update existing Prompt
-                DELETE /prompt/{id}       - Delete Prompt by ID
+             DB Service Example:
+                  GET /llm                  - List all LLMs
+                  GET /chat                 - List all Chats
+                  GET /prompt               - List all Prompts
+                  GET /prompt/{id}          - Get Prompt by ID
+                  POST /prompt              - Insert new Prompt
+                  PUT /prompt               - Update existing Prompt
+                  DELETE /prompt/{id}       - Delete Prompt by ID
             
-                GET /chat/{id}/prompts    - List all Prompts for a Chat
-                POST /chat                - Insert new Chat
-                PUT /chat                 - Update existing Chat (requires id, title, last_activity_timestamp, llm_id)
-                DELETE /chat/{id}         - Delete Chat by ID
-          """);
+                  GET /chat/{id}/prompts    - List all Prompts for a Chat
+                  POST /chat                - Insert new Chat
+                  PUT /chat                 - Update existing Chat (requires id, title, last_activity_timestamp, llm_id)
+                  DELETE /chat/{id}         - Delete Chat by ID
+            """);
   }
 
 
   private void listLLMs(ServerRequest request, ServerResponse response) {
-    ArrayNode llmsArray = OBJECT_MAPPER.createArrayNode();
-    dbClient.execute()
+    var llmsList = dbClient.execute()
             .namedQuery("select-all-llms")
-            .forEach(row -> {
-              LLMMapper llmMapper = new LLMMapper();
-              LLM llm = llmMapper.read(row);
-              ObjectNode llmJson = OBJECT_MAPPER.createObjectNode()
-                      .put("id", llm.id())
-                      .put("name", llm.name())
-                      .put("model", llm.model());
-              llmsArray.add(llmJson);
-            });
-    response.send(llmsArray);
+            .map(e -> e.as(LLM.class))
+            .toList();
+    response.send(llmsList);
   }
 
 
   private void listChats(ServerRequest request, ServerResponse response) {
-    ArrayNode chatsArray = OBJECT_MAPPER.createArrayNode();
-    dbClient.execute()
+    var chatsArray = dbClient.execute()
             .namedQuery("select-all-chats")
-            .forEach(row -> {
-              ChatMapper chatMapper = new ChatMapper();
-              Chat chat = chatMapper.read(row);
-              ObjectNode chatJson = OBJECT_MAPPER.createObjectNode()
-                      .put("id", chat.id())
-                      .put("title", chat.title())
-                      .put("lastActivityTimestamp", chat.lastAcitivityTimestamp().toString());
-              chatsArray.add(chatJson);
-            });
+            .map(e -> e.as(Chat.class)).toList();
     response.send(chatsArray);
   }
 
   private void listPrompts(ServerRequest request, ServerResponse response) {
-    ArrayNode promptsArray = OBJECT_MAPPER.createArrayNode();
-    dbClient.execute()
+    var promptsArray = dbClient.execute()
             .namedQuery("select-all-prompts")
-            .forEach(row -> {
-              PromptMapper promptMapper = new PromptMapper();
-              Prompt prompt = promptMapper.read(row);
-              ObjectNode promptJson = OBJECT_MAPPER.createObjectNode()
-                      .put("id", prompt.id())
-                      .put("message", prompt.message())
-                      .put("authorType", prompt.authorType().name())
-                      .put("llmResponse", prompt.llmResponse())
-                      .put("chatId", prompt.chatId())
-                      .put("llmId", prompt.llmId());
-              promptsArray.add(promptJson);
-            });
+            .map(e -> e.as(Prompt.class))
+            .toList();
     response.send(promptsArray);
   }
 
@@ -275,21 +250,9 @@ public class DbService implements HttpService {
             .createNamedGet("select-prompt-by-id")
             .addParam("id", promptId)
             .execute()
-            .map(row -> {
-              PromptMapper promptMapper = new PromptMapper();
-              return promptMapper.read(row);
-            })
-            .orElseThrow(() -> new NotFoundException("Prompt " + promptId + " not found"));
-
-    ObjectNode promptJson = OBJECT_MAPPER.createObjectNode()
-            .put("id", prompt.id())
-            .put("message", prompt.message())
-            .put("authorType", prompt.authorType().name())
-            .put("llmResponse", prompt.llmResponse())
-            .put("chatId", prompt.chatId())
-            .put("llmId", prompt.llmId());
-
-    response.send(promptJson);
+            .orElseThrow(() -> new NotFoundException("Prompt " + promptId + " not found"))
+            .as(Prompt.class);
+    response.send(prompt);
   }
 
 

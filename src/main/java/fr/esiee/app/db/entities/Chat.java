@@ -1,4 +1,4 @@
-package fr.esiee.app.db;
+package fr.esiee.app.db.entities;
 
 import java.sql.Timestamp;
 import java.util.Objects;

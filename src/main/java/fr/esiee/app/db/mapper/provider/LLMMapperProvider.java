@@ -1,5 +1,7 @@
-package fr.esiee.app.db;
+package fr.esiee.app.db.mapper.provider;
 
+import fr.esiee.app.db.entities.LLM;
+import fr.esiee.app.db.mapper.LLMMapper;
 import io.helidon.common.Weight;
 import io.helidon.dbclient.DbMapper;
 import io.helidon.dbclient.spi.DbMapperProvider;
@@ -7,16 +9,16 @@ import io.helidon.dbclient.spi.DbMapperProvider;
 import java.util.Optional;
 
 /**
- * {@link java.util.ServiceLoader} provider implementation for Chat DB mapper.
+ * {@link java.util.ServiceLoader} provider implementation for LLM DB mapper.
  */
 @Weight(100)
-public class ChatMapperProvider implements DbMapperProvider {
-    private static final ChatMapper MAPPER = new ChatMapper();
+public class LLMMapperProvider implements DbMapperProvider {
+    private static final LLMMapper MAPPER = new LLMMapper();
 
     @SuppressWarnings("unchecked")
     @Override
     public <T> Optional<DbMapper<T>> mapper(Class<T> type) {
-        if (type.equals(Chat.class)) {
+        if (type.equals(LLM.class)) {
             return Optional.of((DbMapper<T>) MAPPER);
         }
         return Optional.empty();
