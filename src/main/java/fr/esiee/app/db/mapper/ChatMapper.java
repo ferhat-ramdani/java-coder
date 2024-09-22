@@ -1,5 +1,6 @@
-package fr.esiee.app.db;
+package fr.esiee.app.db.mapper;
 
+import fr.esiee.app.db.entities.Chat;
 import io.helidon.dbclient.DbColumn;
 import io.helidon.dbclient.DbMapper;
 import io.helidon.dbclient.DbRow;

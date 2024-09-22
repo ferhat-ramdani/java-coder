@@ -2,6 +2,7 @@ package fr.esiee.app;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import fr.esiee.app.db.entities.LLM;
 import io.helidon.config.Config;
 import io.helidon.http.Status;
 import io.helidon.webserver.http.HttpRules;
@@ -65,7 +66,14 @@ public class GreetService implements HttpService {
         String msg = String.format("%s %s!", greeting.get(), name);
         Message message = new Message();
         message.setMessage(msg);
-        response.send(message);
+        /** === TESTS === */
+
+        var tmpLLM = new LLM(1, "test", "model");
+
+
+
+        /** === === */
+        response.send(tmpLLM);
     }
 
     private void updateGreetingFromJson(Message message, ServerResponse response) {
