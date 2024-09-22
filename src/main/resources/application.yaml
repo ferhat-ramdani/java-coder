@@ -5,6 +5,24 @@ server:
 app:
   greeting: "Hello"
 
+llms:
+  jlama:
+    url: "localhost"
+    models:
+      - "Llama"
+  ollama:
+    url: "localhost"
+    models:
+      - "gemma2"
+  localai:
+    url: "localhost"
+    models:
+      - "llama-guard-3-8b"
+      - "llama-guard-3-8b"
+
+
+
+
 db:
   source: jdbc
   connection:

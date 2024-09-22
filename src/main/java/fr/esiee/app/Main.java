@@ -1,8 +1,10 @@
 package fr.esiee.app;
 
 
-import fr.esiee.app.services.ApiService;
-import fr.esiee.app.services.DbService;
+import fr.esiee.app.config.LLMElem;
+import fr.esiee.app.config.mapper.LLMElemMapper;
+import fr.esiee.app.config.mapper.LLMConfigMapper;
+import io.helidon.common.GenericType;
 import io.helidon.common.context.Contexts;
 import io.helidon.dbclient.DbClient;
 import io.helidon.logging.common.LogConfig;
@@ -10,6 +12,9 @@ import io.helidon.config.Config;
 import io.helidon.webserver.WebServer;
 import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.staticcontent.StaticContentService;
+
+import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * The application main class.
@@ -19,6 +24,8 @@ public class Main {
   private static final StaticContentService FRONT_STATIC_PATH =
           StaticContentService.builder("/static").welcomeFileName("index.html").build();
 
+  private static final Logger logger = Logger.getLogger(Main.class.getName());
+
   private Main() {
   }
 
@@ -26,8 +33,15 @@ public class Main {
 
     LogConfig.configureRuntime();
 
-    Config config = Config.create();
+    Config config = Config.builder()
+            .addMapper(LLMElem.class, new LLMElemMapper())
+            .build();
     Config.global(config);
+
+    logger.info(config.get("llms.jlama").as(LLMElem.class).toString());
+
+    var optionalLlms = config.get("llms").as(new LLMConfigMapper()).get();
+    System.out.println(optionalLlms);
 
     DbClient dbClient = DbClient.create(config.get("db"));
     Contexts.globalContext().register(dbClient);
