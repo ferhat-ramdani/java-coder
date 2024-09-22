@@ -1,6 +1,7 @@
 package fr.esiee.app;
 
 
+import fr.esiee.app.services.ApiService;
 import fr.esiee.app.services.DbService;
 import io.helidon.common.context.Contexts;
 import io.helidon.dbclient.DbClient;
@@ -32,7 +33,7 @@ public class Main {
     Contexts.globalContext().register(dbClient);
 
     WebServer server = WebServer.builder().config(config.get("server")).routing(Main::routing).build().start();
-    System.out.println("WEB server is up! http://localhost:" + server.port() + "/simple-greet");
+    System.out.println("WEB server is up! http://localhost:" + server.port() + "");
 
 
 
@@ -43,7 +44,9 @@ public class Main {
    * Updates HTTP Routing.
    */
   static void routing(HttpRouting.Builder routing) {
-    routing.register("/greet", new GreetService()).register("/db", new DbService())
+    routing.register("/greet", new GreetService())
+            .register("/db", new DbService())
+            .register("/api", new ApiService())
             .get("/simple-greet", (req, res) -> res.send("Hello World!"));
     registerFrontEndRoutes(routing);
   }
