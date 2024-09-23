@@ -3,16 +3,16 @@ import llmService from "../sevices/LLMService";
 
 
 
-const fetchUser = async () =>
+const fetchLLM = async () =>
     await llmService.getLLMS();
 const LLMModelSelector: Component = () => {
 
-    const [user] = createResource(fetchUser);
+    const [llms] = createResource(fetchLLM);
     return (
         <div class="position-fixed top-0 end-0 m-3">
-            <select class="form-select" aria-label="Default select example">
-                <option selected>{user.loading && "Loading..." || "Select LLM Model"}</option>
-                <For each={user()}>
+            <select class="form-select" aria-label="Default select example" disabled={llms.loading}>
+                <option selected>{(llms.loading ? "Loading.." : "Select LLM Model")}</option>
+                <For each={llms()}>
                     {item => <option value={`${item.model}`}>{item.name}</option>}
                 </For>
             </select>
