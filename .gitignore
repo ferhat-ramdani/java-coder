@@ -16,6 +16,7 @@ target/
 
 # IntelliJ Idea
 .idea/*
+.idea
 !.idea/runConfigurations
 *.iws
 *.ipr

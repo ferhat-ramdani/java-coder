@@ -20,7 +20,17 @@ llms:
       - "llama-guard-3-8b"
       - "llama-guard-3-8b"
 
-
+llm:
+  provider: "jlama"
+  url: "localhost"
+  port: 5000
+  models:
+    - name: "Llama"
+      model: "llama-guard-3-8b"
+      system_prompt: "Llama:"
+    - name: "Ollama"
+      model: "gemma2"
+      system_prompt: "Ollama:"
 
 
 db:

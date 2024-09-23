@@ -1,9 +1,12 @@
 package fr.esiee.app;
 
 
+import fr.esiee.app.config.LLMConfig;
 import fr.esiee.app.config.LLMElem;
 import fr.esiee.app.config.mapper.LLMElemMapper;
 import fr.esiee.app.config.mapper.LLMConfigMapper;
+import fr.esiee.app.services.ApiService;
+import fr.esiee.app.services.DbService;
 import io.helidon.common.GenericType;
 import io.helidon.common.context.Contexts;
 import io.helidon.dbclient.DbClient;
@@ -35,22 +38,15 @@ public class Main {
 
     Config config = Config.builder()
             .addMapper(LLMElem.class, new LLMElemMapper())
+            .addMapper(LLMConfig.class, new LLMConfigMapper())
             .build();
     Config.global(config);
-
-    logger.info(config.get("llms.jlama").as(LLMElem.class).toString());
-
-    var optionalLlms = config.get("llms").as(new LLMConfigMapper()).get();
-    System.out.println(optionalLlms);
 
     DbClient dbClient = DbClient.create(config.get("db"));
     Contexts.globalContext().register(dbClient);
 
     WebServer server = WebServer.builder().config(config.get("server")).routing(Main::routing).build().start();
-    System.out.println("WEB server is up! http://localhost:" + server.port() + "");
-
-
-
+    System.out.println("WEB server is up! http://localhost:" + server.port());
 
   }
 
