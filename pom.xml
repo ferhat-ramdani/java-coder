@@ -18,6 +18,12 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>22</java.version>
         <helidon.version>4.1.1</helidon.version>
+
+        <jlama.version>0.3.1</jlama.version>
+        <jackson.version>2.17.2</jackson.version>
+        <langchain4j.version>0.34.0</langchain4j.version>
+        <h2.version>2.3.232</h2.version>
+        <junit.version>5.11.0</junit.version>
     </properties>
 
     <dependencies>
@@ -56,30 +62,47 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
-            <version>5.11.0</version>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.11.0</version>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.17.2</version>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
         <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-open-ai</artifactId>
-            <version>0.34.0</version>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j</artifactId>
-            <version>0.34.0</version>
+            <version>${langchain4j.version}</version>
         </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-jlama</artifactId>
+            <version>${langchain4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.tjake</groupId>
+            <artifactId>jlama-native</artifactId>
+            <classifier>${os.detected.classifier}</classifier>
+            <version>${jlama.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>io.helidon.dbclient</groupId>
             <artifactId>helidon-dbclient</artifactId>
@@ -93,7 +116,7 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>2.3.232</version>
+            <version>${h2.version}</version>
         </dependency>
         <dependency>
             <groupId>io.helidon.integrations.db</groupId>
@@ -121,7 +144,41 @@
         </dependency>
     </dependencies>
     <build>
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.7.0</version>
+            </extension>
+        </extensions>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.4.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <id>all</id>
+                        <configuration>
+                            <arguments>
+                                <argument>--add-modules=jdk.incubator.vector</argument>
+                                <argument>--enable-native-access=ALL-UNNAMED</argument>
+                                <argument>--enable-preview</argument>
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>${mainClass}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+                <configuration>
+                    <mainClass>${mainClass}</mainClass>
+                    <executable>${java.home}/bin/java</executable>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -129,6 +186,7 @@
                 <configuration>
                     <release>${java.version}</release>
                     <compilerArgs>
+<!--                        <arg>&#45;&#45;enable-preview</arg>-->
                         <arg>-Xlint:all</arg>
                     </compilerArgs>
                 </configuration>
