@@ -8,6 +8,9 @@ import java.util.function.Function;
 public class LLMElemMapper implements Function<Config, LLMElem> {
   @Override
   public LLMElem apply(Config config) {
-    return new LLMElem(config.get("url").asString().get(), config.get("models").asList(String.class).get());
+    return new LLMElem(config.get("name").asString().get(),
+        config.get("model").asString().get(),
+        config.get("system_prompt").asString().get());
+//            config.get("models").asList(String.class).get());
   }
 }

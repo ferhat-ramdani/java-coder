@@ -20,4 +20,7 @@ export default defineConfig({
     target: 'esnext',
     outDir: outputDirectory
   },
+  define: {
+    'process.env': process.env,
+  },
 });
