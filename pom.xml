@@ -312,7 +312,7 @@
                     <apiSources>
                         <apiSource>
                             <springmvc>false</springmvc>
-                            <locations>fr.esiee.app.services.DbService</locations>
+                            <locations>fr.esiee.app.services</locations>
                             <schemes>http,https</schemes>
                             <host>localhost:8080</host>
                             <basePath>/</basePath>
