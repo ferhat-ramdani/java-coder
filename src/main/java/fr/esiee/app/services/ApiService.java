@@ -7,7 +7,7 @@ public class ApiService implements HttpService {
 
   @Override
   public void routing(HttpRules httpRules) {
-    httpRules.get("/", (_, res) -> {
+    httpRules.get("/", (req, res) -> {
       res.send("API Service");
     }).register("/llm", new LLMService());
 
