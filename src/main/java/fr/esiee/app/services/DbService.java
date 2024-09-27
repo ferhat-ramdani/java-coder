@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
 import fr.esiee.app.db.entities.Chat;
 import fr.esiee.app.db.entities.LLM;
 import fr.esiee.app.db.entities.Prompt;
@@ -28,10 +32,15 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Properties;
 
+import javax.ws.rs.*;
+
 /**
  * A service that uses {@link DbClient} to manage Prompt, LLM, and Chat tables.
  */
 @Weight(100)
+@javax.ws.rs.Path("/db")
+@Api(value="/db", description = "Operations about database")
+@Produces({"application/json"})
 public class DbService implements HttpService {
 
   private static final Logger LOGGER = System.getLogger(DbService.class.getName());
@@ -219,7 +228,10 @@ public class DbService implements HttpService {
   }
 
 
-  private void listLLMs(ServerRequest request, ServerResponse response) {
+  @GET
+  @javax.ws.rs.Path("/llms")
+  @ApiOperation(value = "List all LLMs", response = LLM.class, responseContainer = "List")
+  public void listLLMs(ServerRequest request, ServerResponse response) {
     var llmsList = dbClient.execute()
             .namedQuery("select-all-llms")
             .map(e -> e.as(LLM.class))
@@ -227,15 +239,20 @@ public class DbService implements HttpService {
     response.send(llmsList);
   }
 
-
-  private void listChats(ServerRequest request, ServerResponse response) {
+  @GET
+  @javax.ws.rs.Path("/chat")
+  @ApiOperation(value = "List all Chats", response = Chat.class, responseContainer = "List")
+  public void listChats(ServerRequest request, ServerResponse response) {
     var chatsArray = dbClient.execute()
             .namedQuery("select-all-chats")
             .map(e -> e.as(Chat.class)).toList();
     response.send(chatsArray);
   }
 
-  private void listPrompts(ServerRequest request, ServerResponse response) {
+  @GET
+  @javax.ws.rs.Path("/prompts")
+  @ApiOperation(value = "List all Prompts", response = Prompt.class, responseContainer = "List")
+  public void listPrompts(ServerRequest request, ServerResponse response) {
     var promptsArray = dbClient.execute()
             .namedQuery("select-all-prompts")
             .map(e -> e.as(Prompt.class))
@@ -243,8 +260,13 @@ public class DbService implements HttpService {
     response.send(promptsArray);
   }
 
-
-  private void getPromptById(ServerRequest request, ServerResponse response) {
+  @GET
+  @javax.ws.rs.Path("/prompts/{id}")
+  @ApiOperation(value = "Get a Prompt by ID", response = Prompt.class)
+  @ApiResponses(value = {
+          @ApiResponse(code = 404, message = "Prompt not found")
+  })
+  public void getPromptById(ServerRequest request, ServerResponse response) {
     int promptId = Integer.parseInt(request.path().pathParameters().get("id"));
     Prompt prompt = dbClient.execute()
             .createNamedGet("select-prompt-by-id")
@@ -255,8 +277,10 @@ public class DbService implements HttpService {
     response.send(prompt);
   }
 
-
-  private void insertPrompt(Prompt prompt, ServerResponse response) {
+  @POST
+  @javax.ws.rs.Path("/prompts")
+  @ApiOperation(value = "Insert a new Prompt")
+  public void insertPrompt(Prompt prompt, ServerResponse response) {
     dbClient.execute()
             .namedInsert("insert-prompt",
                     prompt.id(),
@@ -265,11 +289,13 @@ public class DbService implements HttpService {
                     prompt.llmResponse(),
                     prompt.chatId(),
                     prompt.llmId());
-
     response.status(Status.CREATED_201).send();
   }
 
-  private void updatePrompt(Prompt prompt, ServerResponse response) {
+  @PUT
+  @javax.ws.rs.Path("/prompts")
+  @ApiOperation(value = "Update an existing Prompt")
+  public void updatePrompt(Prompt prompt, ServerResponse response) {
     dbClient.execute()
             .namedUpdate("update-prompt",
                     prompt.message(),
@@ -278,12 +304,16 @@ public class DbService implements HttpService {
                     prompt.chatId(),
                     prompt.llmId(),
                     prompt.id());
-
     response.status(Status.NO_CONTENT_204).send();
   }
 
-
-  private void deletePromptById(ServerRequest request, ServerResponse response) {
+  @DELETE
+  @javax.ws.rs.Path("/prompts/{id}")
+  @ApiOperation(value = "Delete a Prompt by ID")
+  @ApiResponses(value = {
+          @ApiResponse(code = 404, message = "Prompt not found")
+  })
+  public void deletePromptById(ServerRequest request, ServerResponse response) {
     int promptId = Integer.parseInt(request.path().pathParameters().get("id"));
     long count = dbClient.execute()
             .namedDelete("delete-prompt-by-id", promptId);
@@ -294,53 +324,53 @@ public class DbService implements HttpService {
     response.status(Status.NO_CONTENT_204).send();
   }
 
-
-  private void getPromptsByChatId(ServerRequest request, ServerResponse response) {
-    int chatId = Integer.parseInt(request.path().pathParameters().get("id"));
-    ArrayNode promptsArray = OBJECT_MAPPER.createArrayNode();
-
-    dbClient.execute().createNamedQuery("select-prompts-by-chat-id")
-            .addParam("chat_id", chatId)
+  @GET
+  @javax.ws.rs.Path("/chats/{id}/prompts")
+  @ApiOperation(value = "Get Prompts by Chat ID", responseContainer = "List")
+  public void getPromptsByChatId(ServerRequest request, ServerResponse response) {
+    int promptId = Integer.parseInt(request.path().pathParameters().get("id"));
+    Prompt prompt = dbClient.execute()
+            .createNamedGet("select-prompt-by-id")
+            .addParam("id", promptId)
             .execute()
-            .forEach(row -> {
-              PromptMapper promptMapper = new PromptMapper();
-              Prompt prompt = promptMapper.read(row);
-              ObjectNode promptJson = OBJECT_MAPPER.createObjectNode()
-                      .put("id", prompt.id())
-                      .put("message", prompt.message())
-                      .put("authorType", prompt.authorType().name())
-                      .put("llmResponse", prompt.llmResponse())
-                      .put("chatId", prompt.chatId())
-                      .put("llmId", prompt.llmId());
-              promptsArray.add(promptJson);
-            });
-
-    response.send(promptsArray);
+            .orElseThrow(() -> new NotFoundException("Prompt " + promptId + " not found"))
+            .as(Prompt.class);
+    response.send(prompt);
   }
 
-  private void insertChat(Chat chat, ServerResponse response) {
+  @POST
+  @javax.ws.rs.Path("/chats")
+  @ApiOperation(value = "Insert a new Chat")
+  public void insertChat(Chat chat, ServerResponse response) {
     dbClient.execute()
             .namedInsert("insert-chat",
                     chat.id(),
                     chat.title(),
                     chat.lastAcitivityTimestamp(),
                     chat.llmId());
-
     response.status(Status.CREATED_201).send();
   }
 
-  private void updateChat(Chat chat, ServerResponse response) {
+  @PUT
+  @javax.ws.rs.Path("/chats")
+  @ApiOperation(value = "Update an existing Chat")
+  public void updateChat(Chat chat, ServerResponse response) {
     dbClient.execute()
             .namedUpdate("update-chat",
                     chat.title(),
                     chat.lastAcitivityTimestamp(),
                     chat.llmId(),
                     chat.id());
-
     response.status(Status.NO_CONTENT_204).send();
   }
 
-  private void deleteChatById(ServerRequest request, ServerResponse response) {
+  @DELETE
+  @javax.ws.rs.Path("/chats/{id}")
+  @ApiOperation(value = "Delete a Chat by ID")
+  @ApiResponses(value = {
+          @ApiResponse(code = 404, message = "Chat not found")
+  })
+  public void deleteChatById(ServerRequest request, ServerResponse response) {
     int chatId = Integer.parseInt(request.path().pathParameters().get("id"));
     long count = dbClient.execute()
             .namedDelete("delete-chat-by-id", chatId);
@@ -350,5 +380,4 @@ public class DbService implements HttpService {
     }
     response.status(Status.NO_CONTENT_204).send();
   }
-
 }

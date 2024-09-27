@@ -151,9 +151,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!--test-->
-
-
+        <!-- swagger -->
         <dependency>
             <groupId>com.wordnik</groupId>
             <artifactId>swagger-core</artifactId>
@@ -167,38 +165,16 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback-version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-            <version>${logback-version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>servlet-api</artifactId>
-            <version>2.5</version>
-        </dependency>
-        <dependency>
             <groupId>org.glassfish.jersey.containers</groupId>
             <artifactId>jersey-container-servlet-core</artifactId>
             <version>${jersey2-version}</version>
         </dependency>
         <dependency>
-            <groupId>org.glassfish.jersey.media</groupId>
-            <artifactId>jersey-media-multipart</artifactId>
-            <version>${jersey2-version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>javax.xml.bind</groupId>
             <artifactId>jaxb-api</artifactId>
             <version>2.3.1</version>
         </dependency>
+        <!-- fin swagger -->
     </dependencies>
 
     <build>
@@ -336,10 +312,10 @@
                     <apiSources>
                         <apiSource>
                             <springmvc>false</springmvc>
-                            <locations>fr.esiee.app.UserResource</locations>
+                            <locations>fr.esiee.app.services.DbService</locations>
                             <schemes>http,https</schemes>
                             <host>localhost:8080</host>
-                            <basePath>/db</basePath>
+                            <basePath>/</basePath>
                             <info>
                                 <title>API for chatgpt-for-dev project</title>
                                 <version>v1</version>
