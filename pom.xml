@@ -12,11 +12,11 @@
     </parent>
 
     <groupId>fr.esiee.app</groupId>
-    <artifactId>chatgpt-for-dev-2</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <artifactId>chatgpt_for_dev</artifactId>
+    <version>1.0-ALPHA</version>
 
     <properties>
-        <mainClass>fr.esiee.fr.esiee.app.Main</mainClass>
+        <mainClass>fr.esiee.app.Main</mainClass>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>22</java.version>
         <helidon.version>4.1.1</helidon.version>
@@ -35,9 +35,6 @@
 
 
     <dependencies>
-
-        <!-- test-->
-
         <dependency>
             <groupId>io.helidon.webserver</groupId>
             <artifactId>helidon-webserver</artifactId>
@@ -205,7 +202,53 @@
     </dependencies>
 
     <build>
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.7.0</version>
+            </extension>
+        </extensions>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.4.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <id>all</id>
+                        <configuration>
+                            <arguments>
+                                <argument>--add-modules=jdk.incubator.vector</argument>
+                                <argument>--enable-native-access=ALL-UNNAMED</argument>
+                                <argument>--enable-preview</argument>
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>${mainClass}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+                <configuration>
+                    <mainClass>${mainClass}</mainClass>
+                    <executable>${java.home}/bin/java</executable>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>${java.version}</release>
+                    <compilerArgs>
+                        <!--                        <arg>&#45;&#45;enable-preview</arg>-->
+                        <arg>-Xlint:all</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -221,6 +264,7 @@
                     <npmVersion>10.8.2</npmVersion>
                     <environmentVariables>
                         <FRONT_OUTPUT_DIR>${project.build.outputDirectory}/static</FRONT_OUTPUT_DIR>
+                        <BACKEND_URL>http://localhost:8080</BACKEND_URL>
                     </environmentVariables>
                 </configuration>
                 <executions>
@@ -284,10 +328,6 @@
                     </execution>
                 </executions>
             </plugin>
-
-
-
-
             <plugin>
                 <groupId>com.github.kongchen</groupId>
                 <artifactId>swagger-maven-plugin</artifactId>
@@ -298,17 +338,12 @@
                             <springmvc>false</springmvc>
                             <locations>fr.esiee.app.UserResource</locations>
                             <schemes>http,https</schemes>
-                            <host>petstore.swagger.wordnik.com</host>
-                            <basePath>/api</basePath>
+                            <host>localhost:8080</host>
+                            <basePath>/db</basePath>
                             <info>
-                                <title>Swagger Maven Plugin Sample</title>
+                                <title>API for chatgpt-for-dev project</title>
                                 <version>v1</version>
-                                <description>This is a sample for swagger-maven-plugin</description>
                             </info>
-                            <!-- Support classpath or file absolute path here.
-                            1) classpath e.g: "classpath:/markdown.hbs", "classpath:/templates/hello.html"
-                            2) file e.g: "${basedir}/src/main/resources/markdown.hbs",
-                                "${basedir}/src/main/resources/template/hello.html" -->
                             <outputPath>${basedir}/generated/document.html</outputPath>
                             <swaggerDirectory>generated/swagger-ui</swaggerDirectory>
                         </apiSource>
@@ -327,15 +362,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.3.2</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.10.1</version>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
             </plugin>
         </plugins>
     </build>
