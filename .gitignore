@@ -1,6 +1,7 @@
 # Compiled class file
 *.class
 data/
+
 # Maven
 target/
 .m2/
@@ -38,3 +39,4 @@ nb-configuration.xml
 .factorypath
 
 src/main/resources/app.properties
+src/main/resources/swagger-ui

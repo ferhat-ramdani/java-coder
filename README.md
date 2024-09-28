@@ -4,6 +4,10 @@ Sample Helidon SE project that includes multiple REST operations.
 
 ## Build and run
 
+With Maven
+```bash
+mvn compile exec:exec@all
+```
 
 With JDK21
 ```bash
