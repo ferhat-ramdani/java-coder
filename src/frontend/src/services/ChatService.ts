@@ -23,7 +23,7 @@ class ChatService {
         return await response.json();
     }
 
-    async createChat(chat: Chat): Promise<Chat> {
+    async createChat(chat: Chat) {
         const response = await fetch(`${this.apiUrl}/chat`, {
             method: 'POST',
             headers: {
@@ -35,10 +35,9 @@ class ChatService {
         if (!response.ok) {
             throw new Error(`Erreur lors de l'appel POST : ${response.statusText}`);
         }
-        return await response.json();
     }
 
-    async updateChat(chat: Chat): Promise<Chat> {
+    async updateChat(chat: Chat){
         const response = await fetch(`${this.apiUrl}/chat`, {
             method: 'PUT',
             headers: {
@@ -50,10 +49,9 @@ class ChatService {
         if (!response.ok) {
             throw new Error(`Erreur lors de l'appel PUT : ${response.statusText}`);
         }
-        return await response.json();
     }
 
-    async deleteChat(id: number): Promise<void> {
+    async deleteChat(id: number) {
         const response = await fetch(`${this.apiUrl}/chat/${id}`, {
             method: 'DELETE',
         });

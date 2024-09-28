@@ -1,18 +1,29 @@
-import { Component, onMount, createSignal } from "solid-js";
+import {Component, createSignal, createEffect, Setter} from "solid-js";
 import PromptMessage from "./PromptMessage";
 import promptService from "../services/PromptService";
-import {Prompt} from "../interfaces/Prompt"
+import { Prompt } from "../interfaces/Prompt";
 
-const PromptsContainer: Component = () => {
+interface PromptContainerProps {
+    curChatId: () => number | null;
+    refreshPrompts: () => boolean;
+    setRefreshPrompts: Setter<boolean>;
+}
+
+const PromptsContainer: Component<PromptContainerProps> = (props) => {
     const [prompts, setPrompts] = createSignal<Prompt[]>([]);
 
-    onMount(async () => {
-        try {
-            const chatPrompts = await promptService.getPromptsByChatId(1);
-            console.log(chatPrompts);
-            setPrompts(chatPrompts);
-        } catch (error) {
-            console.error("Failed to fetch prompts", error);
+    createEffect(async () => {
+        const chatId = props.curChatId();
+        if (chatId) {
+            if (props.refreshPrompts() || !props.refreshPrompts()) {
+                try {
+                    const chatPrompts = await promptService.getPromptsByChatId(chatId);
+                    setPrompts(chatPrompts);
+                } catch (error) {
+                    console.error("Failed to fetch prompts", error);
+                }
+            }
+            props.setRefreshPrompts(false);
         }
     });
 

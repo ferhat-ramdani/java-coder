@@ -30,7 +30,9 @@ class PromptService {
         return await response.json();
     }
 
-    async createPrompt(prompt: Prompt): Promise<Prompt> {
+    async createPrompt(prompt: Prompt) {
+        console.log("stringified prompt : ");
+        console.log(JSON.stringify(prompt));
         const response = await fetch(`${this.apiUrl}/prompt`, {
             method: 'POST',
             headers: {
@@ -42,10 +44,9 @@ class PromptService {
         if (!response.ok) {
             throw new Error(`Erreur lors de l'appel POST : ${response.statusText}`);
         }
-        return await response.json();
     }
 
-    async updatePrompt(prompt: Prompt): Promise<Prompt> {
+    async updatePrompt(prompt: Prompt) {
         const response = await fetch(`${this.apiUrl}/prompt`, {
             method: 'PUT',
             headers: {
@@ -57,10 +58,9 @@ class PromptService {
         if (!response.ok) {
             throw new Error(`Erreur lors de l'appel PUT : ${response.statusText}`);
         }
-        return await response.json();
     }
 
-    async deletePrompt(id: number): Promise<void> {
+    async deletePrompt(id: number) {
         const response = await fetch(`${this.apiUrl}/prompt/${id}`, {
             method: 'DELETE',
         });

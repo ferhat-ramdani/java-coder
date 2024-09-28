@@ -1,7 +1,7 @@
-import {Component, createResource} from "solid-js";
+import { Component, createResource } from "solid-js";
 import ChatList from "./ChatList";
-import chatService from "../services/ChatService"
-import {Chat} from "../interfaces/Chat";
+import chatService from "../services/ChatService";
+import { Chat } from "../interfaces/Chat";
 
 const fetchChats = async (): Promise<Chat[]> => {
     try {
@@ -12,7 +12,7 @@ const fetchChats = async (): Promise<Chat[]> => {
     }
 };
 
-const Sidebar: Component = () => {
+const Sidebar: Component<{ setCurChatId: (id: number) => void }> = (props) => {
     const [chats] = createResource(fetchChats);
 
     return (
@@ -20,7 +20,11 @@ const Sidebar: Component = () => {
             <button class="btn btn-primary m-3">New Chat</button>
             <div class="p-3">
                 <h5>Chat History</h5>
-                {chats() ? <ChatList chats={chats() ?? []} /> : <p>Loading chats...</p>}
+                {chats() ? (
+                    <ChatList chats={chats() ?? []} setCurChatId={props.setCurChatId} />
+                    ) : (
+                    <p>Loading chats...</p>
+                    )}
             </div>
         </div>
     );

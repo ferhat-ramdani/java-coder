@@ -5,6 +5,7 @@ import { TimestampUtils } from '../services/TimeStampUtils';
 
 interface ChatListProps {
     chats: Chat[];
+    setCurChatId: (id: number) => void;  // Accept setCurChatId as a prop
 }
 
 const ChatList: Component<ChatListProps> = (props) => {
@@ -16,6 +17,7 @@ const ChatList: Component<ChatListProps> = (props) => {
                         timestamp={TimestampUtils.toHumanReadable(chat.lastActivityTimestamp)}
                         llm={chat.llmId.toString()}
                         firstPrompt={`Frist prompt: ${chat.id}`}
+                        setCurChatId={() => props.setCurChatId(chat.id)}  // Pass setCurChatId to ChatItem
                     />
                 )}
             </For>

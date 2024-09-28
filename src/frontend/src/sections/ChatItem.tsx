@@ -5,10 +5,12 @@ type ChatItemProps = {
     timestamp: string;
     llm: string;
     firstPrompt: string;
+    setCurChatId: () => void;
 };
 
 const ChatItem: Component<ChatItemProps> = (props) => {
     const handleClick = () => {
+        props.setCurChatId();
         console.log(`First prompt clicked: ${props.firstPrompt}`);
     };
 
