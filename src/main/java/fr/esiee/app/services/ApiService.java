@@ -9,7 +9,8 @@ public class ApiService implements HttpService {
   public void routing(HttpRules httpRules) {
     httpRules.get("/", (req, res) -> {
       res.send("API Service");
-    }).register("/llm", new LLMService());
+    }).register("/llm", new LLMService())
+      .register("/chat", new ChatService());
 
   }
 }

@@ -2,16 +2,12 @@ package fr.esiee.app.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import fr.esiee.app.db.entities.Chat;
-import fr.esiee.app.db.entities.LLM;
 import fr.esiee.app.db.entities.Prompt;
-import fr.esiee.app.db.mapper.PromptMapper;
 import io.helidon.common.Weight;
 import io.helidon.common.context.Contexts;
 import io.helidon.common.media.type.MediaTypes;
@@ -30,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 import java.util.Properties;
 
 import javax.ws.rs.*;
@@ -39,7 +36,7 @@ import javax.ws.rs.*;
  */
 @Weight(100)
 @javax.ws.rs.Path("/db")
-@Api(value="/db", description = "Operations about database")
+@Api(value = "/db", description = "Operations about database")
 @Produces({"application/json"})
 public class DbService implements HttpService {
 
@@ -84,7 +81,7 @@ public class DbService implements HttpService {
         exec.namedInsert("insert-chat",
                 chat.get("id").asInt(),
                 chat.get("title").asText(),
-                chat.get("last_activity_timestamp").asText(),
+                chat.get("last_activity").asText(),
                 chat.get("llm_id").asInt());
       }
     } catch (Exception e) {
@@ -185,9 +182,9 @@ public class DbService implements HttpService {
   public void routing(HttpRules rules) {
     rules.get("/", this::index)
             // List all LLMs
-            .get("/llm", this::listLLMs)
+//            .get("/llm", this::listLLMs)
             // List all Chats
-            .get("/chat", this::listChats)
+//            .get("/chat", this::listChats)
             // List all Prompts
             .get("/prompt", this::listPrompts)
             // Get Prompt by ID
@@ -195,15 +192,15 @@ public class DbService implements HttpService {
             // Create new Prompt
             .post("/prompt", Handler.create(Prompt.class, this::insertPrompt))
             // Create new chat
-            .post("/chat", Handler.create(Chat.class, this::insertChat))
+//            .post("/chat", Handler.create(Chat.class, this::insertChat))
             // Update existing Prompt
             .put("/prompt", Handler.create(Prompt.class, this::updatePrompt))
             // Update existing Chat
-            .put("/chat", Handler.create(Chat.class, this::updateChat))
+//            .put("/chat", Handler.create(Chat.class, this::updateChat))
             // Delete Prompt by ID
             .delete("/prompt/{id}", this::deletePromptById)
             // Delete Chat by ID
-            .delete("/chat/{id}", this::deleteChatById)
+//            .delete("/chat/{id}", this::deleteChatById)
             // Get Prompts by Chat ID
             .get("/chat/{id}/prompts", this::getPromptsByChatId);
   }
@@ -222,31 +219,16 @@ public class DbService implements HttpService {
             
                   GET /chat/{id}/prompts    - List all Prompts for a Chat
                   POST /chat                - Insert new Chat
-                  PUT /chat                 - Update existing Chat (requires id, title, last_activity_timestamp, llm_id)
+                  PUT /chat                 - Update existing Chat (requires id, title, lastActivity, llmId)
                   DELETE /chat/{id}         - Delete Chat by ID
             """);
   }
 
 
-  @GET
-  @javax.ws.rs.Path("/llms")
-  @ApiOperation(value = "List all LLMs", response = LLM.class, responseContainer = "List")
-  public void listLLMs(ServerRequest request, ServerResponse response) {
-    var llmsList = dbClient.execute()
-            .namedQuery("select-all-llms")
-            .map(e -> e.as(LLM.class))
-            .toList();
-    response.send(llmsList);
-  }
-
-  @GET
-  @javax.ws.rs.Path("/chat")
-  @ApiOperation(value = "List all Chats", response = Chat.class, responseContainer = "List")
-  public void listChats(ServerRequest request, ServerResponse response) {
-    var chatsArray = dbClient.execute()
+  public List<Chat> listChats() {
+    return dbClient.execute()
             .namedQuery("select-all-chats")
             .map(e -> e.as(Chat.class)).toList();
-    response.send(chatsArray);
   }
 
   @GET
@@ -338,46 +320,57 @@ public class DbService implements HttpService {
     response.send(prompt);
   }
 
-  @POST
-  @javax.ws.rs.Path("/chats")
-  @ApiOperation(value = "Insert a new Chat")
-  public void insertChat(Chat chat, ServerResponse response) {
-    dbClient.execute()
+  public long insertChat(Chat chat) {
+    if(chat.id() < 0 || chat.llmId() < 0) {
+      throw new IllegalArgumentException("id or llmId is negative");
+    }
+    if (chatExists(chat.id())) {
+      throw new IllegalArgumentException("Chat " + chat.id() + " already exists");
+    }
+    return dbClient.execute()
             .namedInsert("insert-chat",
                     chat.id(),
                     chat.title(),
-                    chat.lastAcitivityTimestamp(),
+                    chat.lastActivity(),
                     chat.llmId());
-    response.status(Status.CREATED_201).send();
   }
 
-  @PUT
-  @javax.ws.rs.Path("/chats")
-  @ApiOperation(value = "Update an existing Chat")
-  public void updateChat(Chat chat, ServerResponse response) {
-    dbClient.execute()
-            .namedUpdate("update-chat",
-                    chat.title(),
-                    chat.lastAcitivityTimestamp(),
-                    chat.llmId(),
-                    chat.id());
-    response.status(Status.NO_CONTENT_204).send();
+  public boolean chatExists(int chatId) {
+    return dbClient.execute()
+            .createNamedGet("select-chat-by-id")
+            .addParam("id", chatId)
+            .execute()
+            .isPresent();
   }
 
-  @DELETE
-  @javax.ws.rs.Path("/chats/{id}")
-  @ApiOperation(value = "Delete a Chat by ID")
-  @ApiResponses(value = {
-          @ApiResponse(code = 404, message = "Chat not found")
-  })
-  public void deleteChatById(ServerRequest request, ServerResponse response) {
-    int chatId = Integer.parseInt(request.path().pathParameters().get("id"));
-    long count = dbClient.execute()
-            .namedDelete("delete-chat-by-id", chatId);
+  public Chat getChatById(int chatId) {
+    return dbClient.execute()
+            .createNamedGet("select-chat-by-id")
+            .addParam("id", chatId)
+            .execute()
+            .orElseThrow(() -> new NotFoundException("Chat " + chatId + " not found"))
+            .as(Chat.class);
+  }
 
+  public long updateChat(Chat chat) {
+    if(chat.id() < 0 || chat.llmId() < 0) {
+      throw new IllegalArgumentException("id or llmId is negative");
+    }
+    if (!chatExists(chat.id())) {
+      throw new NotFoundException("Chat " + chat.id() + " not found");
+    }
+    return dbClient.execute().createNamedUpdate("update-chat-by-id")
+                    .namedParam(chat).execute();
+  }
+
+
+  public long deleteChatById(int chatId) {
+    var count = dbClient.execute().createNamedDelete("delete-chat-by-id")
+            .addParam("id", chatId)
+            .execute();
     if (count == 0) {
       throw new NotFoundException("Chat " + chatId + " not found");
     }
-    response.status(Status.NO_CONTENT_204).send();
+    return count;
   }
 }

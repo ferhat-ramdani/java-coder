@@ -17,7 +17,7 @@ public record ChatMapper() implements DbMapper<Chat> {
     public Chat read(DbRow row) {
         DbColumn id = row.column("id");
         DbColumn title = row.column("title");
-        DbColumn lastActivityTimestamp = row.column("last_activity_timestamp");
+        DbColumn lastActivityTimestamp = row.column("last_activity");
         DbColumn llmId = row.column("llm_id");
         return new Chat(id.get(Integer.class), title.get(String.class), lastActivityTimestamp.get(Timestamp.class), llmId.get(Integer.class));
     }
@@ -27,8 +27,8 @@ public record ChatMapper() implements DbMapper<Chat> {
         Map<String, Object> map = new HashMap<>(4);
         map.put("id", value.id());
         map.put("title", value.title());
-        map.put("last_activity_timestamp", value.lastAcitivityTimestamp());
-        map.put("llm_id", value.llmId());
+        map.put("lastActivity", value.lastActivity());
+        map.put("llmId", value.llmId());
         return map;
     }
 
@@ -37,7 +37,7 @@ public record ChatMapper() implements DbMapper<Chat> {
         List<Object> list = new ArrayList<>(4);
         list.add(value.id());
         list.add(value.title());
-        list.add(value.lastAcitivityTimestamp());
+        list.add(value.lastActivity());
         list.add(value.llmId());
         return list;
     }

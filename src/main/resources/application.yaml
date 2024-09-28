@@ -1,24 +1,12 @@
 server:
   port: 8080
   host: 0.0.0.0
+  features:
+    access-log:
+      format: "%h %l %u %t %r %s %b %{Referer}i"
 
 app:
   greeting: "Hello"
-
-llms:
-  jlama:
-    url: "localhost"
-    models:
-      - "Llama"
-  ollama:
-    url: "localhost"
-    models:
-      - "gemma2"
-  localai:
-    url: "localhost"
-    models:
-      - "llama-guard-3-8b"
-      - "llama-guard-3-8b"
 
 llm:
   provider: "jlama"
@@ -45,32 +33,32 @@ db:
 
   statements:
     # Table creation
-    create-llm: "CREATE TABLE llm (id INTEGER NOT NULL PRIMARY KEY, name VARCHAR(64) NOT NULL, model VARCHAR(128))"
-    create-chat: "CREATE TABLE Chat (id INTEGER NOT NULL PRIMARY KEY, title VARCHAR(128) NOT NULL, last_activity_timestamp TIMESTAMP NOT NULL, llm_id INTEGER NOT NULL REFERENCES llm(id))"
-    create-prompt: "CREATE TABLE Prompt (id INTEGER NOT NULL PRIMARY KEY, message VARCHAR(256) NOT NULL, author_type VARCHAR(10) NOT NULL CHECK (author_type IN ('SYSTEM', 'USER')), llm_response VARCHAR(256) NOT NULL, chat_id INTEGER NOT NULL REFERENCES Chat(id), llm_id INTEGER NOT NULL REFERENCES llm(id))"
+    create-llm: "CREATE TABLE llm(id INTEGER NOT NULL PRIMARY KEY auto_increment,name VARCHAR(64) NOT NULL,model VARCHAR(128))"
+    create-chat: "CREATE TABLE Chat(id INTEGER NOT NULL PRIMARY KEY auto_increment, title VARCHAR(128) NOT NULL, last_activity TIMESTAMP NOT NULL, llm_id INTEGER NOT NULL REFERENCES llm (id) ON DELETE CASCADE ON UPDATE CASCADE)"
+    create-prompt: "CREATE TABLE Prompt(id INTEGER NOT NULL PRIMARY KEY,message VARCHAR(256) NOT NULL,author_type VARCHAR(10) NOT NULL CHECK (author_type IN ('SYSTEM', 'USER')),llm_response VARCHAR(256) NOT NULL,chat_id INTEGER NOT NULL REFERENCES Chat (id) ON DELETE CASCADE ON UPDATE CASCADE,llm_id INTEGER NOT NULL REFERENCES llm (id) ON DELETE CASCADE ON UPDATE CASCADE)"
 
     # Insert statements
     insert-llm: "INSERT INTO llm(id, name, model) VALUES(?, ?, ?)"
-    insert-chat: "INSERT INTO Chat(id, title, last_activity_timestamp, llm_id) VALUES(?, ?, ?, ?)"
+    insert-chat: "INSERT INTO Chat(id, title, last_activity, llm_id) VALUES(?, ?, ?, ?)"
     insert-prompt: "INSERT INTO Prompt(id, message, author_type, llm_response, chat_id, llm_id) VALUES(?, ?, ?, ?, ?, ?)"
 
     # Select all entries
     select-all-llms: "SELECT id, name, model FROM llm"
-    select-all-chats: "SELECT id, title, last_activity_timestamp, llm_id FROM Chat"
+    select-all-chats: "SELECT id, title, last_activity, llm_id FROM Chat"
     select-all-prompts: "SELECT id, message, author_type, llm_response, chat_id, llm_id FROM Prompt"
 
     # Select entries by id
     select-llm-by-id: "SELECT id, name, model FROM llm WHERE id = :id"
-    select-chat-by-id: "SELECT id, title, last_activity_timestamp, llm_id FROM Chat WHERE id = :id"
+    select-chat-by-id: "SELECT id, title, last_activity, llm_id FROM Chat WHERE id = :id"
     select-prompt-by-id: "SELECT id, message, author_type, llm_response, chat_id, llm_id FROM Prompt WHERE id = :id"
 
     # Retrieve llm and Chat from Prompt (through foreign keys)
     retrieve-llm-from-prompt: "SELECT llm.id, llm.name, llm.model FROM llm JOIN Prompt ON llm.id = Prompt.llm_id WHERE Prompt.id = :promptId"
-    retrieve-chat-from-prompt: "SELECT Chat.id, Chat.title, Chat.last_activity_timestamp, Chat.llm_id FROM Chat JOIN Prompt ON Chat.id = Prompt.chat_id WHERE Prompt.id = :promptId"
+    retrieve-chat-from-prompt: "SELECT Chat.id, Chat.title, Chat.last_activity, Chat.llm_id FROM Chat JOIN Prompt ON Chat.id = Prompt.chat_id WHERE Prompt.id = :promptId"
 
     # Update statements
     update-llm-by-id: "UPDATE llm SET name = :name, model = :model WHERE id = :id"
-    update-chat-by-id: "UPDATE Chat SET title = :title, last_activity_timestamp = :lastActivityTimestamp, llm_id = :llmId WHERE id = :id"
+    update-chat-by-id: "UPDATE Chat SET title = :title, last_activity = :lastActivity, llm_id = :llmId WHERE id = :id"
     update-prompt-by-id: "UPDATE Prompt SET message = :message, author_type = :authorType, llm_response = :llmResponse, chat_id = :chatId, llm_id = :llmId WHERE id = :id"
 
     # Delete statements (single entry)

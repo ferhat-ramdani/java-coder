@@ -21,14 +21,15 @@ import fr.esiee.app.services.DbService;
 import io.helidon.common.GenericType;
 import io.helidon.common.context.Contexts;
 import io.helidon.dbclient.DbClient;
+import io.helidon.http.media.jackson.JacksonSupport;
 import io.helidon.logging.common.LogConfig;
 import io.helidon.config.Config;
 import io.helidon.webserver.WebServer;
+import io.helidon.webserver.accesslog.AccessLogFeature;
 import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.staticcontent.StaticContentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 
 /**
@@ -44,10 +45,10 @@ public class Main {
   }
 
   public static void main(String[] args) throws IOException, InterruptedException {
-    if(!OllamaCheck.installOllama()) {
+/*    if(!OllamaCheck.installOllama()) {
       LOGGER.error("You need to install Ollama to run this application.");
       return;
-    }
+    }*/
 
 
     LogConfig.configureRuntime();
@@ -61,7 +62,16 @@ public class Main {
     DbClient dbClient = DbClient.create(config.get("db"));
     Contexts.globalContext().register(dbClient);
 
-    WebServer server = WebServer.builder().config(config.get("server")).routing(Main::routing).build().start();
+    WebServer server = WebServer.builder()
+            .mediaContext(it -> it
+                    .mediaSupportsDiscoverServices(false)
+                    .addMediaSupport(JacksonSupport.create(config))
+                    .build())
+            .addFeature(AccessLogFeature.builder()
+                    .commonLogFormat()
+                    .build())
+                    .config(config.get("server"))
+                    .routing(Main::routing).build().start();
     System.out.println("WEB server is up! http://localhost:" + server.port());
 
   }
