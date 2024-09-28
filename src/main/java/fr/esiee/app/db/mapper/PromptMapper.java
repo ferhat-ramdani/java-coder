@@ -36,10 +36,10 @@ public record PromptMapper() implements DbMapper<Prompt> {
         Map<String, Object> map = new HashMap<>(6);
         map.put("id", value.id());
         map.put("message", value.message());
-        map.put("author_type", value.authorType().name());
-        map.put("llm_response", value.llmResponse());
-        map.put("chat_id", value.chatId());
-        map.put("llm_id", value.llmId());
+        map.put("authorType", value.authorType().name());
+        map.put("llmResponse", value.llmResponse());
+        map.put("chatId", value.chatId());
+        map.put("llmId", value.llmId());
         return map;
     }
 

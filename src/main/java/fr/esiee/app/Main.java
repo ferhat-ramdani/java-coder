@@ -80,10 +80,7 @@ public class Main {
    * Updates HTTP Routing.
    */
   static void routing(HttpRouting.Builder routing) {
-    routing.register("/greet", new GreetService())
-            .register("/db", new DbService())
-            .register("/api", new ApiService())
-            .get("/simple-greet", (req, res) -> res.send("Hello World!"));
+    routing.register("/api", new ApiService());
     registerFrontEndRoutes(routing);
   }
 

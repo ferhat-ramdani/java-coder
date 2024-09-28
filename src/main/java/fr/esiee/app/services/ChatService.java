@@ -36,10 +36,8 @@ public class ChatService implements HttpService {
 
   }
 
-  private void getChatById(ServerRequest request, ServerResponse response) {
-    int chatId = request.path()
-            .pathParameters()
-            .first("id").map(Integer::parseInt)
+  public void getChatById(ServerRequest request, ServerResponse response) {
+    int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new BadRequestException("Chat ID is required"));
     var chat = dbClient.getChatById(chatId);
     response.send(chat);
@@ -56,7 +54,6 @@ public class ChatService implements HttpService {
   @javax.ws.rs.Path("/chat")
   @ApiOperation(value = "Insert a new Chat")
   public void insertChat(Chat chat, ServerResponse response) {
-    System.out.println("Inserting chat: " + chat.id());
     long insertedRows = dbClient.insertChat(chat);
     if (insertedRows <= 0) {
       response.status(Status.BAD_REQUEST_400).send("Failed to insert chat");
@@ -80,13 +77,9 @@ public class ChatService implements HttpService {
   @DELETE
   @javax.ws.rs.Path("/chats/{id}")
   @ApiOperation(value = "Delete a Chat by ID")
-  @ApiResponses(value = {
-          @ApiResponse(code = 404, message = "Chat not found")
-  })
+  @ApiResponses(value = {@ApiResponse(code = 404, message = "Chat not found")})
   public void deleteChatById(ServerRequest request, ServerResponse response) {
-    int chatId = request.path()
-            .pathParameters()
-            .first("id").map(Integer::parseInt)
+    int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new BadRequestException("Chat ID is required"));
     var count = dbClient.deleteChatById(chatId);
     response.status(Status.OK_200).send("Deleted " + count + " rows");
