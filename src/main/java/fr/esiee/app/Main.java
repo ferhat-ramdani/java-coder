@@ -15,6 +15,7 @@ import fr.esiee.app.config.LLMConfig;
 import fr.esiee.app.config.LLMElem;
 import fr.esiee.app.config.mapper.LLMElemMapper;
 import fr.esiee.app.config.mapper.LLMConfigMapper;
+import fr.esiee.app.llmcheck.OllamaCheck;
 import fr.esiee.app.services.ApiService;
 import fr.esiee.app.services.DbService;
 import io.helidon.common.GenericType;
@@ -25,11 +26,10 @@ import io.helidon.config.Config;
 import io.helidon.webserver.WebServer;
 import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.staticcontent.StaticContentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
+import java.io.IOException;
 
 /**
  * The application main class.
@@ -39,45 +39,17 @@ public class Main {
   private static final StaticContentService FRONT_STATIC_PATH =
           StaticContentService.builder("/static").welcomeFileName("index.html").build();
 
-  private static final Logger logger = Logger.getLogger(Main.class.getName());
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
   private Main() {
   }
 
-  public static void main(String[] args) {
-    System.out.println( "Hello World!" );
+  public static void main(String[] args) throws IOException, InterruptedException {
+    if(!OllamaCheck.installOllama()) {
+      LOGGER.error("You need to install Ollama to run this application.");
+      return;
+    }
 
-    CompletableFuture<Response<AiMessage>> futureResponse = new CompletableFuture<>();
 
-    StreamingChatLanguageModel model = JlamaStreamingChatModel.builder()
-            .modelName("tjake/TinyLlama-1.1B-Chat-v1.0-Jlama-Q4")
-            .temperature(0.3f)
-            .build();
-
-    List<ChatMessage> messages = List.of(
-            SystemMessage.from("You are helpful chatbot who is a java expert."),
-            UserMessage.from("Write a java program to calculate fibonaci"));
-
-    model.generate(messages, new StreamingResponseHandler<>() {
-      @Override
-      public void onNext(String token) {
-        System.out.print(token);
-      }
-
-      @Override
-      public void onComplete(Response<AiMessage> response) {
-        System.out.println("FIN1");
-        futureResponse.complete(response);
-        System.out.println("FIN2");
-      }
-
-      @Override
-      public void onError(Throwable error) {
-        futureResponse.completeExceptionally(error);
-      }
-    });
-
-    futureResponse.join();
     LogConfig.configureRuntime();
 
     Config config = Config.builder()
