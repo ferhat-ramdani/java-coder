@@ -6,6 +6,7 @@ import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.models.auth.In;
 import fr.esiee.app.db.entities.Chat;
 import fr.esiee.app.db.entities.Prompt;
 import io.helidon.common.Weight;
@@ -26,6 +27,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Properties;
 
@@ -203,7 +206,27 @@ public class DbService {
     if (promptExists(prompt.id())) {
       throw new IllegalArgumentException("Prompt " + prompt.id() + " already exists");
     }
-    return dbClient.execute().createNamedInsert("insert-prompt").indexedParam(prompt).execute();
+
+    var updatedRows = dbClient.execute().createNamedInsert("insert-prompt")
+            .addParam(prompt.message())
+            .addParam(prompt.authorType().name())
+            .addParam(prompt.llmResponse())
+            .addParam(prompt.chatId())
+            .addParam(prompt.llmId())
+            .execute();
+
+    if (updatedRows <= 0) {
+      throw new BadRequestException("Failed to insert prompt");
+    }
+    updateChatLastActivity(prompt.chatId());
+    return updatedRows;
+  }
+
+  private void updateChatLastActivity(int chatId) {
+    dbClient.execute().createNamedUpdate("update-chat-last-activity")
+            .addParam("id", chatId)
+            .addParam("lastActivity", Timestamp.from(Instant.now()))
+            .execute();
   }
 
   public long updatePrompt(Prompt prompt) {
@@ -243,7 +266,10 @@ public class DbService {
       throw new IllegalArgumentException("Chat " + chat.id() + " already exists");
     }
     return dbClient.execute()
-            .createNamedInsert("insert-chat").indexedParam(chat).execute();
+            .createNamedInsert("insert-chat")
+            .addParam(chat.title())
+            .addParam(chat.lastActivity())
+            .addParam(chat.llmId()).execute();
   }
 
   public boolean chatExists(int chatId) {

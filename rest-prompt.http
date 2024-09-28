@@ -2,7 +2,6 @@ POST http://localhost:8080/api/prompt
 Content-Type: application/json
 
 {
-  "id": 29,
   "message": "Create a c123lass representing a basic entity.",
   "authorType": "SYSTEM",
   "llmResponse": "publ123ic class BasicEntity {}",
@@ -19,9 +18,9 @@ PUT http://localhost:8080/api/prompt
 Content-Type: application/json
 
 {
-  "id": 24,
+  "id": 29,
   "message": "Create a class representing a basic entity.",
-  "authorType": "USER",
+  "authorType": "LLM",
   "llmResponse": "public class BasicEantity {}",
   "chatId": 1,
   "llmId": 1

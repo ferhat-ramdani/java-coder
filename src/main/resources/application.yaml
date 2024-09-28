@@ -34,13 +34,13 @@ db:
   statements:
     # Table creation
     create-llm: "CREATE TABLE llm(id INTEGER NOT NULL PRIMARY KEY auto_increment,name VARCHAR(64) NOT NULL,model VARCHAR(128))"
-    create-chat: "CREATE TABLE Chat(id INTEGER NOT NULL PRIMARY KEY auto_increment, title VARCHAR(128) NOT NULL, last_activity TIMESTAMP NOT NULL, llm_id INTEGER NOT NULL REFERENCES llm (id) ON DELETE CASCADE ON UPDATE CASCADE)"
-    create-prompt: "CREATE TABLE Prompt(id INTEGER NOT NULL PRIMARY KEY auto_increment,message VARCHAR(256) NOT NULL,author_type VARCHAR(10) NOT NULL CHECK (author_type IN ('SYSTEM', 'USER')),llm_response VARCHAR(256) NOT NULL,chat_id INTEGER NOT NULL REFERENCES Chat (id) ON DELETE CASCADE ON UPDATE CASCADE,llm_id INTEGER NOT NULL REFERENCES llm (id) ON DELETE CASCADE ON UPDATE CASCADE)"
+    create-chat: "CREATE TABLE Chat(id INTEGER NOT NULL PRIMARY KEY auto_increment, title VARCHAR(128) NOT NULL, last_activity TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, llm_id INTEGER NOT NULL REFERENCES llm (id) ON DELETE CASCADE ON UPDATE CASCADE)"
+    create-prompt: "CREATE TABLE Prompt(id INTEGER NOT NULL PRIMARY KEY auto_increment,message VARCHAR(256) NOT NULL,author_type VARCHAR(10) NOT NULL CHECK (author_type IN ('SYSTEM', 'USER', 'LLM')),llm_response VARCHAR(256) NOT NULL,chat_id INTEGER NOT NULL REFERENCES Chat (id) ON DELETE CASCADE ON UPDATE CASCADE,llm_id INTEGER NOT NULL REFERENCES llm (id) ON DELETE CASCADE ON UPDATE CASCADE)"
 
     # Insert statements
-    insert-llm: "INSERT INTO llm(id, name, model) VALUES(?, ?, ?)"
-    insert-chat: "INSERT INTO Chat(id, title, last_activity, llm_id) VALUES(?, ?, ?, ?)"
-    insert-prompt: "INSERT INTO Prompt(id, message, author_type, llm_response, chat_id, llm_id) VALUES(?, ?, ?, ?, ?, ?)"
+    insert-llm: "INSERT INTO llm(name, model) VALUES(?, ?)"
+    insert-chat: "INSERT INTO Chat(title, last_activity, llm_id) VALUES(?, ?, ?)"
+    insert-prompt: "INSERT INTO Prompt(message, author_type, llm_response, chat_id, llm_id) VALUES(?, ?, ?, ?, ?)"
 
     # Select all entries
     select-all-llms: "SELECT id, name, model FROM llm"
@@ -73,3 +73,7 @@ db:
 
     # Get prompts by chat id
     select-prompts-by-chat-id: "SELECT id, message, author_type, llm_response, chat_id, llm_id FROM Prompt WHERE chat_id = :chatId"
+
+
+    # Update last_activity of Chat
+    update-chat-last-activity: "UPDATE Chat SET last_activity = :lastActivity WHERE id = :id"

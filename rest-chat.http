@@ -2,7 +2,6 @@ POST http://localhost:8080/api/chat
 Content-Type: application/json
 
 {
-  "id": "24",
   "title": "title",
   "lastActivity": "1704283200000",
   "llmId": "1"
@@ -24,7 +23,7 @@ Content-Type: application/json
 }
 
 ### Delete a chat
-DELETE http://localhost:8080/api/chat/24
+DELETE http://localhost:8080/api/chat/5
 
 ### Get a chat by id
 GET http://localhost:8080/api/chat/0
