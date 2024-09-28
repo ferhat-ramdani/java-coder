@@ -20,7 +20,7 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * A service that uses {@link DbClient} to manage Prompt, LLM, and Chat tables.
+ * A service that uses {@link DbClient} to manage Prompt, LLM, and Chat.ts tables.
  */
 public class DbService {
 
@@ -240,7 +240,7 @@ public class DbService {
             .addParam("id", chatId)
             .execute();
     if (count == 0) {
-      throw new NotFoundException("Chat " + chatId + " not found");
+      throw new NotFoundException("Chat.ts " + chatId + " not found");
     }
     return count;
   }

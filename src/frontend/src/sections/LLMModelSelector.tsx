@@ -1,5 +1,5 @@
 import {Component, createResource, createSignal, For, onMount} from "solid-js";
-import llmService from "../sevices/LLMService";
+import llmService from "../services/LLMService";
 
 
 

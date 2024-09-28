@@ -1,23 +1,24 @@
-import { Component } from "solid-js";
-import ChatItem from "./ChatItem";  // Adjust the import path as necessary
+import { Component, For } from "solid-js";
+import ChatItem from "./ChatItem";
+import { Chat } from "../interfaces/Chat";
+import { TimestampUtils } from '../services/TimeStampUtils';
 
-const ChatList: Component = () => {
-    const chats = [
-        { date: "2024-09-20", time: "14:30", llm: "Model A", firstPrompt: "Discuss Java classes" },
-        { date: "2024-09-21", time: "10:15", llm: "Model B", firstPrompt: "Explain REST APIs" },
-        { date: "2024-09-22", time: "09:00", llm: "Model C", firstPrompt: "Best practices in frontend dev" }
-    ];
+interface ChatListProps {
+    chats: Chat[];
+}
 
+const ChatList: Component<ChatListProps> = (props) => {
     return (
         <div class="list-group">
-            {chats.map((chat, index) => (
-                <ChatItem
-                    date={chat.date}
-                    time={chat.time}
-                    llm={chat.llm}
-                    firstPrompt={chat.firstPrompt}
-                />
-            ))}
+            <For each={props.chats}>
+                {(chat) => (
+                    <ChatItem
+                        timestamp={TimestampUtils.toHumanReadable(chat.lastActivityTimestamp)}
+                        llm={chat.llmId.toString()}
+                        firstPrompt={`Frist prompt: ${chat.id}`}
+                    />
+                )}
+            </For>
         </div>
     );
 };

@@ -5,7 +5,6 @@ import io.helidon.dbclient.DbColumn;
 import io.helidon.dbclient.DbMapper;
 import io.helidon.dbclient.DbRow;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,7 +18,7 @@ public record ChatMapper() implements DbMapper<Chat> {
         DbColumn title = row.column("title");
         DbColumn lastActivityTimestamp = row.column("last_activity");
         DbColumn llmId = row.column("llm_id");
-        return new Chat(id.get(Integer.class), title.get(String.class), lastActivityTimestamp.get(Timestamp.class), llmId.get(Integer.class));
+        return new Chat(id.get(Integer.class), title.get(String.class), lastActivityTimestamp.get(Integer.class), llmId.get(Integer.class));
     }
 
     @Override

@@ -5,7 +5,7 @@ interface PromptProps {
     message: string;
 }
 
-const Prompt: Component<PromptProps> = (props) => {
+const PromptMessage: Component<PromptProps> = (props) => {
     let bgColor = "";
     let alignmentClass = "";
 
@@ -41,4 +41,4 @@ const Prompt: Component<PromptProps> = (props) => {
     );
 };
 
-export default Prompt;
+export default PromptMessage;

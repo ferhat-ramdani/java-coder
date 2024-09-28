@@ -4,8 +4,6 @@ import {LLM} from "../interfaces/LLM";
 class LLMService {
 
     private config: Config = Config.getInstance();
-
-
     private backendUrl: string;
 
     constructor() {
