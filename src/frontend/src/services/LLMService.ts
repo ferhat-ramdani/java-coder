@@ -19,7 +19,7 @@ class LLMService {
     // }
 
     async getLLMS(): Promise<LLM[]> {
-        const response = await fetch(`${this.backendUrl}/db/llm`);
+        const response = await fetch(`${this.backendUrl}/api/llm`);
         if (!response.ok) {
             throw new Error(`Erreur lors de l'appel GET : ${response.statusText}`);
         }
@@ -27,7 +27,7 @@ class LLMService {
     }
 
     async getLlmById(id: number): Promise<LLM> {
-        const response = await fetch(`${this.backendUrl}/db/llm/${id}`);
+        const response = await fetch(`${this.backendUrl}/api/llm/${id}`);
         if (!response.ok) {
             throw new Error(`Erreur lors de l'appel GET : ${response.statusText}`);
         }

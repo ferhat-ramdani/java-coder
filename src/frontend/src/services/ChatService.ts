@@ -4,7 +4,7 @@ import { Chat } from "../interfaces/Chat";
 class ChatService {
 
     private config: Config = Config.getInstance();
-    private apiUrl: string = `${this.config.getBackendUrl()}/db`;
+    private apiUrl: string = `${this.config.getBackendUrl()}/api`;
 
     async getChats(): Promise<Chat[]> {
         const response = await fetch(`${this.apiUrl}/chat`);

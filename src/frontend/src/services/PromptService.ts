@@ -4,7 +4,7 @@ import { Prompt } from "../interfaces/Prompt";
 class PromptService {
 
     private config: Config = Config.getInstance();
-    private apiUrl: string = `${this.config.getBackendUrl()}/db`;
+    private apiUrl: string = `${this.config.getBackendUrl()}/api`;
 
     async getPrompts(): Promise<Prompt[]> {
         const response = await fetch(`${this.apiUrl}/prompt`);

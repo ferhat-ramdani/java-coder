@@ -19,6 +19,7 @@ public record PromptMapper() implements DbMapper<Prompt> {
         DbColumn message = row.column("message");
         DbColumn authorType = row.column("author_type");
         DbColumn chatId = row.column("chat_id");
+        DbColumn llmId = row.column("llm_id");
         return new Prompt(
                 id.get(Integer.class),
                 message.get(String.class),
