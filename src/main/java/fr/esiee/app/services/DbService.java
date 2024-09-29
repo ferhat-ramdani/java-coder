@@ -260,4 +260,14 @@ public class DbService {
             .orElseThrow(() -> new NotFoundException("LLM " + llmId + " not found"))
             .as(LLM.class);
   }
+
+  public Prompt getFirstPromptByChatId(int chatId) {
+    return dbClient.execute()
+            .createNamedQuery("select-first-prompt-by-chat-id")
+            .addParam("chatId", chatId)
+            .execute()
+            .map(e -> e.as(Prompt.class))
+            .findFirst()
+            .orElseThrow(() -> new NotFoundException("Chat " + chatId + " not found"));
+  }
 }

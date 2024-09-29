@@ -31,6 +31,7 @@ public class PromptService implements HttpService {
     httpRules.get("/", this::listPrompts)
             .get("/{id}", this::getPromptById)
             .get("/bychat/{id}", this::getPromptsByChatId)
+            .get("/bychat/{id}/first", this::getFirstPromptByChatId)
             .post("/", Handler.create(Prompt.class, this::insertPrompt))
             .put("/", Handler.create(Prompt.class, this::updatePrompt))
             .delete("/{id}", this::deletePromptById);
@@ -102,5 +103,12 @@ public class PromptService implements HttpService {
             .orElseThrow(() -> new NotFoundException("Chat ID is required"));
     var prompts = dbClient.getPromptsByChatId(chatId);
     response.send(prompts);
+  }
+
+  public void getFirstPromptByChatId(ServerRequest request, ServerResponse response) {
+    int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
+            .orElseThrow(() -> new NotFoundException("Chat ID is required"));
+    var prompt = dbClient.getFirstPromptByChatId(chatId);
+    response.send(prompt);
   }
 }
