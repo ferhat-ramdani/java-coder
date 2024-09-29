@@ -1,14 +1,14 @@
-import {Component, createResource, Setter} from "solid-js";
-import ChatList from "./ChatList";
+import {Component, createResource, createSignal, For} from "solid-js";
 import chatService from "../services/ChatService";
 import { Chat } from "../interfaces/Chat";
-import {LLM} from "../interfaces/LLM";
+import { LLM } from "../interfaces/LLM";
+import ChatItem from "./ChatItem";
 
 interface SideBarProps {
     curChatId: () => number | null;
-    setCurChatId: (id: number) => void;
+    setCurChatId: (id: number | null) => void;
     selectedLLM: () => LLM | null;
-    setSelectedLLM: (llm : LLM) => void;
+    setSelectedLLM: (llm: LLM) => void;
 }
 
 const fetchChats = async (): Promise<Chat[]> => {
@@ -21,7 +21,7 @@ const fetchChats = async (): Promise<Chat[]> => {
 };
 
 const Sidebar: Component<SideBarProps> = (props) => {
-    const [chats] = createResource(fetchChats);
+    const [chats, { refetch }] = createResource(fetchChats);
 
     return (
         <div class="sidebar position-fixed top-0 start-0 h-100 bg-light border-end" style="width: 300px; max-width: 25%; min-width: 150px;">
@@ -29,10 +29,16 @@ const Sidebar: Component<SideBarProps> = (props) => {
             <div class="p-3">
                 <h5>Chat History</h5>
                 {chats() ? (
-                    <ChatList chats={chats() ?? []} {...props} />
-                    ) : (
+                    <div class="list-group">
+                        <For each={chats()}>
+                            {(chat) => (
+                                <ChatItem chat={chat} refetch={refetch} {...props} />
+                            )}
+                        </For>
+                    </div>
+                ) : (
                     <p>Loading chats...</p>
-                    )}
+                )}
             </div>
         </div>
     );

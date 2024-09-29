@@ -1,35 +1,50 @@
-import { Component } from "solid-js";
+import { Component, createResource } from "solid-js";
 import "../styles.css";
 import ChatService from "../services/ChatService";
 import PromptService from "../services/PromptService";
-import {LLM} from "../interfaces/LLM";
+import { LLM } from "../interfaces/LLM";
 import LLMService from "../services/LLMService";
+import { TimestampUtils } from '../services/TimeStampUtils';
+import { Chat } from "../interfaces/Chat";
 
 type ChatItemProps = {
-    timestamp: string;
-    llm: string;
-    firstPrompt: string;
+    chat: Chat;
+    refetch: () => Chat[] | Promise<Chat[] | undefined> | null | undefined;
     curChatId: () => number | null;
-    setCurChatId: (chatId: number) => void;
-    chatId: number;
+    setCurChatId: (chatId: number | null) => void;
     selectedLLM: () => LLM | null;
-    setSelectedLLM: (llm : LLM) => void;
+    setSelectedLLM: (llm: LLM) => void;
 };
 
 const ChatItem: Component<ChatItemProps> = (props) => {
-    const handleClick = async () => {
-        props.setCurChatId(props.chatId);
+    const { chat } = props;
+    const timestamp = TimestampUtils.toHumanReadable(chat.lastActivityTimestamp);
+    const firstPrompt = `First prompt: ${chat.id}`;
+
+    const [fetchedLLM] = createResource(async () => {
         try {
-            const chat = await ChatService.getChatById(props.chatId);
-            const llm = await LLMService.getLlmById(chat.llmId);
-            props.setSelectedLLM(llm);
+            return await LLMService.getLlmById(chat.llmId);
         } catch (error) {
-            console.error("Error fetching chat or LLM:", error);
+            console.error("Error fetching LLM:", error);
+            return null; // or handle error appropriately
+        }
+    });
+
+    const handleClick = async () => {
+        props.setCurChatId(chat.id);
+        if(fetchedLLM()) {
+            props.setSelectedLLM(fetchedLLM()!);
+        } else {
+            try {
+                const fetchedLLM = await LLMService.getLlmById(chat.llmId);
+                props.setSelectedLLM(fetchedLLM);
+            } catch (error) {
+                console.error("Error fetching chat or LLM:", error);
+            }
         }
     };
 
     const handleDelete = async () => {
-        console.log("chat delete button is clicked!");
         if (props.curChatId()) {
             try {
                 const chatId = props.curChatId()!;
@@ -42,21 +57,28 @@ const ChatItem: Component<ChatItemProps> = (props) => {
                 console.error("Failed to delete chat or prompts", error);
             }
         }
+        props.setCurChatId(null);
+        props.refetch();
     };
 
     return (
         <div
             class={`d-flex justify-content-between align-items-center hover-darken 
-            ${props.curChatId() === props.chatId ? 'darkened' : 'brightened'}`}
+            ${props.curChatId() === chat.id ? 'darkened' : 'brightened'}`}
         >
             <div class="chat-item p-2 border-bottom" onClick={handleClick}>
                 <div>
-                    <strong class="text-truncate">{props.firstPrompt} yes, that's life, but you know what ?</strong>
+                    <strong class="text-truncate">{firstPrompt} yes, that's life, but you know what?</strong>
                 </div>
-                <div>{props.timestamp}</div>
-                <div>LLM: {props.llm}</div>
+                <div>{timestamp}</div>
+                <div>
+                    LLM: {fetchedLLM.loading ? "LLM loading..." :
+                            fetchedLLM() ? `${fetchedLLM()!.name} : ${fetchedLLM()!.model}` : "LLM not found"}
+                </div>
             </div>
-            <button class={`btn btn-danger ms-2 me-2 ${props.curChatId() === props.chatId ? 'd-block' : 'd-none'}`} onClick={handleDelete}>Delete</button>
+            <button class={`btn btn-danger ms-2 me-2 ${props.curChatId() === chat.id ? 'd-block' : 'd-none'}`} onClick={handleDelete}>
+                Delete
+            </button>
         </div>
     );
 };
