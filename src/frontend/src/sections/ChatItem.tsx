@@ -8,12 +8,13 @@ type ChatItemProps = {
     llm: string;
     firstPrompt: string;
     curChatId: () => number | null;
-    setCurChatId: () => void;
+    setCurChatId: (chatId: number) => void;
+    chatId: number;
 };
 
 const ChatItem: Component<ChatItemProps> = (props) => {
     const handleClick = () => {
-        props.setCurChatId();
+        props.setCurChatId(props.chatId);
     };
 
     const handleDelete = async () => {
@@ -21,13 +22,10 @@ const ChatItem: Component<ChatItemProps> = (props) => {
         if (props.curChatId()) {
             try {
                 const chatId = props.curChatId()!;
-                // retrieve all prompts of this chat
                 const prompts = await PromptService.getPromptsByChatId(chatId);
-                // delete them
                 for (const prompt of prompts) {
                     await PromptService.deletePrompt(prompt.id);
                 }
-                // proceed to delete the chat
                 await ChatService.deleteChat(chatId);
             } catch (error) {
                 console.error("Failed to delete chat or prompts", error);
@@ -36,17 +34,18 @@ const ChatItem: Component<ChatItemProps> = (props) => {
     };
 
     return (
-        <div class="d-flex justify-content-between align-items-center">
-            <div class="chat-item p-2 border-bottom hover-darken" onClick={handleClick}>
+        <div
+            class={`d-flex justify-content-between align-items-center hover-darken 
+            ${props.curChatId() === props.chatId ? 'darkened' : 'brightened'}`}
+        >
+            <div class="chat-item p-2 border-bottom" onClick={handleClick}>
                 <div>
                     <strong class="text-truncate">{props.firstPrompt} yes, that's life, but you know what ?</strong>
                 </div>
-                <div>
-                    <strong>{props.timestamp}</strong>
-                </div>
+                <div>{props.timestamp}</div>
                 <div>LLM: {props.llm}</div>
             </div>
-            <button class="btn btn-danger ms-2" onClick={handleDelete}>Delete</button>
+            <button class={`btn btn-danger ms-2 me-2 ${props.curChatId() === props.chatId ? 'd-block' : 'd-none'}`} onClick={handleDelete}>Delete</button>
         </div>
     );
 };

@@ -19,7 +19,8 @@ const ChatList: Component<ChatListProps> = (props) => {
                         llm={chat.llmId.toString()}
                         firstPrompt={`Frist prompt: ${chat.id}`}
                         curChatId={props.curChatId}
-                        setCurChatId={() => props.setCurChatId(chat.id)}
+                        setCurChatId={(chatId) => props.setCurChatId(chatId)}
+                        chatId={chat.id}
                     />
                 )}
             </For>

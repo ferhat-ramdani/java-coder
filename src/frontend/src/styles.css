@@ -1,9 +1,18 @@
 .hover-darken {
     transition: background-color 0.3s ease;
+    cursor: pointer;
 }
 
 .hover-darken:hover {
-    background-color: rgba(0, 0, 0, 0.1); /* Adjust opacity for darkening */
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.darkened {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.brightened {
+    background-color: transparent;
 }
 
 .text-truncate {

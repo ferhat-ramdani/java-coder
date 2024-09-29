@@ -9,14 +9,15 @@ import LLMModelSelector from "./sections/LLMModelSelector";
 const App: Component = () => {
     const [curChatId, setCurChatId] = createSignal<number | null>(null);
     const [refreshPrompts, setRefreshPrompts] = createSignal<boolean>(false);
+    const props = { curChatId, refreshPrompts, setCurChatId, setRefreshPrompts };
 
     return (
         <div class="d-flex" style="height: 100vh;">
-            <Sidebar curChatId={curChatId} setCurChatId={setCurChatId}/>
+            <Sidebar {...props}/>
             <LLMModelSelector />
             <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-between">
-                <PromptsContainer curChatId={curChatId} refreshPrompts={refreshPrompts} setRefreshPrompts={setRefreshPrompts}/>
-                <TextInput curChatId={curChatId} setRefreshPrompts={setRefreshPrompts}/>
+                <PromptsContainer {...props}/>
+                <TextInput {...props}/>
             </div>
         </div>
     );
