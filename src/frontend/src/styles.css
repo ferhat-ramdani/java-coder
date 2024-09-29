@@ -5,3 +5,12 @@
 .hover-darken:hover {
     background-color: rgba(0, 0, 0, 0.1); /* Adjust opacity for darkening */
 }
+
+.text-truncate {
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 150px;
+    min-width: 50px
+}

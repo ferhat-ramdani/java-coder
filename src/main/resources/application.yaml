@@ -53,8 +53,8 @@ db:
 
     # Delete statements (single entry)
     delete-llm-by-id: "DELETE FROM llm WHERE id = :id"
-    delete-chat-by-id: "DELETE FROM Chat WHERE id = :id"
-    delete-prompt-by-id: "DELETE FROM Prompt WHERE id = :id"
+    delete-chat-by-id: "DELETE FROM Chat WHERE id = ?"
+    delete-prompt-by-id: "DELETE FROM Prompt WHERE id = ?"
 
     # Delete all entries
     delete-all-llms: "DELETE FROM llm"

@@ -16,6 +16,7 @@ const TextInput: Component<TextInputProps> = (props) => {
         }
 
         const newPrompt: Prompt = {
+            id: 0, // random value that should not be used
             message: message().trim(),
             authorType: "USER",
             llmResponse: "",

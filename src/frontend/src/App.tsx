@@ -12,7 +12,7 @@ const App: Component = () => {
 
     return (
         <div class="d-flex" style="height: 100vh;">
-            <Sidebar setCurChatId={setCurChatId}/>
+            <Sidebar curChatId={curChatId} setCurChatId={setCurChatId}/>
             <LLMModelSelector />
             <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-between">
                 <PromptsContainer curChatId={curChatId} refreshPrompts={refreshPrompts} setRefreshPrompts={setRefreshPrompts}/>
