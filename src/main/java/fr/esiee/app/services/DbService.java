@@ -2,46 +2,27 @@ package fr.esiee.app.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
 import fr.esiee.app.db.entities.Chat;
 import fr.esiee.app.db.entities.LLM;
 import fr.esiee.app.db.entities.Prompt;
-import fr.esiee.app.db.mapper.PromptMapper;
-import io.helidon.common.Weight;
 import io.helidon.common.context.Contexts;
-import io.helidon.common.media.type.MediaTypes;
 import io.helidon.config.Config;
 import io.helidon.dbclient.DbClient;
 import io.helidon.dbclient.DbExecute;
 import io.helidon.dbclient.DbTransaction;
 import io.helidon.http.NotFoundException;
-import io.helidon.http.Status;
-import io.helidon.webserver.http.*;
 
-import java.io.*;
+import javax.ws.rs.BadRequestException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.Properties;
-
-import javax.ws.rs.*;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.List;
 
 /**
  * A service that uses {@link DbClient} to manage Prompt, LLM, and Chat tables.
  */
-@Weight(100)
-@javax.ws.rs.Path("/db")
-@Api(value="/db", description = "Operations about database")
-@Produces({"application/json"})
-public class DbService implements HttpService {
+public class DbService {
 
   private static final Logger LOGGER = System.getLogger(DbService.class.getName());
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -53,12 +34,12 @@ public class DbService implements HttpService {
     this.dbClient = Contexts.globalContext()
             .get(DbClient.class)
             .orElseGet(() -> DbClient.create(config));
-    try {
-      if (!isAppInitialized()) {
-        dbInit();
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+
+    initSchema();
+
+
+    if (getLLMCount() <= 0) {
+      initData();
     }
   }
 
@@ -67,76 +48,21 @@ public class DbService implements HttpService {
       JsonNode llms = OBJECT_MAPPER.readTree(DbService.class.getResourceAsStream("/llms.json"));
       for (JsonNode llm : llms) {
         exec.namedInsert("insert-llm",
-                llm.get("id").asInt(),
                 llm.get("name").asText(),
-                llm.get("model").asText());
+                llm.get("model").asText(),
+                llm.get("system_prompt").asText(""),
+                llm.get("caracteristics").asText(""));
       }
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
-
-  private static void initChats(DbExecute exec) {
-    try {
-      JsonNode chats = OBJECT_MAPPER.readTree(DbService.class.getResourceAsStream("/chats.json"));
-      for (JsonNode chat : chats) {
-        exec.namedInsert("insert-chat",
-                chat.get("id").asInt(),
-                chat.get("title").asText(),
-                chat.get("last_activity_timestamp").asText(),
-                chat.get("llm_id").asInt());
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private static void initPrompts(DbExecute exec) {
-    try {
-      JsonNode prompts = OBJECT_MAPPER.readTree(DbService.class.getResourceAsStream("/prompts.json"));
-      for (JsonNode prompt : prompts) {
-        exec.namedInsert("insert-prompt",
-                prompt.get("id").asInt(),
-                prompt.get("message").asText(),
-                prompt.get("author_type").asText(),
-                prompt.get("llm_response").asText(),
-                prompt.get("chat_id").asInt(),
-                prompt.get("llm_id").asInt());
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private boolean isAppInitialized() throws IOException {
-    var properties = new Properties();
-    var path = Paths.get("src/main/resources/app.properties");
-    if (!Files.exists(path)) {
-      initializeAppProps(properties, path, StandardOpenOption.CREATE);
-      return false;
-    }
-    try (var input = Files.newInputStream(path)) {
-      properties.load(input);
-    }
-    if (!"true".equals(properties.getProperty("initialized").trim())) {
-      initializeAppProps(properties, path, StandardOpenOption.TRUNCATE_EXISTING);
-      return false;
-    }
-    return true;
-  }
-
-
-  private void initializeAppProps(Properties props, Path path, StandardOpenOption option) throws IOException {
-    props.setProperty("initialized", "true");
-    try (var output = Files.newOutputStream(path, option)) {
-      props.store(output, null);
-    }
-  }
-
-  private void dbInit() {
-    initSchema();
-    initData();
+  private int getLLMCount() {
+    return dbClient.execute()
+            .namedQuery("select-all-llms")
+            .map(e -> e.as(LLM.class))
+            .toList().size();
   }
 
   private void initSchema() {
@@ -159,8 +85,6 @@ public class DbService implements HttpService {
     DbTransaction tx = dbClient.transaction();
     try {
       initLLMs(tx);
-      initChats(tx);
-      initPrompts(tx);
       tx.commit();
     } catch (Throwable t) {
       tx.rollback();
@@ -181,203 +105,159 @@ public class DbService implements HttpService {
     }
   }
 
-  @Override
-  public void routing(HttpRules rules) {
-    rules.get("/", this::index)
-            // List all LLMs
-            .get("/llm", this::listLLMs)
-            // List all Chats
-            .get("/chat", this::listChats)
-            // List all Prompts
-            .get("/prompt", this::listPrompts)
-            // Get Prompt by ID
-            .get("/prompt/{id}", this::getPromptById)
-            // Create new Prompt
-            .post("/prompt", Handler.create(Prompt.class, this::insertPrompt))
-            // Create new chat
-            .post("/chat", Handler.create(Chat.class, this::insertChat))
-            // Update existing Prompt
-            .put("/prompt", Handler.create(Prompt.class, this::updatePrompt))
-            // Update existing Chat
-            .put("/chat", Handler.create(Chat.class, this::updateChat))
-            // Delete Prompt by ID
-            .delete("/prompt/{id}", this::deletePromptById)
-            // Delete Chat by ID
-            .delete("/chat/{id}", this::deleteChatById)
-            // Get Prompts by Chat ID
-            .get("/chat/{id}/prompts", this::getPromptsByChatId);
-  }
-
-  private void index(ServerRequest request, ServerResponse response) {
-    response.headers().contentType(MediaTypes.TEXT_PLAIN);
-    response.send("""
-             DB Service Example:
-                  GET /llm                  - List all LLMs
-                  GET /chat                 - List all Chats
-                  GET /prompt               - List all Prompts
-                  GET /prompt/{id}          - Get Prompt by ID
-                  POST /prompt              - Insert new Prompt
-                  PUT /prompt               - Update existing Prompt
-                  DELETE /prompt/{id}       - Delete Prompt by ID
-            
-                  GET /chat/{id}/prompts    - List all Prompts for a Chat
-                  POST /chat                - Insert new Chat
-                  PUT /chat                 - Update existing Chat (requires id, title, last_activity_timestamp, llm_id)
-                  DELETE /chat/{id}         - Delete Chat by ID
-            """);
-  }
-
-
-  @GET
-  @javax.ws.rs.Path("/llms")
-  @ApiOperation(value = "List all LLMs", response = LLM.class, responseContainer = "List")
-  public void listLLMs(ServerRequest request, ServerResponse response) {
-    var llmsList = dbClient.execute()
-            .namedQuery("select-all-llms")
-            .map(e -> e.as(LLM.class))
-            .toList();
-    response.send(llmsList);
-  }
-
-  @GET
-  @javax.ws.rs.Path("/chat")
-  @ApiOperation(value = "List all Chats", response = Chat.class, responseContainer = "List")
-  public void listChats(ServerRequest request, ServerResponse response) {
-    var chatsArray = dbClient.execute()
+  public List<Chat> listChats() {
+    return dbClient.execute()
             .namedQuery("select-all-chats")
             .map(e -> e.as(Chat.class)).toList();
-    response.send(chatsArray);
   }
 
-  @GET
-  @javax.ws.rs.Path("/prompts")
-  @ApiOperation(value = "List all Prompts", response = Prompt.class, responseContainer = "List")
-  public void listPrompts(ServerRequest request, ServerResponse response) {
-    var promptsArray = dbClient.execute()
+  public List<Prompt> listPrompts() {
+    return dbClient.execute()
             .namedQuery("select-all-prompts")
             .map(e -> e.as(Prompt.class))
             .toList();
-    response.send(promptsArray);
   }
 
-  @GET
-  @javax.ws.rs.Path("/prompts/{id}")
-  @ApiOperation(value = "Get a Prompt by ID", response = Prompt.class)
-  @ApiResponses(value = {
-          @ApiResponse(code = 404, message = "Prompt not found")
-  })
-  public void getPromptById(ServerRequest request, ServerResponse response) {
-    int promptId = Integer.parseInt(request.path().pathParameters().get("id"));
-    Prompt prompt = dbClient.execute()
+  public Prompt getPromptById(int promptId) {
+    return dbClient.execute()
             .createNamedGet("select-prompt-by-id")
             .addParam("id", promptId)
             .execute()
             .orElseThrow(() -> new NotFoundException("Prompt " + promptId + " not found"))
             .as(Prompt.class);
-    response.send(prompt);
   }
 
-  @POST
-  @javax.ws.rs.Path("/prompts")
-  @ApiOperation(value = "Insert a new Prompt")
-  public void insertPrompt(Prompt prompt, ServerResponse response) {
-    dbClient.execute()
-            .namedInsert("insert-prompt",
-                    prompt.id(),
-                    prompt.message(),
-                    prompt.authorType().name(),
-                    prompt.llmResponse(),
-                    prompt.chatId(),
-                    prompt.llmId());
-    response.status(Status.CREATED_201).send();
+  public long insertPrompt(Prompt prompt) {
+    if (prompt.id() < 0 || prompt.llmId() < 0 || prompt.chatId() < 0) {
+      throw new IllegalArgumentException("id, llmId, or chatId is negative");
+    }
+    if (promptExists(prompt.id())) {
+      throw new IllegalArgumentException("Prompt " + prompt.id() + " already exists");
+    }
+
+    var updatedRows = dbClient.execute().createNamedInsert("insert-prompt")
+            .addParam(prompt.message())
+            .addParam(prompt.authorType().name())
+            .addParam(prompt.chatId())
+            .addParam(prompt.llmId())
+            .execute();
+
+    if (updatedRows <= 0) {
+      throw new BadRequestException("Failed to insert prompt");
+    }
+    updateChatLastActivity(prompt.chatId());
+    return updatedRows;
   }
 
-  @PUT
-  @javax.ws.rs.Path("/prompts")
-  @ApiOperation(value = "Update an existing Prompt")
-  public void updatePrompt(Prompt prompt, ServerResponse response) {
-    dbClient.execute()
-            .namedUpdate("update-prompt",
-                    prompt.message(),
-                    prompt.authorType().name(),
-                    prompt.llmResponse(),
-                    prompt.chatId(),
-                    prompt.llmId(),
-                    prompt.id());
-    response.status(Status.NO_CONTENT_204).send();
+  private void updateChatLastActivity(int chatId) {
+    dbClient.execute().createNamedUpdate("update-chat-last-activity")
+            .addParam("id", chatId)
+            .addParam("lastActivity", Timestamp.from(Instant.now()))
+            .execute();
   }
 
-  @DELETE
-  @javax.ws.rs.Path("/prompts/{id}")
-  @ApiOperation(value = "Delete a Prompt by ID")
-  @ApiResponses(value = {
-          @ApiResponse(code = 404, message = "Prompt not found")
-  })
-  public void deletePromptById(ServerRequest request, ServerResponse response) {
-    int promptId = Integer.parseInt(request.path().pathParameters().get("id"));
-    long count = dbClient.execute()
-            .namedDelete("delete-prompt-by-id", promptId);
+  public long updatePrompt(Prompt prompt) {
+    if (prompt.id() < 0 || prompt.llmId() < 0 || prompt.chatId() < 0) {
+      throw new IllegalArgumentException("id, llmId, or chatId is negative");
+    }
+    if (!promptExists(prompt.id())) {
+      throw new NotFoundException("Prompt " + prompt.id() + " not found");
+    }
+    return dbClient.execute().createNamedUpdate("update-prompt-by-id").namedParam(prompt).execute();
+  }
 
+  public long deletePromptById(int promptId) {
+    var count = dbClient.execute().createNamedDelete("delete-prompt-by-id")
+            .addParam("id", promptId)
+            .execute();
     if (count == 0) {
       throw new NotFoundException("Prompt " + promptId + " not found");
     }
-    response.status(Status.NO_CONTENT_204).send();
+    return count;
   }
 
-  @GET
-  @javax.ws.rs.Path("/chats/{id}/prompts")
-  @ApiOperation(value = "Get Prompts by Chat ID", responseContainer = "List")
-  public void getPromptsByChatId(ServerRequest request, ServerResponse response) {
-    int promptId = Integer.parseInt(request.path().pathParameters().get("id"));
-    Prompt prompt = dbClient.execute()
+  public List<Prompt> getPromptsByChatId(int promptId) {
+    return dbClient.execute()
+            .createNamedQuery("select-prompts-by-chat-id")
+            .addParam("chatId", promptId)
+            .execute()
+            .map(e -> e.as(Prompt.class))
+            .toList();
+  }
+
+  public long insertChat(Chat chat) {
+    if (chat.id() < 0 || chat.llmId() < 0) {
+      throw new IllegalArgumentException("id or llmId is negative");
+    }
+    if (chatExists(chat.id())) {
+      throw new IllegalArgumentException("Chat " + chat.id() + " already exists");
+    }
+    return dbClient.execute()
+            .createNamedInsert("insert-chat")
+            .addParam(chat.title())
+            .addParam(chat.lastActivity())
+            .addParam(chat.llmId()).execute();
+  }
+
+  public boolean chatExists(int chatId) {
+    return dbClient.execute()
+            .createNamedGet("select-chat-by-id")
+            .addParam("id", chatId)
+            .execute()
+            .isPresent();
+  }
+
+  public boolean promptExists(int promptId) {
+    return dbClient.execute()
             .createNamedGet("select-prompt-by-id")
             .addParam("id", promptId)
             .execute()
-            .orElseThrow(() -> new NotFoundException("Prompt " + promptId + " not found"))
-            .as(Prompt.class);
-    response.send(prompt);
+            .isPresent();
   }
 
-  @POST
-  @javax.ws.rs.Path("/chats")
-  @ApiOperation(value = "Insert a new Chat")
-  public void insertChat(Chat chat, ServerResponse response) {
-    dbClient.execute()
-            .namedInsert("insert-chat",
-                    chat.id(),
-                    chat.title(),
-                    chat.lastAcitivityTimestamp(),
-                    chat.llmId());
-    response.status(Status.CREATED_201).send();
+  public Chat getChatById(int chatId) {
+    return dbClient.execute()
+            .createNamedGet("select-chat-by-id")
+            .addParam("id", chatId)
+            .execute()
+            .orElseThrow(() -> new NotFoundException("Chat " + chatId + " not found"))
+            .as(Chat.class);
   }
 
-  @PUT
-  @javax.ws.rs.Path("/chats")
-  @ApiOperation(value = "Update an existing Chat")
-  public void updateChat(Chat chat, ServerResponse response) {
-    dbClient.execute()
-            .namedUpdate("update-chat",
-                    chat.title(),
-                    chat.lastAcitivityTimestamp(),
-                    chat.llmId(),
-                    chat.id());
-    response.status(Status.NO_CONTENT_204).send();
+  public long updateChat(Chat chat) {
+    if (chat.id() < 0 || chat.llmId() < 0) {
+      throw new IllegalArgumentException("id or llmId is negative");
+    }
+    if (!chatExists(chat.id())) {
+      throw new NotFoundException("Chat " + chat.id() + " not found");
+    }
+    return dbClient.execute().createNamedUpdate("update-chat-by-id")
+            .namedParam(chat).execute();
   }
 
-  @DELETE
-  @javax.ws.rs.Path("/chats/{id}")
-  @ApiOperation(value = "Delete a Chat by ID")
-  @ApiResponses(value = {
-          @ApiResponse(code = 404, message = "Chat not found")
-  })
-  public void deleteChatById(ServerRequest request, ServerResponse response) {
-    int chatId = Integer.parseInt(request.path().pathParameters().get("id"));
-    long count = dbClient.execute()
-            .namedDelete("delete-chat-by-id", chatId);
-
+  public long deleteChatById(int chatId) {
+    var count = dbClient.execute().createNamedDelete("delete-chat-by-id")
+            .addParam("id", chatId)
+            .execute();
     if (count == 0) {
       throw new NotFoundException("Chat " + chatId + " not found");
     }
-    response.status(Status.NO_CONTENT_204).send();
+    return count;
+  }
+
+  public List<LLM> listLLMs() {
+    return dbClient.execute()
+            .namedQuery("select-all-llms")
+            .map(e -> e.as(LLM.class))
+            .toList();
+  }
+
+  public LLM getLLMById(int llmId) {
+    return dbClient.execute()
+            .createNamedGet("select-llm-by-id")
+            .addParam("id", llmId)
+            .execute()
+            .orElseThrow(() -> new NotFoundException("LLM " + llmId + " not found"))
+            .as(LLM.class);
   }
 }

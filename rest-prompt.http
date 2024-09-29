@@ -1,0 +1,34 @@
+POST http://localhost:8080/api/prompt
+Content-Type: application/json
+
+{
+  "message": "Create a c123lass representing a basic entity.",
+  "authorType": "SYSTEM",
+  "chatId": 1,
+  "llmId": 1
+}
+
+### Get all prompts
+GET http://localhost:8080/api/prompt
+
+
+### Put a prompt
+PUT http://localhost:8080/api/prompt
+Content-Type: application/json
+
+{
+  "id": 29,
+  "message": "Create a class representing a basic entity.",
+  "authorType": "LLM",
+  "chatId": 1,
+  "llmId": 1
+}
+
+### Delete a prompt
+DELETE http://localhost:8080/api/prompt/1
+
+### Get a prompt by id
+GET http://localhost:8080/api/prompt/5
+
+### Get a prompt by chat id
+GET http://localhost:8080/api/prompt/bychat/3

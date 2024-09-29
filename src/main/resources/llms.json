@@ -1,5 +1,20 @@
 [
-  { "id": 1, "name": "BasicLLM", "model": "basic_model" },
-  { "id": 2, "name": "AdvancedLLM", "model": "advanced_model" },
-  { "id": 3, "name": "ExpertLLM", "model": "expert_model" }
+  {
+    "name": "BasicLLM",
+    "model": "basic_model",
+    "system_prompt": "Test",
+    "caracteristics": "Test1"
+  },
+  {
+    "name": "AdvancedLLM",
+    "model": "advanced_model",
+    "system_prompt": "Test2",
+    "caracteristics": "Test3"
+  },
+  {
+    "name": "ExpertLLM",
+    "model": "expert_model",
+    "system_prompt": "Test4",
+    "caracteristics": "Test5"
+  }
 ]

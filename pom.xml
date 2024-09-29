@@ -157,6 +157,10 @@
             <version>${helidon.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.helidon.webserver</groupId>
+            <artifactId>helidon-webserver-access-log</artifactId>
+        </dependency>
 
         <!-- swagger -->
         <dependency>
