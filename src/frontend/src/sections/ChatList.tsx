@@ -2,11 +2,14 @@ import { Component, For } from "solid-js";
 import ChatItem from "./ChatItem";
 import { Chat } from "../interfaces/Chat";
 import { TimestampUtils } from '../services/TimeStampUtils';
+import {LLM} from "../interfaces/LLM";
 
 interface ChatListProps {
     chats: Chat[];
     setCurChatId: (id: number) => void;
     curChatId: () => number | null;
+    selectedLLM: () => LLM | null;
+    setSelectedLLM: (llm : LLM) => void;
 }
 
 const ChatList: Component<ChatListProps> = (props) => {
@@ -18,9 +21,8 @@ const ChatList: Component<ChatListProps> = (props) => {
                         timestamp={TimestampUtils.toHumanReadable(chat.lastActivityTimestamp)}
                         llm={chat.llmId.toString()}
                         firstPrompt={`Frist prompt: ${chat.id}`}
-                        curChatId={props.curChatId}
-                        setCurChatId={(chatId) => props.setCurChatId(chatId)}
                         chatId={chat.id}
+                        {...props}
                     />
                 )}
             </For>

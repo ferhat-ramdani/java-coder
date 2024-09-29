@@ -2,6 +2,8 @@ import { Component } from "solid-js";
 import "../styles.css";
 import ChatService from "../services/ChatService";
 import PromptService from "../services/PromptService";
+import {LLM} from "../interfaces/LLM";
+import LLMService from "../services/LLMService";
 
 type ChatItemProps = {
     timestamp: string;
@@ -10,11 +12,20 @@ type ChatItemProps = {
     curChatId: () => number | null;
     setCurChatId: (chatId: number) => void;
     chatId: number;
+    selectedLLM: () => LLM | null;
+    setSelectedLLM: (llm : LLM) => void;
 };
 
 const ChatItem: Component<ChatItemProps> = (props) => {
-    const handleClick = () => {
+    const handleClick = async () => {
         props.setCurChatId(props.chatId);
+        try {
+            const chat = await ChatService.getChatById(props.chatId);
+            const llm = await LLMService.getLlmById(chat.llmId);
+            props.setSelectedLLM(llm);
+        } catch (error) {
+            console.error("Error fetching chat or LLM:", error);
+        }
     };
 
     const handleDelete = async () => {
