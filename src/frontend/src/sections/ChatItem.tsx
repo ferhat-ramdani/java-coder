@@ -18,7 +18,7 @@ type ChatItemProps = {
 
 const ChatItem: Component<ChatItemProps> = (props) => {
     const { chat } = props;
-    const timestamp = TimestampUtils.toHumanReadable(chat.lastActivityTimestamp);
+    const timestamp = TimestampUtils.toHumanReadable(chat.lastActivity);
     const firstPrompt = `First prompt: ${chat.id}`;
 
     const [fetchedLLM] = createResource(async () => {

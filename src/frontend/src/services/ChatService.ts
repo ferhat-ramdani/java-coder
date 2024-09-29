@@ -23,7 +23,7 @@ class ChatService {
         return await response.json();
     }
 
-    async createChat(chat: Chat) {
+    async createChat(chat: Chat) : Promise<Chat> {
         const response = await fetch(`${this.apiUrl}/chat`, {
             method: 'POST',
             headers: {
@@ -31,10 +31,12 @@ class ChatService {
             },
             body: JSON.stringify(chat),
         });
+        const data = await response.json();
 
         if (!response.ok) {
             throw new Error(`Erreur lors de l'appel POST : ${response.statusText}`);
         }
+        return data;
     }
 
     async updateChat(chat: Chat){

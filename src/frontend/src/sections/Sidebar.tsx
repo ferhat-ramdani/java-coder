@@ -1,4 +1,4 @@
-import {Component, createResource, createSignal, For} from "solid-js";
+import { Component, createResource, createSignal, For } from "solid-js";
 import chatService from "../services/ChatService";
 import { Chat } from "../interfaces/Chat";
 import { LLM } from "../interfaces/LLM";
@@ -23,9 +23,25 @@ const fetchChats = async (): Promise<Chat[]> => {
 const Sidebar: Component<SideBarProps> = (props) => {
     const [chats, { refetch }] = createResource(fetchChats);
 
+    const createNewChat = async () => {
+        console.log(props.selectedLLM());
+        if(props.selectedLLM()) {
+            const newChat: Chat = { id: 0, title: "", lastActivity: Date.now(), llmId: props.selectedLLM()!.id };
+            try {
+                const createdChat = await chatService.createChat(newChat);
+                console.log("created chat : ");
+                console.log(createdChat);
+                props.setCurChatId(createdChat.id);
+                refetch();
+            } catch (error) {
+                console.error("Error creating chat:", error);
+            }
+        }
+    };
+
     return (
         <div class="sidebar position-fixed top-0 start-0 h-100 bg-light border-end" style="width: 300px; max-width: 25%; min-width: 150px;">
-            <button class="btn btn-primary m-3">New Chat</button>
+            <button class="btn btn-primary m-3" onClick={createNewChat}>New Chat</button>
             <div class="p-3">
                 <h5>Chat History</h5>
                 {chats() ? (

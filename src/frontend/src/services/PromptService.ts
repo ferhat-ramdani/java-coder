@@ -23,7 +23,7 @@ class PromptService {
     }
 
     async getPromptsByChatId(chatId: number): Promise<Prompt[]> {
-        const response = await fetch(`${this.apiUrl}/chat/${chatId}/prompts`);
+        const response = await fetch(`${this.apiUrl}/prompt/bychat/${chatId}`);
         if (!response.ok) {
             throw new Error(`Erreur lors de l'appel GET : ${response.statusText}`);
         }

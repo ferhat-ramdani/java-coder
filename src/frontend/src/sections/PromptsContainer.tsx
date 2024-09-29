@@ -35,7 +35,7 @@ const PromptsContainer: Component<PromptContainerProps> = (props) => {
             {prompts().map((prompt) => (
                 <PromptMessage
                     type={prompt.authorType.toLowerCase() === "user" ? "user" : "llm"}
-                    message={prompt.authorType.toLowerCase() === "user" ? prompt.message : prompt.llmResponse}
+                    message={prompt.message}
                 />
             ))}
         </div>

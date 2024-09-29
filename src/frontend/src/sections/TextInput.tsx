@@ -1,17 +1,19 @@
 import {Component, createSignal, Setter} from "solid-js";
 import promptService from "../services/PromptService";
 import { Prompt } from "../interfaces/Prompt";
+import {LLM} from "../interfaces/LLM";
 
 interface TextInputProps {
     curChatId: () => number | null;
     setRefreshPrompts: Setter<boolean>;
+    selectedLLM: () => LLM | null;
 }
 
 const TextInput: Component<TextInputProps> = (props) => {
     const [message, setMessage] = createSignal("");
 
     const handleSend = async (setter: Setter<boolean>) => {
-        if (!props.curChatId() || !message().trim()) {
+        if (!props.curChatId() || !props.selectedLLM() || !message().trim()) {
             return;
         }
 
@@ -19,8 +21,8 @@ const TextInput: Component<TextInputProps> = (props) => {
             id: 0, // random value that should not be used
             message: message().trim(),
             authorType: "USER",
-            llmResponse: "",
             chatId: props.curChatId()!,
+            llmId: props.selectedLLM()!.id
         };
 
         try {

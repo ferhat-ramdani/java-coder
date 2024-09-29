@@ -189,14 +189,27 @@ public class DbService {
     if (chat.id() < 0 || chat.llmId() < 0) {
       throw new IllegalArgumentException("id or llmId is negative");
     }
-    if (chatExists(chat.id())) {
-      throw new IllegalArgumentException("Chat " + chat.id() + " already exists");
-    }
+
+    // ferhat : I don't think the chat id must be checked here.
+//    if (chatExists(chat.id())) {
+//      throw new IllegalArgumentException("Chat " + chat.id() + " already exists");
+//    }
     return dbClient.execute()
             .createNamedInsert("insert-chat")
             .addParam(chat.title())
             .addParam(chat.lastActivity())
             .addParam(chat.llmId()).execute();
+  }
+
+  public Chat getLatestChat(Chat chat) {
+    return dbClient.execute()
+            .createNamedGet("select-chat-by-params")
+            .addParam("title", chat.title())
+            .addParam("last_activity", chat.lastActivity())
+            .addParam("llm_id", chat.llmId())
+            .execute()
+            .orElseThrow(() -> new NotFoundException("Chat " + chat + " not found"))
+            .as(Chat.class);
   }
 
   public boolean chatExists(int chatId) {
