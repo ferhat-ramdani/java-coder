@@ -19,7 +19,6 @@ const PromptsContainer: Component<PromptContainerProps> = (props) => {
                 try {
                     const chatPrompts = await promptService.getPromptsByChatId(chatId);
                     setPrompts(chatPrompts);
-                    console.log(chatPrompts);
                 } catch (error) {
                     console.error("Failed to fetch prompts", error);
                 }

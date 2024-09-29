@@ -24,13 +24,10 @@ const Sidebar: Component<SideBarProps> = (props) => {
     const [chats, { refetch }] = createResource(fetchChats);
 
     const createNewChat = async () => {
-        console.log(props.selectedLLM());
         if(props.selectedLLM()) {
             const newChat: Chat = { id: 0, title: "", lastActivity: Date.now(), llmId: props.selectedLLM()!.id };
             try {
                 const createdChat = await chatService.createChat(newChat);
-                console.log("created chat : ");
-                console.log(createdChat);
                 props.setCurChatId(createdChat.id);
                 refetch();
             } catch (error) {
