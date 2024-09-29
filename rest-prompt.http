@@ -4,7 +4,6 @@ Content-Type: application/json
 {
   "message": "Create a c123lass representing a basic entity.",
   "authorType": "SYSTEM",
-  "llmResponse": "publ123ic class BasicEntity {}",
   "chatId": 1,
   "llmId": 1
 }
@@ -21,7 +20,6 @@ Content-Type: application/json
   "id": 29,
   "message": "Create a class representing a basic entity.",
   "authorType": "LLM",
-  "llmResponse": "public class BasicEantity {}",
   "chatId": 1,
   "llmId": 1
 }

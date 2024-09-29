@@ -2,16 +2,19 @@
   {
     "name": "BasicLLM",
     "model": "basic_model",
-    "system_prompt": ""
+    "system_prompt": "Test",
+    "caracteristics": "Test1"
   },
   {
     "name": "AdvancedLLM",
     "model": "advanced_model",
-    "system_prompt": ""
+    "system_prompt": "Test2",
+    "caracteristics": "Test3"
   },
   {
     "name": "ExpertLLM",
     "model": "expert_model",
-    "system_prompt": ""
+    "system_prompt": "Test4",
+    "caracteristics": "Test5"
   }
 ]

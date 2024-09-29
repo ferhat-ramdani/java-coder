@@ -50,7 +50,8 @@ public class DbService {
         exec.namedInsert("insert-llm",
                 llm.get("name").asText(),
                 llm.get("model").asText(),
-                llm.get("system_prompt").asText(""));
+                llm.get("system_prompt").asText(""),
+                llm.get("caracteristics").asText(""));
       }
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -249,5 +250,14 @@ public class DbService {
             .namedQuery("select-all-llms")
             .map(e -> e.as(LLM.class))
             .toList();
+  }
+
+  public LLM getLLMById(int llmId) {
+    return dbClient.execute()
+            .createNamedGet("select-llm-by-id")
+            .addParam("id", llmId)
+            .execute()
+            .orElseThrow(() -> new NotFoundException("LLM " + llmId + " not found"))
+            .as(LLM.class);
   }
 }

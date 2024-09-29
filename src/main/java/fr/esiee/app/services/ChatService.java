@@ -5,7 +5,6 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import fr.esiee.app.db.entities.Chat;
 import io.helidon.http.BadRequestException;
-import io.helidon.http.NotFoundException;
 import io.helidon.http.Status;
 import io.helidon.webserver.http.Handler;
 import io.helidon.webserver.http.HttpRules;
