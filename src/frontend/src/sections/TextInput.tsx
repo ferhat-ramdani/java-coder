@@ -32,9 +32,6 @@ const TextInput: Component<TextInputProps> = (props) => {
         }
     };
 
-    console.log("cur child id");
-    console.log(props.curChatId());
-
     return (
         <div class="input-group w-50 mb-2">
             <textarea
