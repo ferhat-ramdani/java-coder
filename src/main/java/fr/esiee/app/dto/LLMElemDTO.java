@@ -1,8 +1,6 @@
 package fr.esiee.app.dto;
 
-import java.util.List;
-
-public record LLMElemDTO(String name, String model) {
+public record LLMElemDTO(int id, String name, String model) {
 
   public LLMElemDTO {
     if (name == null || model == null) {

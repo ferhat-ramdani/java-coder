@@ -5,20 +5,10 @@ server:
     access-log:
       format: "%h %l %u %t %r %s %b %{Referer}i"
 
-app:
-  greeting: "Hello"
-
 llm:
-  provider: "jlama"
   url: "localhost"
   port: 5000
-  models:
-    - name: "Llama"
-      model: "llama-guard-3-8b"
-      system_prompt: "Llama:"
-    - name: "Ollama"
-      model: "gemma2"
-      system_prompt: "Ollama:"
+
 
 
 db:
@@ -33,24 +23,24 @@ db:
 
   statements:
     # Table creation
-    create-llm: "CREATE TABLE llm(id INTEGER NOT NULL PRIMARY KEY auto_increment,name VARCHAR(64) NOT NULL,model VARCHAR(128))"
-    create-chat: "CREATE TABLE Chat(id INTEGER NOT NULL PRIMARY KEY auto_increment, title VARCHAR(128) NOT NULL, last_activity TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, llm_id INTEGER NOT NULL REFERENCES llm (id) ON DELETE CASCADE ON UPDATE CASCADE)"
-    create-prompt: "CREATE TABLE Prompt(id INTEGER NOT NULL PRIMARY KEY auto_increment,message VARCHAR(256) NOT NULL,author_type VARCHAR(10) NOT NULL CHECK (author_type IN ('SYSTEM', 'USER', 'LLM')),llm_response VARCHAR(256) NOT NULL,chat_id INTEGER NOT NULL REFERENCES Chat (id) ON DELETE CASCADE ON UPDATE CASCADE,llm_id INTEGER NOT NULL REFERENCES llm (id) ON DELETE CASCADE ON UPDATE CASCADE)"
+    create-llm: "CREATE TABLE IF NOT EXISTS llm( id INTEGER NOT NULL PRIMARY KEY auto_increment, name VARCHAR(64) NOT NULL, model VARCHAR(128) NOT NULL, system_prompt VARCHAR NOT NULL)"
+    create-chat: "CREATE TABLE IF NOT EXISTS Chat( id INTEGER NOT NULL PRIMARY KEY auto_increment, title VARCHAR(128) NOT NULL, last_activity TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, llm_id INTEGER NOT NULL REFERENCES llm (id) ON DELETE CASCADE ON UPDATE CASCADE)"
+    create-prompt: "CREATE TABLE IF NOT EXISTS Prompt( id INTEGER NOT NULL PRIMARY KEY auto_increment, message VARCHAR(256) NOT NULL, author_type VARCHAR(10) NOT NULL CHECK (author_type IN ('SYSTEM', 'USER')), chat_id INTEGER NOT NULL REFERENCES Chat (id) ON DELETE CASCADE ON UPDATE CASCADE, llm_id INTEGER NOT NULL REFERENCES llm (id) ON DELETE CASCADE ON UPDATE CASCADE)"
 
     # Insert statements
-    insert-llm: "INSERT INTO llm(name, model) VALUES(?, ?)"
+    insert-llm: "INSERT INTO llm(name, model, system_prompt) VALUES(?, ?, ?)"
     insert-chat: "INSERT INTO Chat(title, last_activity, llm_id) VALUES(?, ?, ?)"
-    insert-prompt: "INSERT INTO Prompt(message, author_type, llm_response, chat_id, llm_id) VALUES(?, ?, ?, ?, ?)"
+    insert-prompt: "INSERT INTO Prompt(message, author_type, chat_id, llm_id) VALUES(?, ?, ?, ?)"
 
     # Select all entries
     select-all-llms: "SELECT id, name, model FROM llm"
     select-all-chats: "SELECT id, title, last_activity, llm_id FROM Chat"
-    select-all-prompts: "SELECT id, message, author_type, llm_response, chat_id, llm_id FROM Prompt"
+    select-all-prompts: "SELECT id, message, author_type, chat_id, llm_id FROM Prompt"
 
     # Select entries by id
     select-llm-by-id: "SELECT id, name, model FROM llm WHERE id = :id"
     select-chat-by-id: "SELECT id, title, last_activity, llm_id FROM Chat WHERE id = :id"
-    select-prompt-by-id: "SELECT id, message, author_type, llm_response, chat_id, llm_id FROM Prompt WHERE id = :id"
+    select-prompt-by-id: "SELECT id, message, author_type, chat_id, llm_id FROM Prompt WHERE id = :id"
 
     # Retrieve llm and Chat from Prompt (through foreign keys)
     retrieve-llm-from-prompt: "SELECT llm.id, llm.name, llm.model FROM llm JOIN Prompt ON llm.id = Prompt.llm_id WHERE Prompt.id = :promptId"
@@ -59,7 +49,7 @@ db:
     # Update statements
     update-llm-by-id: "UPDATE llm SET name = :name, model = :model WHERE id = :id"
     update-chat-by-id: "UPDATE Chat SET title = :title, last_activity = :lastActivity, llm_id = :llmId WHERE id = :id"
-    update-prompt-by-id: "UPDATE Prompt SET message = :message, author_type = :authorType, llm_response = :llmResponse, chat_id = :chatId, llm_id = :llmId WHERE id = :id"
+    update-prompt-by-id: "UPDATE Prompt SET message = :message, author_type = :authorType, chat_id = :chatId, llm_id = :llmId WHERE id = :id"
 
     # Delete statements (single entry)
     delete-llm-by-id: "DELETE FROM llm WHERE id = :id"
@@ -72,8 +62,7 @@ db:
     delete-all-prompts: "DELETE FROM Prompt"
 
     # Get prompts by chat id
-    select-prompts-by-chat-id: "SELECT id, message, author_type, llm_response, chat_id, llm_id FROM Prompt WHERE chat_id = :chatId"
-
+    select-prompts-by-chat-id: "SELECT id, message, author_type, chat_id, llm_id FROM Prompt WHERE chat_id = :chatId"
 
     # Update last_activity of Chat
     update-chat-last-activity: "UPDATE Chat SET last_activity = :lastActivity WHERE id = :id"

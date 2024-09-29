@@ -2,37 +2,22 @@ package fr.esiee.app.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.models.auth.In;
 import fr.esiee.app.db.entities.Chat;
+import fr.esiee.app.db.entities.LLM;
 import fr.esiee.app.db.entities.Prompt;
-import io.helidon.common.Weight;
 import io.helidon.common.context.Contexts;
-import io.helidon.common.media.type.MediaTypes;
 import io.helidon.config.Config;
 import io.helidon.dbclient.DbClient;
 import io.helidon.dbclient.DbExecute;
 import io.helidon.dbclient.DbTransaction;
 import io.helidon.http.NotFoundException;
-import io.helidon.http.Status;
-import io.helidon.webserver.http.*;
 
-import java.io.*;
+import javax.ws.rs.BadRequestException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
-import java.util.Properties;
-
-import javax.ws.rs.*;
 
 /**
  * A service that uses {@link DbClient} to manage Prompt, LLM, and Chat tables.
@@ -49,12 +34,12 @@ public class DbService {
     this.dbClient = Contexts.globalContext()
             .get(DbClient.class)
             .orElseGet(() -> DbClient.create(config));
-    try {
-      if (!isAppInitialized()) {
-        dbInit();
-      }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+
+    initSchema();
+
+
+    if (getLLMCount() <= 0) {
+      initData();
     }
   }
 
@@ -63,76 +48,20 @@ public class DbService {
       JsonNode llms = OBJECT_MAPPER.readTree(DbService.class.getResourceAsStream("/llms.json"));
       for (JsonNode llm : llms) {
         exec.namedInsert("insert-llm",
-                llm.get("id").asInt(),
                 llm.get("name").asText(),
-                llm.get("model").asText());
+                llm.get("model").asText(),
+                llm.get("system_prompt").asText(""));
       }
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
-
-  private static void initChats(DbExecute exec) {
-    try {
-      JsonNode chats = OBJECT_MAPPER.readTree(DbService.class.getResourceAsStream("/chats.json"));
-      for (JsonNode chat : chats) {
-        exec.namedInsert("insert-chat",
-                chat.get("id").asInt(),
-                chat.get("title").asText(),
-                chat.get("last_activity").asText(),
-                chat.get("llm_id").asInt());
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private static void initPrompts(DbExecute exec) {
-    try {
-      JsonNode prompts = OBJECT_MAPPER.readTree(DbService.class.getResourceAsStream("/prompts.json"));
-      for (JsonNode prompt : prompts) {
-        exec.namedInsert("insert-prompt",
-                prompt.get("id").asInt(),
-                prompt.get("message").asText(),
-                prompt.get("author_type").asText(),
-                prompt.get("llm_response").asText(),
-                prompt.get("chat_id").asInt(),
-                prompt.get("llm_id").asInt());
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private boolean isAppInitialized() throws IOException {
-    var properties = new Properties();
-    var path = Paths.get("src/main/resources/app.properties");
-    if (!Files.exists(path)) {
-      initializeAppProps(properties, path, StandardOpenOption.CREATE);
-      return false;
-    }
-    try (var input = Files.newInputStream(path)) {
-      properties.load(input);
-    }
-    if (!"true".equals(properties.getProperty("initialized").trim())) {
-      initializeAppProps(properties, path, StandardOpenOption.TRUNCATE_EXISTING);
-      return false;
-    }
-    return true;
-  }
-
-
-  private void initializeAppProps(Properties props, Path path, StandardOpenOption option) throws IOException {
-    props.setProperty("initialized", "true");
-    try (var output = Files.newOutputStream(path, option)) {
-      props.store(output, null);
-    }
-  }
-
-  private void dbInit() {
-    initSchema();
-    initData();
+  private int getLLMCount() {
+    return dbClient.execute()
+            .namedQuery("select-all-llms")
+            .map(e -> e.as(LLM.class))
+            .toList().size();
   }
 
   private void initSchema() {
@@ -155,8 +84,6 @@ public class DbService {
     DbTransaction tx = dbClient.transaction();
     try {
       initLLMs(tx);
-      initChats(tx);
-      initPrompts(tx);
       tx.commit();
     } catch (Throwable t) {
       tx.rollback();
@@ -210,7 +137,6 @@ public class DbService {
     var updatedRows = dbClient.execute().createNamedInsert("insert-prompt")
             .addParam(prompt.message())
             .addParam(prompt.authorType().name())
-            .addParam(prompt.llmResponse())
             .addParam(prompt.chatId())
             .addParam(prompt.llmId())
             .execute();
@@ -308,7 +234,6 @@ public class DbService {
             .namedParam(chat).execute();
   }
 
-
   public long deleteChatById(int chatId) {
     var count = dbClient.execute().createNamedDelete("delete-chat-by-id")
             .addParam("id", chatId)
@@ -317,5 +242,12 @@ public class DbService {
       throw new NotFoundException("Chat " + chatId + " not found");
     }
     return count;
+  }
+
+  public List<LLM> listLLMs() {
+    return dbClient.execute()
+            .namedQuery("select-all-llms")
+            .map(e -> e.as(LLM.class))
+            .toList();
   }
 }
