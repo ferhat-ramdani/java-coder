@@ -1,20 +1,20 @@
 [
   {
-    "name": "BasicLLM",
-    "model": "basic_model",
-    "system_prompt": "Test",
-    "caracteristics": "Test1"
+    "name": "Coder",
+    "model": "4.2.0",
+    "system_prompt": "Generate a class in java given some text input",
+    "caracteristics": "- Specialized in programming\n  - Knowledge in large range of programming languages"
   },
   {
-    "name": "AdvancedLLM",
-    "model": "advanced_model",
-    "system_prompt": "Test2",
-    "caracteristics": "Test3"
+    "name": "GPT",
+    "model": "GPT 3.5",
+    "system_prompt": "Generate a class in java given some a paragraph",
+    "caracteristics": "- Powerful reasoning abilities\n  - Trained on an extensive database"
   },
   {
-    "name": "ExpertLLM",
-    "model": "expert_model",
-    "system_prompt": "Test4",
+    "name": "Llama",
+    "model": "Llama 1",
+    "system_prompt": "- Ability to generate up to 200000 tokens\n - Can understand multiple languages",
     "caracteristics": "Test5"
   }
 ]

@@ -1,17 +1,44 @@
-import { Component } from "solid-js";
-import Prompt from "./Prompt";  // Import your Prompt component
+import {Component, createSignal, createEffect, Setter} from "solid-js";
+import PromptMessage from "./PromptMessage";
+import promptService from "../services/PromptService";
+import { Prompt } from "../interfaces/Prompt";
 
-const PromptsContainer: Component = () => {
+interface PromptContainerProps {
+    curChatId: () => number | null;
+    refreshPrompts: () => boolean;
+    setRefreshPrompts: Setter<boolean>;
+}
+
+const PromptsContainer: Component<PromptContainerProps> = (props) => {
+    const [prompts, setPrompts] = createSignal<Prompt[]>([]);
+
+    createEffect(async () => {
+        const chatId = props.curChatId();
+        if (chatId) {
+            if (props.refreshPrompts() || !props.refreshPrompts()) {
+                try {
+                    const chatPrompts = await promptService.getPromptsByChatId(chatId);
+                    setPrompts(chatPrompts);
+                } catch (error) {
+                    console.error("Failed to fetch prompts", error);
+                }
+            }
+            props.setRefreshPrompts(false);
+        } else {
+            setPrompts([]);
+        }
+    });
+
     return (
         <div class="prompt-container w-50 flex-grow-1 overflow-auto">
-            <Prompt type="user" message="Hi, write a class about monkeys" />
-            <Prompt type="llm" message={`static void routing(HttpRouting.Builder routing) {
-    routing.register("/greet", new GreetService()).register("/db", new DbService())
-            .get("/simple-greet", (req, res) -> res.send("Hello World!"));
-    registerFrontEndRoutes(routing);
-}`} />
-            <Prompt type="system" message="Not sure this is what I was looking for ..." />
+            {prompts().map((prompt) => (
+                <PromptMessage
+                    type={prompt.authorType.toLowerCase() === "user" ? "user" : "llm"}
+                    message={prompt.message}
+                />
+            ))}
         </div>
+
     );
 };
 

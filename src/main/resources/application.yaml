@@ -40,6 +40,7 @@ db:
     # Select entries by id
     select-llm-by-id: "SELECT id, name, model, system_prompt, caracteristics FROM llm WHERE id = :id"
     select-chat-by-id: "SELECT id, title, last_activity, llm_id FROM Chat WHERE id = :id"
+    select-chat-by-params: "SELECT id, title, last_activity, llm_id FROM Chat WHERE title = :title AND last_activity = :last_activity AND llm_id = :llm_id ORDER BY id DESC LIMIT 1"
     select-prompt-by-id: "SELECT id, message, author_type, chat_id, llm_id FROM Prompt WHERE id = :id"
 
     # Retrieve llm and Chat from Prompt (through foreign keys)
@@ -62,10 +63,13 @@ db:
     delete-all-prompts: "DELETE FROM Prompt"
 
     # Get prompts by chat id
-    select-prompts-by-chat-id: "SELECT id, message, author_type, chat_id, llm_id FROM Prompt WHERE chat_id = :chatId ORDER BY id DESC"
+    select-prompts-by-chat-id: "SELECT id, message, author_type, chat_id, llm_id FROM Prompt WHERE chat_id = :chatId ORDER BY id ASC"
 
     # Update last_activity of Chat
     update-chat-last-activity: "UPDATE Chat SET last_activity = :lastActivity WHERE id = :id"
 
     # Get the first prompt of a chat
     select-first-prompt-by-chat-id: "SELECT id, message, author_type, chat_id, llm_id FROM Prompt WHERE chat_id = :chatId ORDER BY id ASC LIMIT 1"
+
+    # Get the latest inserted chat id
+    get-latest-chat-id: "SELECT id FROM Chat WHERE title = ? AND last_activity = ? AND llm_id = ? ORDER BY id DESC LIMIT 1"
