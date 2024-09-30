@@ -32,7 +32,8 @@ const LLMModelSelector: Component<LLMMOdelSelectorProps> = (props) => {
                 <option value="" selected={props.selectedLLM() === null} disabled>{llms.loading ? "Loading.." : "Select LLM Model"}</option>
                 <For each={llms()}>
                     {item => (
-                        <option value={item.id} selected={props.selectedLLM()?.id === item.id}>
+                        <option value={item.id} selected={props.selectedLLM()?.id === item.id}
+                                data-bs-toggle="tooltip" data-bs-placement="top" title={item.caracteristics}>
                             {item.name}
                         </option>
                     )}

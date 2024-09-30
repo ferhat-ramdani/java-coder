@@ -33,7 +33,7 @@ const App: Component = () => {
             <div class="d-flex flex-column flex-grow-1 align-items-center justify-content-between" style="flex: 1;">
                 <div class="d-flex justify-content-between bg-light align-items-center"
                      style="width: 100%; padding: 5px; border-bottom: 1px solid #ccc;">
-                    <span>ClassGen</span>
+                    <span >ClassGen</span>
                     <LLMModelSelector {...props} />
                 </div>
                 <PromptsContainer {...props} />
