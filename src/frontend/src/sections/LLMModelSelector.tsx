@@ -5,6 +5,7 @@ import { LLM } from "../interfaces/LLM";
 interface LLMMOdelSelectorProps {
     selectedLLM: () => LLM | null;
     setSelectedLLM: (llm: LLM) => void;
+    curChatId: () => number | null;
 }
 
 const fetchLLM = async () => await llmService.getLLMS();
@@ -25,10 +26,10 @@ const LLMModelSelector: Component<LLMMOdelSelectorProps> = (props) => {
             <select
                 class="form-select"
                 aria-label="Select LLM Model"
-                disabled={llms.loading}
+                disabled={llms.loading || props.curChatId() != null}
                 onChange={handleLLMChange}
             >
-                <option value="" selected disabled>{llms.loading ? "Loading.." : "Select LLM Model"}</option>
+                <option value="" selected={props.selectedLLM() === null} disabled>{llms.loading ? "Loading.." : "Select LLM Model"}</option>
                 <For each={llms()}>
                     {item => (
                         <option value={item.id} selected={props.selectedLLM()?.id === item.id}>
