@@ -4,10 +4,10 @@ import { Prompt } from "../interfaces/Prompt";
 class PromptService {
 
     private config: Config = Config.getInstance();
-    private apiUrl: string = `${this.config.getBackendUrl()}/api`;
+    private apiUrl: string = `${this.config.getBackendUrl()}/api/prompt`;
 
     async getPrompts(): Promise<Prompt[]> {
-        const response = await fetch(`${this.apiUrl}/prompt`);
+        const response = await fetch(`${this.apiUrl}`);
         if (!response.ok) {
             throw new Error(`Erreur lors de l'appel GET : ${response.statusText}`);
         }
@@ -15,7 +15,7 @@ class PromptService {
     }
 
     async getPromptById(id: number): Promise<Prompt> {
-        const response = await fetch(`${this.apiUrl}/prompt/${id}`);
+        const response = await fetch(`${this.apiUrl}/${id}`);
         if (!response.ok) {
             throw new Error(`Erreur lors de l'appel GET : ${response.statusText}`);
         }
@@ -23,17 +23,26 @@ class PromptService {
     }
 
     async getPromptsByChatId(chatId: number): Promise<Prompt[]> {
-        const response = await fetch(`${this.apiUrl}/prompt/bychat/${chatId}`);
+        const response = await fetch(`${this.apiUrl}/bychat/${chatId}`);
         if (!response.ok) {
             throw new Error(`Erreur lors de l'appel GET : ${response.statusText}`);
         }
         return await response.json();
     }
 
+    async getFirstPromptOfChat(chatId: number): Promise<Prompt> {
+        const response = await fetch(`${this.apiUrl}/bychat/${chatId}/first`);
+        if (!response.ok) {
+            throw new Error(`Erreur lors de l'appel GET : ${response.statusText}`);
+        }
+        return await response.json();
+    }
+
+
     async createPrompt(prompt: Prompt) {
         console.log("stringified prompt : ");
         console.log(JSON.stringify(prompt));
-        const response = await fetch(`${this.apiUrl}/prompt`, {
+        const response = await fetch(`${this.apiUrl}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -47,7 +56,7 @@ class PromptService {
     }
 
     async updatePrompt(prompt: Prompt) {
-        const response = await fetch(`${this.apiUrl}/prompt`, {
+        const response = await fetch(`${this.apiUrl}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -61,7 +70,7 @@ class PromptService {
     }
 
     async deletePrompt(id: number) {
-        const response = await fetch(`${this.apiUrl}/prompt/${id}`, {
+        const response = await fetch(`${this.apiUrl}/${id}`, {
             method: 'DELETE',
         });
 

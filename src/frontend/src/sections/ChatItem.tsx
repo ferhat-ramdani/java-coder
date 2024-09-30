@@ -19,14 +19,22 @@ type ChatItemProps = {
 const ChatItem: Component<ChatItemProps> = (props) => {
     const { chat } = props;
     const timestamp = TimestampUtils.toHumanReadable(chat.lastActivity);
-    const firstPrompt = `First prompt: ${chat.id}`;
+
+    const [fetchedFirstPrompt] = createResource(async () => {
+       try {
+           return await PromptService.getFirstPromptOfChat(chat.id);
+       } catch (error) {
+           console.error("Error fetching first prompt of chat", error);
+           return null;
+       }
+    });
 
     const [fetchedLLM] = createResource(async () => {
         try {
             return await LLMService.getLlmById(chat.llmId);
         } catch (error) {
             console.error("Error fetching LLM:", error);
-            return null; // or handle error appropriately
+            return null;
         }
     });
 
@@ -68,12 +76,12 @@ const ChatItem: Component<ChatItemProps> = (props) => {
         >
             <div class="chat-item p-2 border-bottom" onClick={handleClick}>
                 <div>
-                    <strong class="text-truncate">{firstPrompt} yes, that's life, but you know what?</strong>
+                    <strong class="text-truncate">{fetchedFirstPrompt.loading ? "Prompt loading" :
+                        fetchedFirstPrompt() ? fetchedFirstPrompt()!.message : "- No Title -"}</strong>
                 </div>
                 <div>{timestamp}</div>
                 <div>
-                    LLM: {fetchedLLM.loading ? "LLM loading..." :
-                            fetchedLLM() ? `${fetchedLLM()!.name} : ${fetchedLLM()!.model}` : "LLM not found"}
+                    {fetchedLLM.loading ? "LLM loading..." : fetchedLLM() ? `${fetchedLLM()!.name}` : "- No LLM -"}
                 </div>
             </div>
             <button class={`btn btn-danger ms-2 me-2 ${props.curChatId() === chat.id ? 'd-block' : 'd-none'}`} onClick={handleDelete}>

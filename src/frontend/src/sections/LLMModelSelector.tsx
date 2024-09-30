@@ -21,7 +21,7 @@ const LLMModelSelector: Component<LLMMOdelSelectorProps> = (props) => {
     };
 
     return (
-        <div class="position-fixed top-0 end-0 m-3">
+        <div class="m-0">
             <select
                 class="form-select"
                 aria-label="Select LLM Model"

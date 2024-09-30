@@ -33,6 +33,8 @@ const Sidebar: Component<SideBarProps> = (props) => {
             } catch (error) {
                 console.error("Error creating chat:", error);
             }
+        } else {
+            alert("Please select an LLM model!");
         }
     };
 

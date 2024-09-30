@@ -15,13 +15,21 @@ const App: Component = () => {
 
     return (
         <div class="d-flex" style="height: 100vh;">
-            <Sidebar {...props}/>
-            <LLMModelSelector {...props}/>
-            <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-between">
-                <PromptsContainer {...props}/>
-                <TextInput {...props}/>
+            <div style="width: 300px; max-width: 25%; min-width: 150px;">
+                <Sidebar {...props} />
+            </div>
+            <div class="d-flex flex-column flex-grow-1 align-items-center justify-content-between" style="flex: 1;">
+                <div class="d-flex justify-content-between bg-light align-items-center"
+                     style="width: 100%; padding: 5px; border-bottom: 1px solid #ccc;">
+                    <span>ClassGen</span>
+                    <LLMModelSelector {...props} />
+                </div>
+                <PromptsContainer {...props} />
+                <TextInput {...props} />
             </div>
         </div>
+
+
     );
 };
 

@@ -36,7 +36,7 @@ const TextInput: Component<TextInputProps> = (props) => {
 
     return (
         <div class="input-group w-50 mb-2">
-            <textarea
+              <textarea
                   class="form-control rounded-start"
                   rows="1"
                   placeholder="Type your message here..."

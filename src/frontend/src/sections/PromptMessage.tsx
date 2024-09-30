@@ -25,11 +25,11 @@ const PromptMessage: Component<PromptProps> = (props) => {
     }
 
     const promptContent = props.type === "llm" ? (
-        <pre class={`p-3 mb-2 rounded ${bgColor} text-start`} style="display: inline-block; max-width: 80%;">
+        <pre class={`p-3 mt-2 mb-1 rounded ${bgColor} text-start`} style="display: inline-block; max-width: 80%;">
       <code>{props.message}</code>
     </pre>
     ) : (
-        <div class={`p-3 mb-2 rounded ${bgColor} text-start`} style="display: inline-block; max-width: 80%;">
+        <div class={`p-3 mt-2 mb-1  rounded ${bgColor} text-start`} style="display: inline-block; max-width: 80%;">
             <p class="m-0">{props.message}</p>
         </div>
     );

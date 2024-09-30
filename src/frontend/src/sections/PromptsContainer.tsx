@@ -38,6 +38,7 @@ const PromptsContainer: Component<PromptContainerProps> = (props) => {
                 />
             ))}
         </div>
+
     );
 };
 
