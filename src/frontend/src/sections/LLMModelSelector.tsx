@@ -1,33 +1,42 @@
-import {Component, createResource, createSignal, For, onMount} from "solid-js";
-import llmService from "../sevices/LLMService";
+import { Component, createResource, For } from "solid-js";
+import llmService from "../services/LLMService";
+import { LLM } from "../interfaces/LLM";
 
+interface LLMMOdelSelectorProps {
+    selectedLLM: () => LLM | null;
+    setSelectedLLM: (llm: LLM) => void;
+}
 
+const fetchLLM = async () => await llmService.getLLMS();
 
-const fetchLLM = async () =>
-    await llmService.getLLMS();
-const LLMModelSelector: Component = () => {
-
+const LLMModelSelector: Component<LLMMOdelSelectorProps> = (props) => {
     const [llms] = createResource(fetchLLM);
+
+    const handleLLMChange = (event: Event) => {
+        const selectedModel = Number((event.target as HTMLSelectElement).value);
+        const selectedLLM = llms()?.find(llm => llm.id === selectedModel);
+        if (selectedLLM) {
+            props.setSelectedLLM(selectedLLM);
+        }
+    };
+
     return (
-        <div class="position-fixed top-0 end-0 m-3">
-            <select class="form-select" aria-label="Default select example" disabled={llms.loading}>
-                <option selected>{(llms.loading ? "Loading.." : "Select LLM Model")}</option>
+        <div class="m-0">
+            <select
+                class="form-select"
+                aria-label="Select LLM Model"
+                disabled={llms.loading}
+                onChange={handleLLMChange}
+            >
+                <option value="" selected disabled>{llms.loading ? "Loading.." : "Select LLM Model"}</option>
                 <For each={llms()}>
-                    {item => <option value={`${item.model}`}>{item.name}</option>}
+                    {item => (
+                        <option value={item.id} selected={props.selectedLLM()?.id === item.id}>
+                            {item.name}
+                        </option>
+                    )}
                 </For>
             </select>
-
-            {/*<div class="dropdown">
-                <button class="btn btn-secondary dropdown-toggle" type="button" id="modelSelector"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                    {user.loading && "Loading..." || "Select LLM Model"}
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="modelSelector">
-                    <For each={user()}>
-                        {item => <li><a class="dropdown-item" href="#">{item.name} - {item.model}</a></li>}
-                    </For>
-                </ul>
-            </div>*/}
         </div>
     );
 };

@@ -47,7 +47,6 @@ public record PromptMapper() implements DbMapper<Prompt> {
         list.add(value.message());
         list.add(value.authorType().name());
         list.add(value.chatId());
-        list.add(value.llmId());
         return list;
     }
 }

@@ -9,7 +9,7 @@ import io.helidon.dbclient.spi.DbMapperProvider;
 import java.util.Optional;
 
 /**
- * {@link java.util.ServiceLoader} provider implementation for Prompt DB mapper.
+ * {@link java.util.ServiceLoader} provider implementation for PromptMessage DB mapper.
  */
 @Weight(100)
 public class PromptMapperProvider implements DbMapperProvider {

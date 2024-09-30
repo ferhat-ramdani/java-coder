@@ -1,0 +1,25 @@
+.hover-darken {
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+}
+
+.hover-darken:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.darkened {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.brightened {
+    background-color: transparent;
+}
+
+.text-truncate {
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 150px;
+    min-width: 50px
+}
