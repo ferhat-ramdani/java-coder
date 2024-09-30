@@ -13,7 +13,7 @@ type ChatItemProps = {
     curChatId: () => number | null;
     setCurChatId: (chatId: number | null) => void;
     selectedLLM: () => LLM | null;
-    setSelectedLLM: (llm: LLM) => void;
+    setSelectedLLM: (llm: LLM | null) => void;
 };
 
 const ChatItem: Component<ChatItemProps> = (props) => {
@@ -67,6 +67,7 @@ const ChatItem: Component<ChatItemProps> = (props) => {
         }
         props.setCurChatId(null);
         props.refetch();
+        props.setSelectedLLM(null);
     };
 
     return (

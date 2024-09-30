@@ -1,4 +1,4 @@
-import { Component, createSignal } from 'solid-js';
+import {Component, createResource, createSignal} from 'solid-js';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Sidebar from "./sections/Sidebar";
@@ -6,12 +6,24 @@ import TextInput from "./sections/TextInput";
 import PromptsContainer from "./sections/PromptsContainer";
 import LLMModelSelector from "./sections/LLMModelSelector";
 import {LLM} from "./interfaces/LLM";
+import {Chat} from "./interfaces/Chat";
+import chatService from "./services/ChatService";
+
+const fetchChats = async (): Promise<Chat[]> => {
+    try {
+        return await chatService.getChats();
+    } catch (error) {
+        console.error("Error fetching chats:", error);
+        return [];
+    }
+};
 
 const App: Component = () => {
     const [curChatId, setCurChatId] = createSignal<number | null>(null);
     const [refreshPrompts, setRefreshPrompts] = createSignal<boolean>(false);
     const [selectedLLM, setSelectedLLM] = createSignal<LLM | null>(null);
-    const props = { curChatId, refreshPrompts, setCurChatId, setRefreshPrompts, selectedLLM, setSelectedLLM};
+    const [chats, { refetch }] = createResource(fetchChats);
+    const props = { curChatId, refreshPrompts, setCurChatId, setRefreshPrompts, selectedLLM, setSelectedLLM, chats, refetch};
 
     return (
         <div class="d-flex" style="height: 100vh;">
