@@ -67,7 +67,8 @@ const TextInput: Component<TextInputProps> = (props) => {
     }
 
     return (
-        <div class="input-group w-50 mb-2">
+        <div class="input-group d-flex justify-content-center">
+            <div class="input-group w-50 mb-2 d-flex">
               <textarea
                   class="form-control rounded-start"
                   rows="1"
@@ -83,14 +84,15 @@ const TextInput: Component<TextInputProps> = (props) => {
                       }
                   }}
               ></textarea>
-            <button
-                class="btn btn-primary rounded-end"
-                type="button"
-                onClick={() => handleSend(props.setRefreshPrompts)}
-                //disabled={!props.curChatId()}
-            >
-                Send
-            </button>
+                <button
+                    class="btn btn-primary rounded-end"
+                    type="button"
+                    onClick={() => handleSend(props.setRefreshPrompts)}
+                    //disabled={!props.curChatId()}
+                >
+                    Send
+                </button>
+            </div>
         </div>
     );
 };

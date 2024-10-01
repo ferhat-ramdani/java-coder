@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import Sidebar from "./sections/Sidebar";
 import TextInput from "./sections/TextInput";
 import PromptsContainer from "./sections/PromptsContainer";
-import LLMModelSelector from "./sections/LLMModelSelector";
+import TopBar from "./sections/TopBar";
 import {LLM} from "./interfaces/LLM";
 import {Chat} from "./interfaces/Chat";
 import chatService from "./services/ChatService";
@@ -26,22 +26,16 @@ const App: Component = () => {
     const props = { curChatId, refreshPrompts, setCurChatId, setRefreshPrompts, selectedLLM, setSelectedLLM, chats, refetch};
 
     return (
-        <div class="d-flex" style="height: 100vh;">
-            <div style="width: 300px; max-width: 25%; min-width: 150px;">
+        <div class="container-fluid vh-100">
+            <div class="row h-100">
                 <Sidebar {...props} />
-            </div>
-            <div class="d-flex flex-column flex-grow-1 align-items-center justify-content-between" style="flex: 1;">
-                <div class="d-flex justify-content-between bg-light align-items-center"
-                     style="width: 100%; padding: 5px; border-bottom: 1px solid #ccc;">
-                    <span >ClassGen</span>
-                    <LLMModelSelector {...props} />
+                <div class="col-10 d-flex flex-column p-0 h-100">
+                    <TopBar {...props} />
+                    <PromptsContainer {...props} />
+                    <TextInput {...props} />
                 </div>
-                <PromptsContainer {...props} />
-                <TextInput {...props} />
             </div>
         </div>
-
-
     );
 };
 
