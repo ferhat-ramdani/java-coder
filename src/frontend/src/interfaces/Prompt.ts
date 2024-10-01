@@ -3,5 +3,4 @@ export interface Prompt {
     message: string;
     authorType: string;
     chatId: number;
-    llmId: number;
 }

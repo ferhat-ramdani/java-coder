@@ -128,7 +128,7 @@ public class DbService {
   }
 
   public long insertPrompt(Prompt prompt) {
-    if (prompt.id() < 0 || prompt.llmId() < 0 || prompt.chatId() < 0) {
+    if (prompt.id() < 0 || prompt.chatId() < 0) {
       throw new IllegalArgumentException("id, llmId, or chatId is negative");
     }
     if (promptExists(prompt.id())) {
@@ -139,7 +139,6 @@ public class DbService {
             .addParam(prompt.message())
             .addParam(prompt.authorType().name())
             .addParam(prompt.chatId())
-            .addParam(prompt.llmId())
             .execute();
 
     if (updatedRows <= 0) {
@@ -157,7 +156,7 @@ public class DbService {
   }
 
   public long updatePrompt(Prompt prompt) {
-    if (prompt.id() < 0 || prompt.llmId() < 0 || prompt.chatId() < 0) {
+    if (prompt.id() < 0 || prompt.chatId() < 0) {
       throw new IllegalArgumentException("id, llmId, or chatId is negative");
     }
     if (!promptExists(prompt.id())) {
