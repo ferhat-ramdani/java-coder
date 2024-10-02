@@ -1,8 +1,5 @@
 package fr.esiee.app.services;
 
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
 import fr.esiee.app.db.entities.Chat;
 import io.helidon.http.BadRequestException;
 import io.helidon.http.Status;
@@ -44,14 +41,12 @@ public class ChatService implements HttpService {
 
   @GET
   @javax.ws.rs.Path("/chat")
-  @ApiOperation(value = "List all Chats", response = Chat.class, responseContainer = "List")
   public void listChats(ServerRequest request, ServerResponse response) {
     response.send(dbClient.listChats());
   }
 
   @POST
   @javax.ws.rs.Path("/chat")
-  @ApiOperation(value = "Insert a new Chat")
   public void insertChat(Chat chat, ServerResponse response) {
     long insertedRows = dbClient.insertChat(chat);
     if (insertedRows <= 0) {
@@ -64,7 +59,6 @@ public class ChatService implements HttpService {
 
   @PUT
   @javax.ws.rs.Path("/chats")
-  @ApiOperation(value = "Update an existing Chat")
   public void updateChat(Chat chat, ServerResponse response) {
     long updatedRows = dbClient.updateChat(chat);
     if (updatedRows <= 0) {
@@ -76,8 +70,6 @@ public class ChatService implements HttpService {
 
   @DELETE
   @javax.ws.rs.Path("/chats/{id}")
-  @ApiOperation(value = "Delete a Chat by ID")
-  @ApiResponses(value = {@ApiResponse(code = 404, message = "Chat not found")})
   public void deleteChatById(ServerRequest request, ServerResponse response) {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new BadRequestException("Chat ID is required"));

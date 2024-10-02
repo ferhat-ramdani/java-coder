@@ -1,8 +1,5 @@
 package fr.esiee.app.services;
 
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
 import fr.esiee.app.db.entities.Prompt;
 import io.helidon.http.NotFoundException;
 import io.helidon.http.Status;
@@ -39,7 +36,6 @@ public class PromptService implements HttpService {
 
   @GET
   @javax.ws.rs.Path("/")
-  @ApiOperation(value = "List all Prompts", response = Prompt.class, responseContainer = "List")
   public void listPrompts(ServerRequest request, ServerResponse response) {
     response.send(dbClient.listPrompts());
   }
@@ -47,7 +43,6 @@ public class PromptService implements HttpService {
 
   @POST
   @javax.ws.rs.Path("/prompts")
-  @ApiOperation(value = "Insert a new Prompt")
   public void insertPrompt(Prompt prompt, ServerResponse response) {
     long insertedRows = dbClient.insertPrompt(prompt);
     if (insertedRows <= 0) {
@@ -59,7 +54,6 @@ public class PromptService implements HttpService {
 
   @PUT
   @javax.ws.rs.Path("/prompts")
-  @ApiOperation(value = "Update an existing Prompt")
   public void updatePrompt(Prompt prompt, ServerResponse response) {
     long updatedRows = dbClient.updatePrompt(prompt);
     if (updatedRows <= 0) {
@@ -71,10 +65,6 @@ public class PromptService implements HttpService {
 
   @DELETE
   @javax.ws.rs.Path("/prompts/{id}")
-  @ApiOperation(value = "Delete a Prompt by ID")
-  @ApiResponses(value = {
-          @ApiResponse(code = 404, message = "Prompt not found")
-  })
   public void deletePromptById(ServerRequest request, ServerResponse response) {
     int promptId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new NotFoundException("Prompt ID is required"));
@@ -84,10 +74,6 @@ public class PromptService implements HttpService {
 
   @GET
   @javax.ws.rs.Path("/prompts/{id}")
-  @ApiOperation(value = "Get a Prompt by ID", response = Prompt.class)
-  @ApiResponses(value = {
-          @ApiResponse(code = 404, message = "Prompt not found")
-  })
   public void getPromptById(ServerRequest request, ServerResponse response) {
     int promptId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new NotFoundException("Prompt ID is required"));
@@ -97,7 +83,6 @@ public class PromptService implements HttpService {
 
   @GET
   @javax.ws.rs.Path("/chats/{id}/prompts")
-  @ApiOperation(value = "Get Prompts by Chat ID", responseContainer = "List")
   public void getPromptsByChatId(ServerRequest request, ServerResponse response) {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new NotFoundException("Chat ID is required"));
