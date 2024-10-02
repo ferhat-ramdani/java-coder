@@ -1,7 +1,5 @@
 package fr.esiee.app.db.entities;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.sql.Timestamp;
 import java.util.Objects;
 
