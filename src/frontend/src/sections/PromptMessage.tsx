@@ -1,7 +1,7 @@
 import { Component } from "solid-js";
 
 interface PromptProps {
-    type: "user" | "system" | "llm";
+    type: "user" | "llm";
     message: string;
 }
 
@@ -12,10 +12,6 @@ const PromptMessage: Component<PromptProps> = (props) => {
     switch (props.type) {
         case "user":
             bgColor = "bg-primary text-white";
-            alignmentClass = "align-items-end";
-            break;
-        case "system":
-            bgColor = "bg-secondary text-white";
             alignmentClass = "align-items-end";
             break;
         case "llm":
@@ -29,7 +25,7 @@ const PromptMessage: Component<PromptProps> = (props) => {
       <code>{props.message}</code>
     </pre>
     ) : (
-        <div class={`p-3 mt-2 mb-1  rounded ${bgColor} text-start`} style="display: inline-block; max-width: 80%;">
+        <div class={`p-3 mt-2 mb-1 rounded ${bgColor} text-start`} style="display: inline-block; max-width: 80%;">
             <p class="m-0">{props.message}</p>
         </div>
     );

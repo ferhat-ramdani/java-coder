@@ -20,20 +20,18 @@ const Sidebar: Component<SideBarProps> = (props) => {
     };
 
     return (
-        <div class="sidebar position-fixed top-0 start-0 h-100 bg-light border-end" style="width: 300px; max-width: 25%; min-width: 150px;">
+        <div class="d-flex flex-column p-0 col-2 h-100 bg-light border-end">
             <div class="p-3">
-                <button class="w-100 btn btn-primary" onClick={createNewChat}>New Chat</button>
+                <button class="w-100 btn btn-outline-primary" onClick={createNewChat}>New Chat</button>
             </div>
-            <div class="p-3 d-flex flex-column h-100">
-                <h5>Chat History</h5>
+            <div class="h4 ms-4 mt-3">Chat History</div>
+            <div class="flex-grow-1 d-flex overflow-auto list-group flex-column">
                 {props.chats() ? (
-                    <div class="list-group overflow-auto flex-grow-1 pb-5">
-                        <For each={props.chats()}>
-                            {(chat) => (
-                                <ChatItem chat={chat} {...props} />
-                            )}
-                        </For>
-                    </div>
+                    <For each={props.chats()}>
+                        {(chat) => (
+                            <ChatItem chat={chat} {...props} />
+                        )}
+                    </For>
                 ) : (
                     <p>Loading chats...</p>
                 )}
