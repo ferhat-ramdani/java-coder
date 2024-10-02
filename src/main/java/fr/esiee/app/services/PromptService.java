@@ -8,12 +8,13 @@ import io.helidon.webserver.http.HttpRules;
 import io.helidon.webserver.http.HttpService;
 import io.helidon.webserver.http.ServerRequest;
 import io.helidon.webserver.http.ServerResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
+import javax.ws.rs.*;
 
+@Path("/api/prompt")
+@Tag(name = "Prompt")
 public class PromptService implements HttpService {
 
   private final DbService dbClient;
@@ -40,9 +41,8 @@ public class PromptService implements HttpService {
     response.send(dbClient.listPrompts());
   }
 
-
   @POST
-  @javax.ws.rs.Path("/prompts")
+  @javax.ws.rs.Path("/")
   public void insertPrompt(Prompt prompt, ServerResponse response) {
     long insertedRows = dbClient.insertPrompt(prompt);
     if (insertedRows <= 0) {
@@ -53,7 +53,7 @@ public class PromptService implements HttpService {
   }
 
   @PUT
-  @javax.ws.rs.Path("/prompts")
+  @javax.ws.rs.Path("/")
   public void updatePrompt(Prompt prompt, ServerResponse response) {
     long updatedRows = dbClient.updatePrompt(prompt);
     if (updatedRows <= 0) {
@@ -64,7 +64,7 @@ public class PromptService implements HttpService {
   }
 
   @DELETE
-  @javax.ws.rs.Path("/prompts/{id}")
+  @javax.ws.rs.Path("/{id}")
   public void deletePromptById(ServerRequest request, ServerResponse response) {
     int promptId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new NotFoundException("Prompt ID is required"));
@@ -73,7 +73,7 @@ public class PromptService implements HttpService {
   }
 
   @GET
-  @javax.ws.rs.Path("/prompts/{id}")
+  @javax.ws.rs.Path("/{id}")
   public void getPromptById(ServerRequest request, ServerResponse response) {
     int promptId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new NotFoundException("Prompt ID is required"));
@@ -82,7 +82,9 @@ public class PromptService implements HttpService {
   }
 
   @GET
-  @javax.ws.rs.Path("/chats/{id}/prompts")
+  @javax.ws.rs.Path("/bychat/{id}")
+  @Operation(summary = "Get a prompt by chat id",
+          description = "Gets a prompt given the id of a chat")
   public void getPromptsByChatId(ServerRequest request, ServerResponse response) {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new NotFoundException("Chat ID is required"));
@@ -90,6 +92,8 @@ public class PromptService implements HttpService {
     response.send(prompts);
   }
 
+  @GET
+  @javax.ws.rs.Path("/bychat/{id}/first")
   public void getFirstPromptByChatId(ServerRequest request, ServerResponse response) {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new NotFoundException("Chat ID is required"));
