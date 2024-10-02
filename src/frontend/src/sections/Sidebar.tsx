@@ -25,7 +25,7 @@ const Sidebar: Component<SideBarProps> = (props) => {
                 <button class="w-100 btn btn-outline-primary" onClick={createNewChat}>New Chat</button>
             </div>
             <div class="h4 ms-4 mt-3">Chat History</div>
-            <div class="flex-grow-1 d-flex overflow-auto list-group flex-column">
+            <div class="flex-grow-1 d-flex overflow-auto list-group flex-column p-3">
                 {props.chats() ? (
                     <For each={props.chats()}>
                         {(chat) => (
