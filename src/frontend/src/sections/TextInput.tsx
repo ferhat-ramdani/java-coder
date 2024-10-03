@@ -75,7 +75,6 @@ const TextInput: Component<TextInputProps> = (props) => {
                   style="resize: none;"
                   value={message()}
                   onInput={(e) => setMessage(e.currentTarget.value)}
-                  //disabled={!props.curChatId()}
                   onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                           e.preventDefault();
@@ -87,7 +86,6 @@ const TextInput: Component<TextInputProps> = (props) => {
                     class="btn btn-primary rounded-end"
                     type="button"
                     onClick={() => handleSend(props.setRefreshPrompts)}
-                    //disabled={!props.curChatId()}
                 >
                     Send
                 </button>

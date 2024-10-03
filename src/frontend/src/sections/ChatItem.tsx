@@ -72,22 +72,26 @@ const ChatItem: Component<ChatItemProps> = (props) => {
 
     return (
         <div
-            class={`d-flex justify-content-between align-items-center hover-darken 
+            class={`d-flex justify-content-between align-items-center hover-darken rounded position-relative
             ${props.curChatId() === chat.id ? 'darkened' : 'brightened'}`}
         >
-            <div class="chat-item p-2 border-bottom" onClick={handleClick}>
-                <div>
-                    <strong class="text-truncate">{fetchedFirstPrompt.loading ? "Prompt loading" :
-                        fetchedFirstPrompt() ? fetchedFirstPrompt()!.message : "- No Title -"}</strong>
+            <div class="p-2 border-bottom w-75 pg-warning" onClick={handleClick}>
+                <div class="w-100 text-truncate">
+                    <strong>
+                        {fetchedFirstPrompt.loading ? "Prompt loading" :
+                        fetchedFirstPrompt() ? fetchedFirstPrompt()!.message : "- No Title -"}
+                    </strong>
                 </div>
                 <div>{timestamp}</div>
                 <div>
                     {fetchedLLM.loading ? "LLM loading..." : fetchedLLM() ? `${fetchedLLM()!.name}` : "- No LLM -"}
                 </div>
             </div>
-            <button class={`btn btn-danger ms-2 me-2 ${props.curChatId() === chat.id ? 'd-block' : 'd-none'}`} onClick={handleDelete}>
-                Delete
-            </button>
+            <div class="position-absolute me-2" style="right: 0">
+                <button class={`btn btn-danger ${props.curChatId() === chat.id ? 'd-block' : 'd-none'}`} onClick={handleDelete}>
+                    Delete
+                </button>
+            </div>
         </div>
     );
 };

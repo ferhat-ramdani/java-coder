@@ -23,7 +23,7 @@ const App: Component = () => {
     const [refreshPrompts, setRefreshPrompts] = createSignal<boolean>(false);
     const [selectedLLM, setSelectedLLM] = createSignal<LLM | null>(null);
     const [chats, { refetch }] = createResource(fetchChats);
-    const props = { curChatId, refreshPrompts, setCurChatId, setRefreshPrompts, selectedLLM, setSelectedLLM, chats, refetch};
+    const props = { curChatId, refreshPrompts, selectedLLM, setCurChatId, setRefreshPrompts, setSelectedLLM, chats, refetch};
 
     return (
         <div class="container-fluid vh-100">
