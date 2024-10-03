@@ -20,7 +20,7 @@ public class PromptService implements HttpService {
   private final DbService dbClient;
 
   public PromptService() {
-    this.dbClient = new DbService();
+    this.dbClient = DbService.getInstance();
   }
 
 

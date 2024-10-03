@@ -26,7 +26,7 @@ public class DbService {
 
   private static final Logger LOGGER = System.getLogger(DbService.class.getName());
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
+  private static DbService instance;
   private final DbClient dbClient;
 
   public DbService() {
@@ -36,7 +36,6 @@ public class DbService {
             .orElseGet(() -> DbClient.create(config));
 
     initSchema();
-
 
     if (getLLMCount() <= 0) {
       initData();
@@ -56,6 +55,14 @@ public class DbService {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+
+  public static synchronized DbService getInstance() {
+    if (instance == null) {
+      instance = new DbService();
+    }
+    return instance;
   }
 
   private int getLLMCount() {

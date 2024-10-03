@@ -105,6 +105,11 @@
             <version>${langchain4j.version}</version>
         </dependency>
         <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-ollama</artifactId>
+            <version>${langchain4j.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.github.tjake</groupId>
             <artifactId>jlama-native</artifactId>
             <classifier>${os.detected.classifier}</classifier>

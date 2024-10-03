@@ -1,8 +1,13 @@
 package fr.esiee.app;
 
 
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.ollama.OllamaChatModel;
 import fr.esiee.app.config.LLMConfig;
 import fr.esiee.app.config.mapper.LLMConfigMapper;
+import fr.esiee.app.llmcheck.OllamaCheck;
 import fr.esiee.app.services.ApiService;
 import io.helidon.common.context.Contexts;
 import io.helidon.config.Config;
@@ -31,11 +36,6 @@ public class Main {
   }
 
   public static void main(String[] args) throws IOException, InterruptedException {
-/*    if(!OllamaCheck.installOllama()) {
-      LOGGER.error("You need to install Ollama to run this application.");
-      return;
-    }*/
-
 
     LogConfig.configureRuntime();
 
@@ -47,6 +47,18 @@ public class Main {
 
     DbClient dbClient = DbClient.create(config.get("db"));
     Contexts.globalContext().register(dbClient);
+
+    OllamaCheck.init();
+
+    /*    ChatLanguageModel model =
+            OllamaChatModel.builder().baseUrl("http://localhost:11434").modelName("codellama:7b")
+                    .build();
+
+    // Example usage
+    var answer = model.generate(new SystemMessage("Respond only with java code, don't explain, just give the code. You must have a main method in your class."),
+            new UserMessage("current time"));
+    System.out.println(answer.content().text());*/
+
 
     WebServer server = WebServer.builder()
             .mediaContext(it -> it
