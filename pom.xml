@@ -22,9 +22,6 @@
         <helidon.version>4.1.1</helidon.version>
         <swagger-maven-plugin-version>3.1.0</swagger-maven-plugin-version>
 
-        <maven.compiler.source>22</maven.compiler.source>
-        <maven.compiler.target>22</maven.compiler.target>
-
         <jlama.version>0.3.1</jlama.version>
         <jackson.version>2.17.2</jackson.version>
         <langchain4j.version>0.34.0</langchain4j.version>
@@ -105,6 +102,11 @@
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-jlama</artifactId>
+            <version>${langchain4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-ollama</artifactId>
             <version>${langchain4j.version}</version>
         </dependency>
         <dependency>

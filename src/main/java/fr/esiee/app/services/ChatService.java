@@ -35,7 +35,7 @@ public class ChatService implements HttpService {
   private final DbService dbClient;
 
   public ChatService() {
-    this.dbClient = new DbService();
+    this.dbClient = DbService.getInstance();
   }
 
   @Override

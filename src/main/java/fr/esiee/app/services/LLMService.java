@@ -13,7 +13,7 @@ public class LLMService implements HttpService {
   private final DbService dbService;
 
   public LLMService() {
-    dbService = new DbService();
+    dbService = DbService.getInstance();
   }
 
   @Override
