@@ -18,7 +18,7 @@
     <properties>
         <mainClass>fr.esiee.app.Main</mainClass>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>22</java.version>
+        <java.version>23</java.version>
         <helidon.version>4.1.1</helidon.version>
         <swagger-maven-plugin-version>3.1.0</swagger-maven-plugin-version>
 
