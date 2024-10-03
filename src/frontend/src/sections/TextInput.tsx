@@ -56,7 +56,6 @@ const TextInput: Component<TextInputProps> = (props) => {
             message: message().trim(),
             authorType: "USER",
             chatId: props.curChatId()!,
-            llmId: props.selectedLLM()!.id
         };
 
         try {

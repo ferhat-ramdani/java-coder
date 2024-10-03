@@ -4,8 +4,7 @@ Content-Type: application/json
 {
   "message": "Create a c123lass representing a basic entity.",
   "authorType": "SYSTEM",
-  "chatId": 1,
-  "llmId": 1
+  "chatId": 1
 }
 
 ### Get all prompts
