@@ -10,7 +10,8 @@ class ChatService {
         const response = await fetch(`${this.apiUrl}/chat`);
         const data = await response.json();
         if (!response.ok) {
-            throw new Error(`Erreur lors de l'appel GET : ${response.statusText}`);
+            console.log(`Error in GET query : ${response.statusText}`);
+            throw new Error(`Error in GET query : ${response.statusText}`);
         }
         return data;
     }
@@ -18,7 +19,7 @@ class ChatService {
     async getChatById(id: number): Promise<Chat> {
         const response = await fetch(`${this.apiUrl}/chat/${id}`);
         if (!response.ok) {
-            throw new Error(`Erreur lors de l'appel GET : ${response.statusText}`);
+            throw new Error(`Error in GET query : ${response.statusText}`);
         }
         return await response.json();
     }
@@ -34,7 +35,7 @@ class ChatService {
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(`Erreur lors de l'appel POST : ${response.statusText}`);
+            throw new Error(`Error in POST query : ${response.statusText}`);
         }
         return data;
     }
@@ -49,7 +50,7 @@ class ChatService {
         });
 
         if (!response.ok) {
-            throw new Error(`Erreur lors de l'appel PUT : ${response.statusText}`);
+            throw new Error(`Error during PUT query : ${response.statusText}`);
         }
     }
 
@@ -59,7 +60,7 @@ class ChatService {
         });
 
         if (!response.ok) {
-            throw new Error(`Erreur lors de l'appel DELETE : ${response.statusText}`);
+            throw new Error(`Error during DELETE query : ${response.statusText}`);
         }
     }
 }

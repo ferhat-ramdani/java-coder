@@ -1,47 +1,40 @@
 import {Component, createSignal, Resource, Setter} from "solid-js";
 import promptService from "../services/PromptService";
 import { Prompt } from "../interfaces/Prompt";
-import {LLM} from "../interfaces/LLM";
 import {Chat} from "../interfaces/Chat";
 import chatService from "../services/ChatService";
+import {useAppContext} from "../Context";
 
-interface TextInputProps {
-    curChatId: () => number | null;
-    setCurChatId: (id: number | null) => void;
-    setRefreshPrompts: Setter<boolean>;
-    selectedLLM: () => LLM | null;
-    refetch: () => Chat[] | Promise<Chat[] | undefined> | null | undefined;
-    chats: Resource<Chat[]>;
-}
-
-const TextInput: Component<TextInputProps> = (props) => {
+const TextInput: Component = () => {
+    const [{curChatId, selectedLLM, curChatPrompts, chats}] = useAppContext();
     const [message, setMessage] = createSignal("");
 
-    const handleSend = async (setRefreshPrompts: Setter<boolean>) => {
+    const handleSend = async () => {
         if (!message().trim()) {
             return;
         }
-        if (!props.curChatId()) {
-            if(!props.selectedLLM) {
+        if (!curChatId.accessor()) {
+            if(!selectedLLM.accessor()) {
                 alert("Please select an LLM Model");
             } else {
                 await createNewChat();
-                await createPrompt();
+                await insertNewPrompt();
+                setMessage("");
             }
-        } else if(props.selectedLLM()) {
-            await createPrompt();
+        } else if(selectedLLM.accessor()) {
+            await insertNewPrompt();
+            setMessage("");
         }
-        setMessage("");
-        setRefreshPrompts(true);
-        props.refetch();
     };
 
     const createNewChat = async () => {
-        if(props.selectedLLM()) {
-            const newChat: Chat = { id: 0, title: "", lastActivity: Date.now(), llmId: props.selectedLLM()!.id };
+        if(selectedLLM.accessor()) {
+            const newChat: Chat = { id: 0, title: "", lastActivity: Date.now(), llmId: selectedLLM.accessor()!.id };
             try {
                 const createdChat = await chatService.createChat(newChat);
-                props.setCurChatId(createdChat.id);
+                curChatId.setter(createdChat.id);
+                // chats.mutator(prev => [...(prev!), createdChat]);
+                chats.refetcher();
             } catch (error) {
                 console.error("Error creating chat:", error);
             }
@@ -50,16 +43,17 @@ const TextInput: Component<TextInputProps> = (props) => {
         }
     };
 
-    const createPrompt = async () => {
+    const insertNewPrompt = async () => {
         const newPrompt: Prompt = {
             id: 0, // random value that should not be used
             message: message().trim(),
             authorType: "USER",
-            chatId: props.curChatId()!,
+            chatId: curChatId.accessor()!,
         };
 
         try {
             await promptService.createPrompt(newPrompt);
+            curChatPrompts.setter(prev => [...prev, newPrompt]);
         } catch (error) {
             console.error("Failed to create prompt:", error);
         }
@@ -78,14 +72,14 @@ const TextInput: Component<TextInputProps> = (props) => {
                   onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                           e.preventDefault();
-                          handleSend(props.setRefreshPrompts);
+                          handleSend();
                       }
                   }}
               ></textarea>
                 <button
                     class="btn btn-primary rounded-end"
                     type="button"
-                    onClick={() => handleSend(props.setRefreshPrompts)}
+                    onClick={handleSend}
                 >
                     Send
                 </button>
