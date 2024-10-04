@@ -1,23 +1,26 @@
-import { Component, createResource } from "solid-js";
-import "../styles.css";
+import {Component, createEffect, createResource} from "solid-js";
 import ChatService from "../services/ChatService";
 import PromptService from "../services/PromptService";
-import { LLM } from "../interfaces/LLM";
 import LLMService from "../services/LLMService";
 import { TimestampUtils } from '../services/TimeStampUtils';
 import { Chat } from "../interfaces/Chat";
+import {useAppContext} from "../Context";
+import "../styles.css";
+import {Prompt} from "../interfaces/Prompt";
+import promptService from "../services/PromptService";
 
-type ChatItemProps = {
-    chat: Chat;
-    refetch: () => Chat[] | Promise<Chat[] | undefined> | null | undefined;
-    curChatId: () => number | null;
-    setCurChatId: (chatId: number | null) => void;
-    selectedLLM: () => LLM | null;
-    setSelectedLLM: (llm: LLM | null) => void;
-};
+const fetchPromptsOfChat = async (chatId : number): Promise<Prompt[]> => {
+    try {
+        return await promptService.getPromptsByChatId(chatId);
+    } catch (error) {
+        console.error("Failed to fetch prompts", error);
+        return [];
+    }
+}
 
-const ChatItem: Component<ChatItemProps> = (props) => {
-    const { chat } = props;
+const ChatItem: Component<{chat : Chat}> = (prop) => {
+    const chat : Chat = prop.chat;
+    const [{curChatPrompts, curChatId, selectedLLM, chats}] = useAppContext();
     const timestamp = TimestampUtils.toHumanReadable(chat.lastActivity);
 
     const [fetchedFirstPrompt] = createResource(async () => {
@@ -29,7 +32,7 @@ const ChatItem: Component<ChatItemProps> = (props) => {
        }
     });
 
-    const [fetchedLLM] = createResource(async () => {
+    const [fetchedLLM, {refetch}] = createResource(async () => {
         try {
             return await LLMService.getLlmById(chat.llmId);
         } catch (error) {
@@ -39,23 +42,26 @@ const ChatItem: Component<ChatItemProps> = (props) => {
     });
 
     const handleClick = async () => {
-        props.setCurChatId(chat.id);
+        curChatId.setter(chat.id);
         if(fetchedLLM()) {
-            props.setSelectedLLM(fetchedLLM()!);
+            selectedLLM.setter(fetchedLLM()!);
         } else {
-            try {
-                const fetchedLLM = await LLMService.getLlmById(chat.llmId);
-                props.setSelectedLLM(fetchedLLM);
-            } catch (error) {
-                console.error("Error fetching chat or LLM:", error);
-            }
+            refetch()
+            selectedLLM.setter(fetchedLLM()!);
+        }
+        const chatId = curChatId.accessor();
+        if (chatId) {
+            const chatPrompts = await fetchPromptsOfChat(chatId);
+            curChatPrompts.setter(chatPrompts);
+        } else {
+            curChatPrompts.setter([]);
         }
     };
 
     const handleDelete = async () => {
-        if (props.curChatId()) {
+        const chatId = curChatId.accessor();
+        if (chatId) {
             try {
-                const chatId = props.curChatId()!;
                 const prompts = await PromptService.getPromptsByChatId(chatId);
                 for (const prompt of prompts) {
                     await PromptService.deletePrompt(prompt.id);
@@ -65,15 +71,16 @@ const ChatItem: Component<ChatItemProps> = (props) => {
                 console.error("Failed to delete chat or prompts", error);
             }
         }
-        props.setCurChatId(null);
-        props.refetch();
-        props.setSelectedLLM(null);
+        curChatId.setter(null);
+        selectedLLM.setter(null);
+        curChatPrompts.setter([]);
+        chats.mutator(chats.resource()?.filter(Chat => Chat.id !== chatId));
     };
 
     return (
         <div
             class={`d-flex justify-content-between align-items-center hover-darken rounded position-relative
-            ${props.curChatId() === chat.id ? 'darkened' : 'brightened'}`}
+            ${curChatId.accessor() === chat.id ? 'darkened' : 'brightened'}`}
         >
             <div class="p-2 border-bottom w-75 pg-warning" onClick={handleClick}>
                 <div class="w-100 text-truncate">
@@ -88,7 +95,7 @@ const ChatItem: Component<ChatItemProps> = (props) => {
                 </div>
             </div>
             <div class="position-absolute me-2" style="right: 0">
-                <button class={`btn btn-danger ${props.curChatId() === chat.id ? 'd-block' : 'd-none'}`} onClick={handleDelete}>
+                <button class={`btn btn-danger ${curChatId.accessor() === chat.id ? 'd-block' : 'd-none'}`} onClick={handleDelete}>
                     Delete
                 </button>
             </div>

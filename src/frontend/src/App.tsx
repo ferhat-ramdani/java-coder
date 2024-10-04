@@ -8,32 +8,21 @@ import TopBar from "./sections/TopBar";
 import {LLM} from "./interfaces/LLM";
 import {Chat} from "./interfaces/Chat";
 import chatService from "./services/ChatService";
-
-const fetchChats = async (): Promise<Chat[]> => {
-    try {
-        return await chatService.getChats();
-    } catch (error) {
-        console.error("Error fetching chats:", error);
-        return [];
-    }
-};
+import {ContextProvider} from "./Context";
 
 const App: Component = () => {
-    const [curChatId, setCurChatId] = createSignal<number | null>(null);
-    const [refreshPrompts, setRefreshPrompts] = createSignal<boolean>(false);
-    const [selectedLLM, setSelectedLLM] = createSignal<LLM | null>(null);
-    const [chats, { refetch }] = createResource(fetchChats);
-    const props = { curChatId, refreshPrompts, selectedLLM, setCurChatId, setRefreshPrompts, setSelectedLLM, chats, refetch};
 
     return (
         <div class="container-fluid vh-100">
             <div class="row h-100">
-                <Sidebar {...props} />
-                <div class="col-10 d-flex flex-column p-0 h-100">
-                    <TopBar {...props} />
-                    <PromptsContainer {...props} />
-                    <TextInput {...props} />
-                </div>
+                <ContextProvider>
+                    <Sidebar />
+                    <div class="col-10 d-flex flex-column p-0 h-100">
+                        <TopBar />
+                        <PromptsContainer />
+                        <TextInput />
+                    </div>
+                </ContextProvider>
             </div>
         </div>
     );

@@ -1,23 +1,18 @@
 import { Component, createResource, For } from "solid-js";
 import llmService from "../services/LLMService";
-import { LLM } from "../interfaces/LLM";
-
-interface LLMMOdelSelectorProps {
-    selectedLLM: () => LLM | null;
-    setSelectedLLM: (llm: LLM) => void;
-    curChatId: () => number | null;
-}
+import {useAppContext} from "../Context";
 
 const fetchLLM = async () => await llmService.getLLMS();
 
-const TopBar: Component<LLMMOdelSelectorProps> = (props) => {
+const TopBar: Component = () => {
+    const [{curChatId, selectedLLM}] = useAppContext();
     const [llms] = createResource(fetchLLM);
 
     const handleLLMChange = (event: Event) => {
         const selectedModel = Number((event.target as HTMLSelectElement).value);
-        const selectedLLM = llms()?.find(llm => llm.id === selectedModel);
-        if (selectedLLM) {
-            props.setSelectedLLM(selectedLLM);
+        const llm = llms()?.find(llm => llm.id === selectedModel);
+        if (llm) {
+            selectedLLM.setter(llm);
         }
     };
 
@@ -30,14 +25,14 @@ const TopBar: Component<LLMMOdelSelectorProps> = (props) => {
                 <select
                     class="form-select"
                     aria-label="Select LLM Model"
-                    disabled={llms.loading || props.curChatId() != null}
+                    disabled={llms.loading || curChatId.accessor() != null}
                     onChange={handleLLMChange}
                 >
-                    <option value="" selected={props.selectedLLM() === null}
+                    <option value="" selected={selectedLLM.accessor() === null}
                             disabled>{llms.loading ? "Loading.." : "Select LLM Model"}</option>
                     <For each={llms()}>
                         {item => (
-                            <option value={item.id} selected={props.selectedLLM()?.id === item.id}
+                            <option value={item.id} selected={selectedLLM.accessor()?.id === item.id}
                                     data-bs-toggle="tooltip" data-bs-placement="top" title={item.caracteristics}>
                                 {item.name}
                             </option>

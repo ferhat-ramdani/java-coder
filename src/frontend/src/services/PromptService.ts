@@ -9,7 +9,7 @@ class PromptService {
     async getPrompts(): Promise<Prompt[]> {
         const response = await fetch(`${this.apiUrl}`);
         if (!response.ok) {
-            throw new Error(`Erreur lors de l'appel GET : ${response.statusText}`);
+            throw new Error(`Error during GET query : ${response.statusText}`);
         }
         return await response.json();
     }
@@ -17,7 +17,7 @@ class PromptService {
     async getPromptById(id: number): Promise<Prompt> {
         const response = await fetch(`${this.apiUrl}/${id}`);
         if (!response.ok) {
-            throw new Error(`Erreur lors de l'appel GET : ${response.statusText}`);
+            throw new Error(`Error during GET query : ${response.statusText}`);
         }
         return await response.json();
     }
@@ -25,7 +25,7 @@ class PromptService {
     async getPromptsByChatId(chatId: number): Promise<Prompt[]> {
         const response = await fetch(`${this.apiUrl}/bychat/${chatId}`);
         if (!response.ok) {
-            throw new Error(`Erreur lors de l'appel GET : ${response.statusText}`);
+            throw new Error(`Error during GET query : ${response.statusText}`);
         }
         return await response.json();
     }
@@ -33,15 +33,12 @@ class PromptService {
     async getFirstPromptOfChat(chatId: number): Promise<Prompt> {
         const response = await fetch(`${this.apiUrl}/bychat/${chatId}/first`);
         if (!response.ok) {
-            throw new Error(`Erreur lors de l'appel GET : ${response.statusText}`);
+            throw new Error(`Error during GET query : ${response.statusText}`);
         }
         return await response.json();
     }
 
-
     async createPrompt(prompt: Prompt) {
-        console.log("stringified prompt : ");
-        console.log(JSON.stringify(prompt));
         const response = await fetch(`${this.apiUrl}`, {
             method: 'POST',
             headers: {
@@ -51,7 +48,7 @@ class PromptService {
         });
 
         if (!response.ok) {
-            throw new Error(`Erreur lors de l'appel POST : ${response.statusText}`);
+            throw new Error(`Error during POST query : ${response.statusText}`);
         }
     }
 
@@ -65,7 +62,7 @@ class PromptService {
         });
 
         if (!response.ok) {
-            throw new Error(`Erreur lors de l'appel PUT : ${response.statusText}`);
+            throw new Error(`Error during PUT query : ${response.statusText}`);
         }
     }
 
@@ -75,7 +72,7 @@ class PromptService {
         });
 
         if (!response.ok) {
-            throw new Error(`Erreur lors de l'appel DELETE : ${response.statusText}`);
+            throw new Error(`Error during DELETE query : ${response.statusText}`);
         }
     }
 }
