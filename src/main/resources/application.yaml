@@ -1,3 +1,6 @@
+
+debug: true
+
 server:
   port: 8080
   host: 0.0.0.0
@@ -9,14 +12,12 @@ llm:
   url: "localhost"
   port: 5000
 
-
-
 db:
   source: jdbc
   connection:
     url: "jdbc:h2:./data/db;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE"
-    username: "gptfordev"
-    password: "gptfordev"
+    username: "gptfordev" #Default value, to change, add an environment variable `db_connection_username` or change here.
+    password: "gptfordev" #Default value, to change, add an environment variable `db_connection_password` or change here.
     poolName: h2
     initializationFailTimeout: -1
     connectionTimeout: 2000
