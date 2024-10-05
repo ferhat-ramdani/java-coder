@@ -50,16 +50,6 @@ public class Main {
 
     OllamaCheck.init();
 
-    /*    ChatLanguageModel model =
-            OllamaChatModel.builder().baseUrl("http://localhost:11434").modelName("codellama:7b")
-                    .build();
-
-    // Example usage
-    var answer = model.generate(new SystemMessage("Respond only with java code, don't explain, just give the code. You must have a main method in your class."),
-            new UserMessage("current time"));
-    System.out.println(answer.content().text());*/
-
-
     WebServer server = WebServer.builder()
             .mediaContext(it -> it
                     .mediaSupportsDiscoverServices(false)

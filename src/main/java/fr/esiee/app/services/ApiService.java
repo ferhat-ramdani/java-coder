@@ -12,6 +12,5 @@ public class ApiService implements HttpService {
     }).register("/llm", new LLMService())
       .register("/chat", new ChatService())
       .register("/prompt", new PromptService());
-
   }
 }

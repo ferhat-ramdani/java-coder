@@ -3,11 +3,24 @@ import promptService from "../services/PromptService";
 import { Prompt } from "../interfaces/Prompt";
 import {Chat} from "../interfaces/Chat";
 import chatService from "../services/ChatService";
+import llmService from "../services/LLMService";
 import {useAppContext} from "../Context";
 
 const TextInput: Component = () => {
     const [{curChatId, selectedLLM, curChatPrompts, chats}] = useAppContext();
     const [message, setMessage] = createSignal("");
+
+    const fetchLLMResponse = async () => {
+        const messageToSend = message();
+        setMessage("");
+        try {
+            await insertNewPrompt(messageToSend, "USER");
+            const response = await llmService.generateResponseFromLLM(messageToSend);
+            await insertNewPrompt(response, "LLM");
+        } catch (error) {
+            console.error("Error fetching llm response:", error);
+        }
+    }
 
     const handleSend = async () => {
         if (!message().trim()) {
@@ -18,12 +31,10 @@ const TextInput: Component = () => {
                 alert("Please select an LLM Model");
             } else {
                 await createNewChat();
-                await insertNewPrompt();
-                setMessage("");
+                await fetchLLMResponse();
             }
         } else if(selectedLLM.accessor()) {
-            await insertNewPrompt();
-            setMessage("");
+            await fetchLLMResponse();
         }
     };
 
@@ -43,11 +54,11 @@ const TextInput: Component = () => {
         }
     };
 
-    const insertNewPrompt = async () => {
+    const insertNewPrompt = async (message: string, authorType: string) => {
         const newPrompt: Prompt = {
             id: 0, // random value that should not be used
-            message: message().trim(),
-            authorType: "USER",
+            message: message.trim(),
+            authorType: authorType,
             chatId: curChatId.accessor()!,
         };
 

@@ -195,11 +195,6 @@ public class DbService {
     if (chat.id() < 0 || chat.llmId() < 0) {
       throw new IllegalArgumentException("id or llmId is negative");
     }
-
-    // ferhat : I don't think the chat id must be checked here.
-//    if (chatExists(chat.id())) {
-//      throw new IllegalArgumentException("Chat " + chat.id() + " already exists");
-//    }
     return dbClient.execute()
             .createNamedInsert("insert-chat")
             .addParam(chat.title())
