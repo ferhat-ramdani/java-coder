@@ -40,6 +40,8 @@ public class DbService {
     if (getLLMCount() <= 0) {
       initData();
     }
+    instance = this;
+    Contexts.globalContext().register(instance);
   }
 
   private static void initLLMs(DbExecute exec) {
@@ -61,6 +63,7 @@ public class DbService {
   public static synchronized DbService getInstance() {
     if (instance == null) {
       instance = new DbService();
+      Contexts.globalContext().register(instance);
     }
     return instance;
   }

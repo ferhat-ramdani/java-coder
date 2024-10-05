@@ -48,6 +48,9 @@ public class Main {
     DbClient dbClient = DbClient.create(config.get("db"));
     Contexts.globalContext().register(dbClient);
 
+    var llmConfig = config.get("provider").as(LLMConfig.class).orElse(LLMConfig.defaultConfig());
+    Contexts.globalContext().register(llmConfig);
+
     OllamaCheck.init();
 
     WebServer server = WebServer.builder()

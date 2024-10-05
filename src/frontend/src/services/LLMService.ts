@@ -1,6 +1,7 @@
 import Config from '../Config';
 import {LLM} from "../interfaces/LLM";
 import {Chat} from "../interfaces/Chat";
+import {Prompt} from "../interfaces/Prompt";
 
 class LLMService {
 
@@ -23,13 +24,13 @@ class LLMService {
         return await response.json();
     }
 
-    async generateResponseFromLLM(queryText: string): Promise<string>{
-        const data = await fetch(`${this.apiUrl}/class`, {
+    async generateResponseFromLLM(prompt: Prompt): Promise<string>{
+        const data = await fetch(`${this.config.getBackendUrl()}/api/gen/class`, {
             method: 'POST',
             headers: {
-                'content-type' : 'text/plain',
+                'content-type' : 'application/json',
             },
-            body: queryText
+            body: JSON.stringify(prompt)
         });
         if (!data.ok) {
             throw new Error(`Error during GET query : ${data.statusText}`);
