@@ -203,7 +203,7 @@ public class OllamaCheck {
 
   private static void pullLLM(String cmd, String model) throws IOException, InterruptedException {
     LOGGER.info("Pulling LLM: {}", model);
-    var process = new ProcessBuilder(cmd, "pull", model).start();
+    var process = new ProcessBuilder(cmd, "pull", model).inheritIO().start();
     process.waitFor();
   }
 

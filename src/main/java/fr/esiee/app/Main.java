@@ -1,12 +1,8 @@
 package fr.esiee.app;
 
 
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.ollama.OllamaChatModel;
-import fr.esiee.app.config.LLMConfig;
-import fr.esiee.app.config.mapper.LLMConfigMapper;
+import fr.esiee.app.config.LLMProviderConfig;
+import fr.esiee.app.config.mapper.LLMProviderConfigMapper;
 import fr.esiee.app.llmcheck.OllamaCheck;
 import fr.esiee.app.services.ApiService;
 import io.helidon.common.context.Contexts;
@@ -31,21 +27,48 @@ public class Main {
   private static final StaticContentService FRONT_STATIC_PATH =
           StaticContentService.builder("/static").welcomeFileName("index.html").build();
 
+  private static final String BDD_DEFAULT_USER = "gptfordev";
+  private static final String BDD_DEFAULT_PASSWORD = "gptfordev";
+
   private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+
+
   private Main() {
+  }
+
+  public static boolean isDebugMode() {
+    return Config.global().get("debug").asBoolean().orElse(false);
   }
 
   public static void main(String[] args) throws IOException, InterruptedException {
 
     LogConfig.configureRuntime();
 
-    Config config = Config.builder()
-            .addMapper(LLMConfig.class, new LLMConfigMapper())
+    var config = Config.builder()
+            .addMapper(LLMProviderConfig.class, new LLMProviderConfigMapper())
             .build();
     Config.global(config);
 
+    var bddUser = config.get("db.connection.username").asString().orElseThrow(() -> new RuntimeException("Database username is not set."));
+    var bddPassword = config.get("db.connection.password").asString().orElseThrow(() -> new RuntimeException("Database password is not set."));
 
-    DbClient dbClient = DbClient.create(config.get("db"));
+    if (bddUser.isBlank() || bddUser.isEmpty()) {
+      LOGGER.error("Database username is not set.");
+      System.exit(1);
+    }
+
+    if (bddPassword.isBlank() || bddPassword.isEmpty()) {
+      LOGGER.error("Database password is not set.");
+      System.exit(1);
+    }
+
+    if (bddUser.equals(BDD_DEFAULT_USER) || bddPassword.equals(BDD_DEFAULT_PASSWORD)) {
+      LOGGER.warn("You are using the default database user or password.");
+      LOGGER.warn("To change it, you can set the values in the `application.yaml` file.");
+      LOGGER.warn("Or in the environment variables. By set `db_connection_username` and `db_connection_password` values.");
+    }
+
+    var dbClient = DbClient.create(config.get("db"));
     Contexts.globalContext().register(dbClient);
 
     OllamaCheck.init();
@@ -59,8 +82,7 @@ public class Main {
             new UserMessage("current time"));
     System.out.println(answer.content().text());*/
 
-
-    WebServer server = WebServer.builder()
+    var server = WebServer.builder()
             .mediaContext(it -> it
                     .mediaSupportsDiscoverServices(false)
                     .addMediaSupport(JacksonSupport.create(config))
@@ -68,8 +90,11 @@ public class Main {
             .addFeature(AccessLogFeature.builder()
                     .commonLogFormat()
                     .build())
-                    .config(config.get("server"))
-                    .routing(Main::routing).build().start();
+            .config(config.get("server"))
+            .routing(Main::routing).build().start();
+
+    Contexts.globalContext().register(server);
+
     System.out.println("WEB server is up! http://localhost:" + server.port());
 
   }
