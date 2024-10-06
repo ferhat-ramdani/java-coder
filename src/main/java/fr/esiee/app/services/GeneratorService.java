@@ -1,7 +1,5 @@
 package fr.esiee.app.services;
 
-import dev.langchain4j.memory.ChatMemory;
-import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.service.AiServices;
 import fr.esiee.app.config.LLMProviderConfig;
@@ -24,14 +22,16 @@ import java.util.Objects;
 public class GeneratorService implements HttpService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GeneratorService.class);
-  private static final String SYSTEM_ERR_MESSAGE = "There are compilation errors in the generated class : ";
+  private static final String SYSTEM_ERR_MESSAGE_1 = """
+  You have generated the following java class : \n""";
+  private static final String SYSTEM_ERR_MESSAGE_2 = """
+  \nHere are the compilation errors, correct them and generate another code (do not include any plain text in your response) : \n""";
   private static final String USER_ERR_MESSAGE = "There are compilation errors in the generated class : ";
   private final DbService dbService;
   private final LLMProviderConfig llmConfig;
-  private final int NB_ATTEMPTS = 5;
-  private final int MAX_MEMORY_PROMPTS = 300;
+  private final int NB_ATTEMPTS = 3;
+//  private final int MAX_MEMORY_PROMPTS = 2;
 
-  private ChatMemory chatMemory;
   private LLM curLLM;
   private OllamaChatModel model;
   private Assistant assistant;
@@ -43,7 +43,8 @@ public class GeneratorService implements HttpService {
 
   @Override
   public void routing(HttpRules rules) {
-    rules.post("/class", Handler.create(Prompt.class, this::generateClass));
+    rules.post("/class", Handler.create(Prompt.class, this::generateClass))
+            .post("/exec", Handler.create(String.class, this::executeClass));
   }
 
   private void generateClass(Prompt prompt, ServerResponse res) {
@@ -66,6 +67,21 @@ public class GeneratorService implements HttpService {
     res.send(generatedClass);
   }
 
+  private void executeClass(String classCode, ServerResponse res) {
+    Objects.requireNonNull(classCode);
+    Objects.requireNonNull(res);
+    LOGGER.info("Recieved code for execution : \n{}", classCode);
+    String output;
+    try {
+      output = CompileService.compileAndExecuteText(classCode);
+    } catch (IOException | InterruptedException e) {
+      output = "An error occured while exuting class.";
+      LOGGER.error("{} : {}", output, e.getMessage());
+    }
+    LOGGER.info("Output of execution : \n{}", output);
+    res.send(output);
+  }
+
   private String generateClassFromLLM(LLM llm, String requestText, Chat chat) throws IOException {
     Objects.requireNonNull(llm);
     Objects.requireNonNull(requestText);
@@ -77,17 +93,16 @@ public class GeneratorService implements HttpService {
 
     String errorsText = null;
     for (int attempt = 0; attempt < NB_ATTEMPTS; attempt++) {
-      LOGGER.info("Attempting to generate class : {}", attempt);
+      LOGGER.info("Attemp n° {} to generate class ...", attempt);
       var answer = assistant.chat(attempt == 0 ? llm.systemPrompt() : errorsText);
-      LOGGER.info("Generated class before compilation : {}", answer);
       String code = CompileService.extractCode(answer);
-      LOGGER.info("Extracted code : {}", code);
+      LOGGER.info("Extracted code : \n{}", code);
       var errors = CompileService.processAndCompileText(code);
-      LOGGER.info("Compilation message : {}", errors);
+      LOGGER.info("Compilation message : \n{}", errors);
       if (errors.isEmpty()) {
         return code;
       } else {
-        errorsText = SYSTEM_ERR_MESSAGE + "\n" + String.join("\n\n", errors);
+        errorsText = SYSTEM_ERR_MESSAGE_1 + code + SYSTEM_ERR_MESSAGE_2 + String.join("\n", errors);
       }
     }
 
@@ -95,7 +110,7 @@ public class GeneratorService implements HttpService {
   }
 
   private void updateModelSettings(LLM llm) {
-    chatMemory = MessageWindowChatMemory.withMaxMessages(MAX_MEMORY_PROMPTS);
+//    var chatMemory = MessageWindowChatMemory.withMaxMessages(MAX_MEMORY_PROMPTS);
     model = OllamaChatModel.builder()
             .baseUrl(llmConfig.baseUrl())
             .modelName(llm.model())
@@ -103,7 +118,6 @@ public class GeneratorService implements HttpService {
             .build();
     assistant = AiServices.builder(Assistant.class)
             .chatLanguageModel(model)
-            .chatMemory(chatMemory)
             .build();
   }
 }

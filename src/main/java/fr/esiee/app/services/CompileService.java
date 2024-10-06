@@ -156,11 +156,19 @@ class CompileService {
 
   public static String extractCode(String text) {
     int firstDelimiter = text.indexOf("```java");
+    int offset = 7;
+
+    if (firstDelimiter == -1) {
+      firstDelimiter = text.indexOf("```");
+      offset = 3;
+    }
     if (firstDelimiter == -1) return text;
-    text = text.substring(firstDelimiter + 7);
+
+    text = text.substring(firstDelimiter + offset);
     int secondDelimiter = text.indexOf("```");
     return secondDelimiter == -1 ? text : text.substring(0, secondDelimiter);
   }
+
 
   private static Optional<String> extractClassName(String code) {
     String regex = "public\\s+(?:\\w+\\s+)*(?:class|record)\\s+(\\w+)(?:\\s*<.*?>)?\\s*(?:extends\\s+\\w+)?\\s*(?:implements\\s+[\\w,\\s]+)?";
