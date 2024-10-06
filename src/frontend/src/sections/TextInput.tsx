@@ -22,16 +22,15 @@ const TextInput: Component = () => {
                 chatId: curChatId.accessor()!,
             };
 
-            // const response = await llmService.generateResponseFromLLM(newPrompt);
-            // console.log(response);
+            const response = await llmService.generateResponseFromLLM(newPrompt);
 
-            const eventSource = new EventSource(`http://localhost:8080/api/gen/test`);
-
-            eventSource.onmessage = (event) => {
-                const newMessage = event.data;
-                console.log("msg", event);
-                console.log("new", newMessage);
-            };
+            // const eventSource = new EventSource(`http://localhost:8080/api/gen/test`);
+            //
+            // eventSource.onmessage = (event) => {
+            //     const newMessage = event.data;
+            //     console.log("msg", event);
+            //     console.log("new", newMessage);
+            // };
 
             // await insertNewPrompt(response, "LLM");
         } catch (error) {
