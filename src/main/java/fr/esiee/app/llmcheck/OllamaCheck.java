@@ -6,11 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -205,33 +201,10 @@ public class OllamaCheck {
     return process.waitFor() == 0;
   }
 
-  //  private static void pullLLM(String cmd, String model) throws IOException, InterruptedException {
-//    LOGGER.info("Pulling LLM: {}", model);
-//    var process = new ProcessBuilder(cmd, "pull", model).start();
-//    process.waitFor();
-//  }
-
   private static void pullLLM(String cmd, String model) throws IOException, InterruptedException {
     LOGGER.info("Pulling LLM: {}", model);
-    var process = new ProcessBuilder(cmd, "pull", model).start();
-
-    var outputThread = Thread.ofVirtual().start(() -> handleStream(process.getInputStream(), System.out));
-    var errorThread = Thread.ofVirtual().start(() -> handleStream(process.getErrorStream(), System.err));
-
+    var process = new ProcessBuilder(cmd, "pull", model).inheritIO().start();
     process.waitFor();
-    outputThread.join();
-    errorThread.join();
-  }
-
-  private static void handleStream(InputStream stream, PrintStream printStream) {
-    try (var reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
-      int character;
-      while ((character = reader.read()) != -1) {
-        printStream.print((char) character);
-      }
-    } catch (IOException e) {
-      throw new RuntimeException("Error reading stream", e);
-    }
   }
 
   private static Path createTempPath() throws IOException {
