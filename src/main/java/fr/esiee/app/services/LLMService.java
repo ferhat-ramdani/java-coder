@@ -1,10 +1,5 @@
 package fr.esiee.app.services;
 
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.ollama.OllamaChatModel;
-import fr.esiee.app.db.entities.Chat;
 import fr.esiee.app.dto.LLMElemDTO;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
@@ -37,6 +32,4 @@ public class LLMService implements HttpService {
     var llmDTO = new LLMElemDTO(llm.id(),llm.name(),llm.model(), llm.caracteristics());
     res.send(llmDTO);
   }
-
-
 }

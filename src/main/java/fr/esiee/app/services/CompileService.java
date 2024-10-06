@@ -6,13 +6,75 @@ import javax.tools.ToolProvider;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 class CompileService {
+
+  public static List<String> processAndCompileText(String text) throws IOException {
+    Objects.requireNonNull(text);
+    String code = extractCode(text);
+    var className = extractClassName(code);
+    if (className.isEmpty()) {
+      throw new IllegalStateException("no class name could be extracted");
+    }
+    return compileJavaClass(code, className.get());
+  }
+
+  public static String compileAndExecuteText(String text) throws IOException, InterruptedException {
+    Objects.requireNonNull(text);
+    String code = extractCode(text);
+    var className = extractClassName(code);
+    if (className.isEmpty()) {
+      throw new IllegalStateException("no class name could be extracted");
+    }
+    return compileAndExecuteJavaCode(code, className.get());
+  }
+
+  private static List<String> compileJavaClass(String javaCode, String className) throws IOException {
+    Objects.requireNonNull(javaCode);
+    Objects.requireNonNull(className);
+    var targetDir = createTempPath().toString();
+    var javaFilePath = targetDir + "/" + className + ".java";
+    var classFilePath = targetDir + "/" + className + ".class";
+
+    try {
+      writeToFile(javaCode, javaFilePath);
+      return compileJavaFile(javaFilePath);
+    } finally {
+      deleteFile(javaFilePath);
+      deleteFile(classFilePath);
+    }
+  }
+
+  private static String compileAndExecuteJavaCode(String javaCode, String className) throws IOException, InterruptedException {
+    Objects.requireNonNull(javaCode);
+    Objects.requireNonNull(className);
+    var targetDir = createTempPath().toString();
+    var javaFilePath = targetDir + "/" + className + ".java";
+    var classFilePath = targetDir + "/" + className + ".class";
+
+    try {
+      writeToFile(javaCode, javaFilePath);
+      var compileErrors = compileJavaFile(javaFilePath);
+      if (!compileErrors.isEmpty()) {
+        return String.join("\n", compileErrors);
+      }
+      addExecutePermission(classFilePath);
+      return executeClassFile(targetDir, className);
+    } finally {
+      deleteFile(classFilePath);
+      deleteFile(javaFilePath);
+    }
+  }
+
   private static List<String> compileJavaFile(String javaFilePath) {
     Objects.requireNonNull(javaFilePath);
     var compiler = ToolProvider.getSystemJavaCompiler();
@@ -82,50 +144,43 @@ class CompileService {
     }
   }
 
-  public static List<String> compileJavaClass(String javaContent, String className) throws IOException {
-    Objects.requireNonNull(javaContent);
-    Objects.requireNonNull(className);
-    var targetDir = "target/compile";
-    var javaFilePath = targetDir + "/" + className + ".java";
-    var classFilePath = targetDir + "/" + className + ".class";
-
-    try {
-      writeToFile(javaContent, javaFilePath);
-      return compileJavaFile(javaFilePath);
-    } finally {
-      deleteFile(javaFilePath);
-      deleteFile(classFilePath);
-    }
+  private static Path createTempPath() throws IOException {
+    var tempDir = Files.createTempDirectory("ollama-install");
+    tempDir.toFile().deleteOnExit();
+    return tempDir;
   }
 
-  public static String compileAndExecuteJavaCode(String javaContent, String className) throws IOException, InterruptedException {
-    Objects.requireNonNull(javaContent);
-    Objects.requireNonNull(className);
-    var targetDir = "target/compile";
-    var javaFilePath = targetDir + "/" + className + ".java";
-    var classFilePath = targetDir + "/" + className + ".class";
+  public static String extractCode(String text) {
+    int firstDelimiter = text.indexOf("```");
+    if (firstDelimiter == -1) return text;
+    text = text.substring(firstDelimiter + 3);
+    int secondDelimiter = text.indexOf("```");
+    return secondDelimiter == -1 ? text : text.substring(0, secondDelimiter);
+  }
 
-    try {
-      writeToFile(javaContent, javaFilePath);
-      var compileErrors = compileJavaFile(javaFilePath);
-      if (!compileErrors.isEmpty()) {
-        return String.join("\n", compileErrors);
-      }
-      addExecutePermission(classFilePath);
-      return executeClassFile(targetDir, className);
-    } finally {
-      deleteFile(classFilePath);
-      deleteFile(javaFilePath);
-    }
+  private static Optional<String> extractClassName(String code) {
+    String regex = "public\\s+(?:\\w+\\s+)*(?:class|record)\\s+(\\w+)(?:\\s*<.*?>)?\\s*(?:extends\\s+\\w+)?\\s*(?:implements\\s+[\\w,\\s]+)?";
+    Pattern pattern = Pattern.compile(regex);
+    Matcher matcher = pattern.matcher(code);
+    return Optional.ofNullable(matcher.find() ? matcher.group(1) : null);
   }
 
   public static void main(String[] args) throws IOException, InterruptedException {
-    var content = "public class HelloWorld {\n" +
-            "  public static void main(String[] args) {\n" +
-            "    System.out.println(\"Hello, World!\");\n" +
-            "  }\n" +
-            "}\n";
-    var output = compileAndExecuteJavaCode(content, "HelloWorld");
+    var content = """
+            Here's how you can generate a random number in Java:
+            ```
+            import java.util.Random;
+            public class RandomNumberGenerator {
+              public static void main(String[] args) {
+                Random random = new Random();
+                int randomNumber = random.nextInt(100);  // Generates a random number between 0 and 99
+                System.out.println("Generated random number: " + randomNumber);
+              }
+            }
+            ```
+            This code uses the Random class to generate numbers.
+            """;
+    var output = compileAndExecuteText(content);
     System.out.println(output);
   }
 }
