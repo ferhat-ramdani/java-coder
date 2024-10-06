@@ -94,7 +94,8 @@ public class GeneratorService implements HttpService {
     String errorsText = null;
     for (int attempt = 0; attempt < NB_ATTEMPTS; attempt++) {
       LOGGER.info("Attemp n° {} to generate class ...", attempt);
-      var answer = assistant.chat(attempt == 0 ? llm.systemPrompt() : errorsText);
+      var request = "[start of request]" + requestText + "[end of request]";
+      var answer = assistant.chat(attempt == 0 ? llm.systemPrompt() + request : errorsText);
       String code = CompileService.extractCode(answer);
       LOGGER.info("Extracted code : \n{}", code);
       var errors = CompileService.processAndCompileText(code);

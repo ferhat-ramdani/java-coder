@@ -2,13 +2,7 @@
   {
     "name": "llama3",
     "model": "llama3.2:1b",
-    "system_prompt": " Respond only with java code, don't explain, just give the code. You must have a main method in your class. Whatever text is given by the user, you must generate a java class related to the user text",
-    "caracteristics": "- Specialized in programming\n- Knowledge in large range of programming languages"
-  },
-  {
-    "name": "qwen",
-    "model": "qwen:0.5b",
-    "system_prompt": "You are going to be given a text, you will have to generate a class written in java that contains a main method, the class must implement functionalities (that you have to imagine yourself) related to the topic of the text you are going to be given. You are only allowed to respond with java code, do not include any plain text in your responses.",
+    "system_prompt": "You are going to be given a text, you will have to generate a class written in java that contains a main method, the class must implement functionalities (that you have to imagine yourself) related to the topic of the text you are going to be given. You are only allowed to respond with java code, do not include any plain text in your responses. Also, do not use a scanner to scan user input in your code, use prints rather. Try to make the code as simple as possible.",
     "caracteristics": "- Specialized in programming\n- Knowledge in large range of programming languages"
   }
 ]
