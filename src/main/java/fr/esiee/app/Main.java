@@ -71,9 +71,6 @@ public class Main {
     var dbClient = DbClient.create(config.get("db"));
     Contexts.globalContext().register(dbClient);
 
-    var llmConfig = config.get("provider").as(LLMConfig.class).orElse(LLMConfig.defaultConfig());
-    Contexts.globalContext().register(llmConfig);
-
     OllamaCheck.init();
 
     /*    ChatLanguageModel model =
@@ -84,7 +81,6 @@ public class Main {
     var answer = model.generate(new SystemMessage("Respond only with java code, don't explain, just give the code. You must have a main method in your class."),
             new UserMessage("current time"));
     System.out.println(answer.content().text());*/
-
 
     var server = WebServer.builder()
             .mediaContext(it -> it
