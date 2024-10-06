@@ -1,5 +1,8 @@
 package fr.esiee.app.services;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaFileObject;
 import javax.tools.ToolProvider;
@@ -18,9 +21,10 @@ import java.util.regex.Pattern;
 
 class CompileService {
 
-  public static List<String> processAndCompileText(String text) throws IOException {
-    Objects.requireNonNull(text);
-    String code = extractCode(text);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CompileService.class);
+
+  public static List<String> processAndCompileText(String code) throws IOException {
+    Objects.requireNonNull(code);
     var className = extractClassName(code);
     if (className.isEmpty()) {
       throw new IllegalStateException("no class name could be extracted");
@@ -151,9 +155,9 @@ class CompileService {
   }
 
   public static String extractCode(String text) {
-    int firstDelimiter = text.indexOf("```");
+    int firstDelimiter = text.indexOf("```java");
     if (firstDelimiter == -1) return text;
-    text = text.substring(firstDelimiter + 3);
+    text = text.substring(firstDelimiter + 7);
     int secondDelimiter = text.indexOf("```");
     return secondDelimiter == -1 ? text : text.substring(0, secondDelimiter);
   }
@@ -168,7 +172,7 @@ class CompileService {
   public static void main(String[] args) throws IOException, InterruptedException {
     var content = """
             Here's how you can generate a random number in Java:
-            ```
+            ```java
             import java.util.Random;
             public class RandomNumberGenerator {
               public static void main(String[] args) {
