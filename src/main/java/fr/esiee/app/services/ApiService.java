@@ -15,7 +15,8 @@ public class ApiService implements HttpService {
   public void routing(HttpRules httpRules) {
     httpRules.register("/llm", new LLMService())
             .register("/chat", new ChatService())
-            .register("/prompt", new PromptService());
+            .register("/gen", new GeneratorService())
+      .register("/prompt", new PromptService());
 
     if (Main.isDebugMode()) {
       httpRules.get("/stop", (req, res) -> {
