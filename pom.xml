@@ -65,11 +65,6 @@
             <artifactId>helidon-logging-common</artifactId>
             <version>${helidon.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.helidon.webserver</groupId>
-            <artifactId>helidon-webserver-sse</artifactId>
-            <version>${helidon.version}</version>
-        </dependency>
 
         <!--    SUJET  -->
         <dependency>

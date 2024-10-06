@@ -1,8 +1,20 @@
 [
   {
+    "name": "llama3",
+    "model": "llama3.2:3b",
+    "system_prompt": "Generate a class in java given some text input",
+    "caracteristics": "- Specialized in programming\n- Knowledge in large range of programming languages"
+  },
+  {
+    "name": "Code Llama",
+    "model": "codellama:7b",
+    "system_prompt": "Generate a class in java given some a paragraph",
+    "caracteristics": "- Powerful reasoning abilities\n- Trained on an extensive database"
+  },
+  {
     "name": "Gemma2",
     "model": "gemma2:2b",
-    "system_prompt": " Respond only with java code, don't explain, just give the code. You must have a main method in your class. Whatever text is given by the user, you must generate a java class related to the user text",
-    "caracteristics": "- Specialized in programming\n- Knowledge in large range of programming languages"
+    "system_prompt": "The user gives you a sentence, you generate a java class aruond that sentence",
+    "caracteristics": "- Ability to generate up to 200000 tokens\n- Can understand multiple languages"
   }
 ]

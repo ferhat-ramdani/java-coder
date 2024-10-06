@@ -3,40 +3,11 @@ import promptService from "../services/PromptService";
 import { Prompt } from "../interfaces/Prompt";
 import {Chat} from "../interfaces/Chat";
 import chatService from "../services/ChatService";
-import llmService from "../services/LLMService";
 import {useAppContext} from "../Context";
 
 const TextInput: Component = () => {
     const [{curChatId, selectedLLM, curChatPrompts, chats}] = useAppContext();
     const [message, setMessage] = createSignal("");
-
-    const fetchLLMResponse = async () => {
-        const messageToSend = message();
-        setMessage("");
-        try {
-            // await insertNewPrompt(messageToSend, "USER");
-            const newPrompt: Prompt = {
-                id: 0, // random value that should not be used
-                message: messageToSend.trim(),
-                authorType: "USER",
-                chatId: curChatId.accessor()!,
-            };
-
-            const response = await llmService.generateResponseFromLLM(newPrompt);
-
-            // const eventSource = new EventSource(`http://localhost:8080/api/gen/test`);
-            //
-            // eventSource.onmessage = (event) => {
-            //     const newMessage = event.data;
-            //     console.log("msg", event);
-            //     console.log("new", newMessage);
-            // };
-
-            // await insertNewPrompt(response, "LLM");
-        } catch (error) {
-            console.error("Error fetching llm response:", error);
-        }
-    }
 
     const handleSend = async () => {
         if (!message().trim()) {
@@ -47,10 +18,12 @@ const TextInput: Component = () => {
                 alert("Please select an LLM Model");
             } else {
                 await createNewChat();
-                await fetchLLMResponse();
+                await insertNewPrompt();
+                setMessage("");
             }
         } else if(selectedLLM.accessor()) {
-            await fetchLLMResponse();
+            await insertNewPrompt();
+            setMessage("");
         }
     };
 
@@ -70,11 +43,11 @@ const TextInput: Component = () => {
         }
     };
 
-    const insertNewPrompt = async (message: string, authorType: string) => {
+    const insertNewPrompt = async () => {
         const newPrompt: Prompt = {
             id: 0, // random value that should not be used
-            message: message.trim(),
-            authorType: authorType,
+            message: message().trim(),
+            authorType: "USER",
             chatId: curChatId.accessor()!,
         };
 
