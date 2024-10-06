@@ -1,10 +1,12 @@
 import {Component, createSignal, Resource, Setter} from "solid-js";
 import promptService from "../services/PromptService";
-import { Prompt } from "../interfaces/Prompt";
+import {createPromt, Prompt} from "../interfaces/Prompt";
 import {Chat} from "../interfaces/Chat";
 import chatService from "../services/ChatService";
 import llmService from "../services/LLMService";
 import {useAppContext} from "../Context";
+import {AuthorType} from "../interfaces/AuthorType";
+import generatorService from "../services/GeneratorService";
 
 const TextInput: Component = () => {
     const [{curChatId, selectedLLM, curChatPrompts, chats}] = useAppContext();
@@ -14,15 +16,13 @@ const TextInput: Component = () => {
         const messageToSend = message();
         setMessage("");
         try {
-            // await insertNewPrompt(messageToSend, "USER");
-            const newPrompt: Prompt = {
-                id: 0, // random value that should not be used
-                message: messageToSend.trim(),
-                authorType: "USER",
-                chatId: curChatId.accessor()!,
-            };
+            const newPrompt: Prompt = createPromt(messageToSend, AuthorType.USER, curChatId.accessor()!);
+            await insertNewPrompt(newPrompt);
 
-            const response = await llmService.generateResponseFromLLM(newPrompt);
+            const response = await generatorService.generateResponseFromLLM(newPrompt);
+
+            const llmPromt: Prompt = createPromt(response, AuthorType.LLM, curChatId.accessor()!);
+            await insertNewPrompt(llmPromt);
 
             // const eventSource = new EventSource(`http://localhost:8080/api/gen/test`);
             //
@@ -32,7 +32,6 @@ const TextInput: Component = () => {
             //     console.log("new", newMessage);
             // };
 
-            // await insertNewPrompt(response, "LLM");
         } catch (error) {
             console.error("Error fetching llm response:", error);
         }
@@ -70,17 +69,12 @@ const TextInput: Component = () => {
         }
     };
 
-    const insertNewPrompt = async (message: string, authorType: string) => {
-        const newPrompt: Prompt = {
-            id: 0, // random value that should not be used
-            message: message.trim(),
-            authorType: authorType,
-            chatId: curChatId.accessor()!,
-        };
-
+    const insertNewPrompt = async (prompt: Prompt, send: boolean = false) => {
         try {
-            await promptService.createPrompt(newPrompt);
-            curChatPrompts.setter(prev => [...prev, newPrompt]);
+            if(send) {
+                await promptService.createPrompt(prompt);
+            }
+            curChatPrompts.setter(prev => [...prev, prompt]);
         } catch (error) {
             console.error("Failed to create prompt:", error);
         }
