@@ -11,6 +11,7 @@ public class ApiService implements HttpService {
       res.send("API Service");
     }).register("/llm", new LLMService())
       .register("/chat", new ChatService())
+      .register("/gen", new GeneratorService())
       .register("/prompt", new PromptService());
   }
 }

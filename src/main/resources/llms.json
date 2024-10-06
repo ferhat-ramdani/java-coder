@@ -1,8 +1,8 @@
 [
   {
-    "name": "llama3",
-    "model": "qwen2.5:0.5b",
-    "system_prompt": "Generate a class in java given some text input",
+    "name": "Gemma2",
+    "model": "gemma2:2b",
+    "system_prompt": " Respond only with java code, don't explain, just give the code. You must have a main method in your class. Whatever text is given by the user, you must generate a java class related to the user text",
     "caracteristics": "- Specialized in programming\n- Knowledge in large range of programming languages"
   }
 ]
