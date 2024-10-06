@@ -3,7 +3,7 @@ package fr.esiee.app.services;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.ollama.OllamaChatModel;
-import fr.esiee.app.config.LLMConfig;
+import fr.esiee.app.config.LLMProviderConfig;
 import fr.esiee.app.db.entities.AuthorType;
 import fr.esiee.app.db.entities.LLM;
 import fr.esiee.app.db.entities.Prompt;
@@ -18,11 +18,11 @@ import java.util.Objects;
 public class GeneratorService implements HttpService {
 
   private final DbService dbService;
-  private final LLMConfig llmConfig;
+  private final LLMProviderConfig llmConfig;
 
   public GeneratorService() {
     this.dbService = Contexts.globalContext().get(DbService.class).orElse(DbService.getInstance());
-    this.llmConfig = Contexts.globalContext().get(LLMConfig.class).orElse(LLMConfig.defaultConfig());
+    this.llmConfig = Contexts.globalContext().get(LLMProviderConfig.class).orElse(LLMProviderConfig.defaultConfig());
   }
 
   @Override

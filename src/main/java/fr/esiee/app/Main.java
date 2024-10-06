@@ -71,7 +71,7 @@ public class Main {
     var dbClient = DbClient.create(config.get("db"));
     Contexts.globalContext().register(dbClient);
 
-    var llmConfig = config.get("provider").as(LLMConfig.class).orElse(LLMConfig.defaultConfig());
+    var llmConfig = config.get("provider").as(LLMProviderConfig.class).orElse(LLMProviderConfig.defaultConfig());
     Contexts.globalContext().register(llmConfig);
 
     OllamaCheck.init();
