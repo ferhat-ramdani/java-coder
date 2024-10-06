@@ -8,9 +8,9 @@ server:
     access-log:
       format: "%h %l %u %t %r %s %b %{Referer}i"
 
-llm:
+provider:
   url: "localhost"
-  port: 5000
+  port: 11434
 
 db:
   source: jdbc
@@ -26,7 +26,7 @@ db:
     # Table creation
     create-llm: "CREATE TABLE IF NOT EXISTS llm( id INTEGER NOT NULL PRIMARY KEY auto_increment, name VARCHAR(64) NOT NULL, model VARCHAR(128) NOT NULL, system_prompt VARCHAR NOT NULL, caracteristics VARCHAR NOT NULL)"
     create-chat: "CREATE TABLE IF NOT EXISTS Chat( id INTEGER NOT NULL PRIMARY KEY auto_increment, title VARCHAR(128) NOT NULL, last_activity TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, llm_id INTEGER NOT NULL REFERENCES llm (id) ON DELETE CASCADE ON UPDATE CASCADE)"
-    create-prompt: "CREATE TABLE IF NOT EXISTS Prompt( id INTEGER NOT NULL PRIMARY KEY auto_increment, message VARCHAR(256) NOT NULL, author_type VARCHAR(10) NOT NULL CHECK (author_type IN ('SYSTEM', 'USER')), chat_id INTEGER NOT NULL REFERENCES Chat (id) ON DELETE CASCADE ON UPDATE CASCADE)"
+    create-prompt: "CREATE TABLE IF NOT EXISTS Prompt( id INTEGER NOT NULL PRIMARY KEY auto_increment, message VARCHAR(1000000000) NOT NULL, author_type VARCHAR(10) NOT NULL CHECK (author_type IN ('SYSTEM', 'USER', 'LLM')), chat_id INTEGER NOT NULL REFERENCES Chat (id) ON DELETE CASCADE ON UPDATE CASCADE)"
 
     # Insert statements
     insert-llm: "INSERT INTO llm(name, model, system_prompt, caracteristics) VALUES(?, ?, ?, ?)"
