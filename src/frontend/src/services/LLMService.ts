@@ -37,6 +37,20 @@ class LLMService {
         }
         return data.text();
     }
+
+    async executeClass(code : string): Promise<string>{
+        const data = await fetch(`${this.config.getBackendUrl()}/api/gen/exec`, {
+            method: 'POST',
+            headers: {
+                'content-type' : 'application/json',
+            },
+            body: code
+        });
+        if (!data.ok) {
+            throw new Error(`Error during GET query : ${data.statusText}`);
+        }
+        return data.text();
+    }
 }
 
 const llmService = new LLMService();

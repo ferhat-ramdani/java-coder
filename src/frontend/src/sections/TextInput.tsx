@@ -23,6 +23,10 @@ const TextInput: Component = () => {
             };
 
             const response = await llmService.generateResponseFromLLM(newPrompt);
+            const execOutput = await llmService.executeClass(response);
+
+            console.log("execution output : ");
+            console.log(execOutput);
 
             // const eventSource = new EventSource(`http://localhost:8080/api/gen/test`);
             //

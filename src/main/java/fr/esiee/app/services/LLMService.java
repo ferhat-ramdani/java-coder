@@ -1,10 +1,14 @@
 package fr.esiee.app.services;
 
+import fr.esiee.app.db.entities.AuthorType;
+import fr.esiee.app.db.entities.Prompt;
 import fr.esiee.app.dto.LLMElemDTO;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
 import io.helidon.webserver.http.*;
 import io.helidon.http.BadRequestException;
+
+import java.util.Objects;
 
 public class LLMService implements HttpService {
 
