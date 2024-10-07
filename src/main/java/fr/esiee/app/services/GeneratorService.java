@@ -1,5 +1,6 @@
 package fr.esiee.app.services;
 
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.service.AiServices;
 import fr.esiee.app.config.LLMProviderConfig;
@@ -30,7 +31,7 @@ public class GeneratorService implements HttpService {
   private final DbService dbService;
   private final LLMProviderConfig llmConfig;
   private final int NB_ATTEMPTS = 3;
-//  private final int MAX_MEMORY_PROMPTS = 2;
+  private final int MAX_MEMORY_PROMPTS = 30;
 
   private LLM curLLM;
   private OllamaChatModel model;
@@ -94,7 +95,7 @@ public class GeneratorService implements HttpService {
     String errorsText = null;
     for (int attempt = 0; attempt < NB_ATTEMPTS; attempt++) {
       LOGGER.info("Attemp n° {} to generate class ...", attempt);
-      var request = "[start of request]" + requestText + "[end of request]";
+      var request = "\n[start of request]\n" + requestText + "\n[end of request]";
       var answer = assistant.chat(attempt == 0 ? llm.systemPrompt() + request : errorsText);
       String code = CompileService.extractCode(answer);
       LOGGER.info("Extracted code : \n{}", code);
@@ -111,7 +112,7 @@ public class GeneratorService implements HttpService {
   }
 
   private void updateModelSettings(LLM llm) {
-//    var chatMemory = MessageWindowChatMemory.withMaxMessages(MAX_MEMORY_PROMPTS);
+    var chatMemory = MessageWindowChatMemory.withMaxMessages(MAX_MEMORY_PROMPTS);
     model = OllamaChatModel.builder()
             .baseUrl(llmConfig.baseUrl())
             .modelName(llm.model())
@@ -119,6 +120,7 @@ public class GeneratorService implements HttpService {
             .build();
     assistant = AiServices.builder(Assistant.class)
             .chatLanguageModel(model)
+            .chatMemory(chatMemory)
             .build();
   }
 }
