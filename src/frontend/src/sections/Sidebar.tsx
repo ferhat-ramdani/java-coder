@@ -1,6 +1,7 @@
-import {Component, For} from "solid-js";
+import {Component, For, Show} from "solid-js";
 import ChatItem from "./ChatItem";
 import {useAppContext} from "../Context";
+import {SpinnerSmall} from "./Spinner";
 
 const Sidebar: Component = () => {
     const [{curChatId, curChatPrompts, selectedLLM, chats}] = useAppContext();
@@ -17,13 +18,9 @@ const Sidebar: Component = () => {
             </div>
             <div class="h4 ms-4 mt-3">Chat History</div>
             <div class="flex-grow-1 d-flex overflow-auto list-group flex-column p-3">
-                {chats.resource() ? (
-                    <For each={chats.resource()}>
+                    <For each={chats.resource()} fallback={<SpinnerSmall text={`Loading chats`}/>}>
                         {chat => <ChatItem chat={chat} />}
                     </For>
-                ) : (
-                    <p>Loading chats...</p>
-                )}
             </div>
         </div>
     );

@@ -1,6 +1,5 @@
 import {Component, Suspense} from 'solid-js';
 
-import 'bootstrap/dist/css/bootstrap.min.css';
 import Sidebar from "./sections/Sidebar";
 import TextInput from "./sections/TextInput";
 import PromptsContainer from "./sections/PromptsContainer";

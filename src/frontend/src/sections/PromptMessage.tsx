@@ -1,7 +1,8 @@
-import { Component } from "solid-js";
+import {Component, Match, Switch} from "solid-js";
+import {AuthorType} from "../interfaces/AuthorType";
 
 interface PromptProps {
-    type: "user" | "llm";
+    type: AuthorType;
     message: string;
 }
 
@@ -10,30 +11,33 @@ const PromptMessage: Component<PromptProps> = (props) => {
     let alignmentClass = "";
 
     switch (props.type) {
-        case "user":
-            bgColor = "bg-primary text-white";
+        case AuthorType.USER:
+            bgColor = "text-bg-primary";
             alignmentClass = "align-items-end";
             break;
-        case "llm":
-            bgColor = "bg-success text-white";
+        case AuthorType.LLM:
+            bgColor = "text-bg-success";
             alignmentClass = "align-items-start";
             break;
     }
-
-    const promptContent = props.type === "llm" ? (
-        <pre class={`p-3 mt-2 mb-1 rounded ${bgColor} text-start`} style="display: inline-block; max-width: 80%;">
-      <code>{props.message}</code>
-    </pre>
-    ) : (
-        <div class={`p-3 mt-2 mb-1 rounded ${bgColor} text-start`} style="display: inline-block; max-width: 80%;">
-            <p class="m-0">{props.message}</p>
-        </div>
-    );
+    const classes = `p-3 mt-2 mb-1 rounded-1 ${bgColor} text-start inline-block mw-100`;
 
     return (
         <div class={`d-flex flex-column ${alignmentClass}`}>
-            {promptContent}
+            <Switch>
+                <Match when={props.type === AuthorType.LLM}>
+                    <pre class={classes}>
+                      <code>{props.message}</code>
+                    </pre>
+                </Match>
+                <Match when={props.type === AuthorType.USER}>
+                    <div class={classes}>
+                        <p class="m-0">{props.message}</p>
+                    </div>
+                </Match>
+            </Switch>
         </div>
+
     );
 };
 

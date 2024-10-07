@@ -1,12 +1,13 @@
 import {Component, createSignal, Resource, Setter} from "solid-js";
 import promptService from "../services/PromptService";
-import {createPromt, Prompt} from "../interfaces/Prompt";
+import {createPrompt, Prompt} from "../interfaces/Prompt";
 import {Chat} from "../interfaces/Chat";
 import chatService from "../services/ChatService";
 import llmService from "../services/LLMService";
 import {useAppContext} from "../Context";
 import {AuthorType} from "../interfaces/AuthorType";
 import generatorService from "../services/GeneratorService";
+import {Utils} from "../services/Utils";
 
 const TextInput: Component = () => {
     const [{curChatId, selectedLLM, curChatPrompts, chats}] = useAppContext();
@@ -16,12 +17,12 @@ const TextInput: Component = () => {
         const messageToSend = message();
         setMessage("");
         try {
-            const newPrompt: Prompt = createPromt(messageToSend, AuthorType.USER, curChatId.accessor()!);
+            const newPrompt: Prompt = createPrompt(messageToSend, AuthorType.USER, curChatId.accessor()!);
             await insertNewPrompt(newPrompt);
 
             const response = await generatorService.generateResponseFromLLM(newPrompt);
 
-            const llmPromt: Prompt = createPromt(response, AuthorType.LLM, curChatId.accessor()!);
+            const llmPromt: Prompt = createPrompt(response, AuthorType.LLM, curChatId.accessor()!);
             await insertNewPrompt(llmPromt);
 
             // const eventSource = new EventSource(`http://localhost:8080/api/gen/test`);
@@ -43,7 +44,7 @@ const TextInput: Component = () => {
         }
         if (!curChatId.accessor()) {
             if(!selectedLLM.accessor()) {
-                alert("Please select an LLM Model");
+                Utils.showToast("Error", "Please select an LLM Model", "danger", "bi-exclamation-triangle");
             } else {
                 await createNewChat();
                 await fetchLLMResponse();
@@ -97,12 +98,8 @@ const TextInput: Component = () => {
                       }
                   }}
               ></textarea>
-                <button
-                    class="btn btn-primary rounded-end"
-                    type="button"
-                    onClick={handleSend}
-                >
-                    Send
+                <button class="btn btn-primary rounded-end" type="button" onClick={handleSend}>
+                    <i class="bi bi-send-fill"></i>
                 </button>
             </div>
         </div>
