@@ -3,7 +3,6 @@ import promptService from "../services/PromptService";
 import {createPrompt, Prompt} from "../interfaces/Prompt";
 import {Chat} from "../interfaces/Chat";
 import chatService from "../services/ChatService";
-import llmService from "../services/LLMService";
 import {useAppContext} from "../Context";
 import {AuthorType} from "../interfaces/AuthorType";
 import generatorService from "../services/GeneratorService";
@@ -21,10 +20,11 @@ const TextInput: Component = () => {
             await insertNewPrompt(newPrompt);
 
             const response = await generatorService.generateResponseFromLLM(newPrompt);
-            const execOutput = await llmService.executeClass(response);
+
+            // const execOutput = await generatorService.executeClass(response);
+            // console.log(execOutput);
 
             console.log("execution output : ");
-            console.log(execOutput);
 
 
             const llmPromt: Prompt = createPrompt(response, AuthorType.LLM, curChatId.accessor()!);
@@ -72,7 +72,7 @@ const TextInput: Component = () => {
                 console.error("Error creating chat:", error);
             }
         } else {
-            alert("Please select an LLM model!");
+            Utils.showToast("Error", "Please select an LLM Model", "danger", "bi-exclamation-triangle");
         }
     };
 

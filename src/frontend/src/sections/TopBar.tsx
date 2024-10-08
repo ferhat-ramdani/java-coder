@@ -1,7 +1,6 @@
-import {Component, createResource, For} from "solid-js";
+import {Component, createResource, For, Match, Switch} from "solid-js";
 import llmService from "../services/LLMService";
 import {useAppContext} from "../Context";
-import {SpinnerSmall} from "./Spinner";
 
 const fetchLLM = async () => await llmService.getLLMS();
 
@@ -28,16 +27,19 @@ const TopBar: Component = () => {
                     disabled={llms.loading || curChatId.accessor() != null}
                     onChange={handleLLMChange}
                 >
+                    <option value="" selected={selectedLLM.accessor() === null}
+                            disabled>{llms.loading ? "Loading.." : "Select LLM Model"}</option>
                     <For each={llms()} fallback={<option>Loading...</option>}>
                         {item => (
-                            <option value={item.id} selected={selectedLLM.accessor()?.id === item.id} data-bs-toggle="tooltip" data-bs-placement="top" title={item.caracteristics}>
+                            <option value={item.id} selected={selectedLLM.accessor()?.id === item.id}
+                                    data-bs-toggle="tooltip" data-bs-placement="top" title={item.caracteristics}>
                                 {item.name}
                             </option>
                         )}
                     </For>
                 </select>
             </div>
-        </div>);
+    </div>);
 };
 
 export default TopBar;

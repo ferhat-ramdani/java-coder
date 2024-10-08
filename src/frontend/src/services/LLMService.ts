@@ -24,23 +24,6 @@ class LLMService {
         }
         return await response.json();
     }
-
-    async generateResponseFromLLM(prompt: Prompt): Promise<string>{
-        const data = await fetch(`${this.config.getBackendUrl()}/api/gen/class`, Utils.createRequestInit(prompt, 'POST'));
-
-        if (!data.ok) {
-            throw new Error(`Error during GET query : ${data.statusText}`);
-        }
-        return data.text();
-    }
-
-    async executeClass(code : string): Promise<string>{
-        const data = await fetch(`${this.config.getBackendUrl()}/api/gen/exec`, Utils.createRequestInit(code, 'POST'));
-        if (!data.ok) {
-            throw new Error(`Error during GET query : ${data.statusText}`);
-        }
-        return data.text();
-    }
 }
 
 const llmService = new LLMService();

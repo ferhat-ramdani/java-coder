@@ -15,6 +15,14 @@ class GeneratorService {
         return data.text();
     }
 
+    async executeClass(code : string): Promise<string>{
+        const data = await fetch(`${this.config.getBackendUrl()}/api/gen/exec`, Utils.createRequestInit(code, 'POST'));
+        if (!data.ok) {
+            throw new Error(`Error during GET query : ${data.statusText}`);
+        }
+        return data.text();
+    }
+
 }
 
 const generatorService =  new GeneratorService();

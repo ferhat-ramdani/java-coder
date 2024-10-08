@@ -18,9 +18,11 @@ const Sidebar: Component = () => {
             </div>
             <div class="h4 ms-4 mt-3">Chat History</div>
             <div class="flex-grow-1 d-flex overflow-auto list-group flex-column p-3">
-                    <For each={chats.resource()} fallback={<SpinnerSmall text={`Loading chats`}/>}>
+                <Show when={!chats.resource.loading} fallback={<SpinnerSmall text={`Loading chats`}/>}>
+                    <For each={chats.resource()} fallback={'No Chats'}>
                         {chat => <ChatItem chat={chat} />}
                     </For>
+                </Show>
             </div>
         </div>
     );
