@@ -10,7 +10,7 @@ const PromptsContainer: Component = () => {
                 <div class="col-2"></div>
                 <div class="col-8">
                     <For each={curChatPrompts.accessor()} fallback={`Prompt Example`}>
-                        {(prompt) => <PromptMessage type={prompt.authorType} message={prompt.message}/>}
+                        {(prompt) => <PromptMessage prompt={prompt}/>}
                     </For>
                 </div>
             </div>

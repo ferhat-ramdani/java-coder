@@ -109,8 +109,7 @@ public class GeneratorService implements HttpService {
         errorsText = SYSTEM_ERR_MESSAGE_1 + code + SYSTEM_ERR_MESSAGE_2 + String.join("\n", errors);
       }
     }
-
-    return USER_ERR_MESSAGE;
+    throw new RuntimeException(USER_ERR_MESSAGE + errorsText);
   }
 
   private void updateModelSettings(LLM llm) {
