@@ -149,6 +149,7 @@ public class DbService {
             .addParam(prompt.message())
             .addParam(prompt.authorType().name())
             .addParam(prompt.chatId())
+            .addParam(prompt.compile())
             .execute();
 
     if (updatedRows <= 0) {

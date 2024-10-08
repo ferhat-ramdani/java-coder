@@ -19,11 +19,13 @@ public record PromptMapper() implements DbMapper<Prompt> {
         DbColumn message = row.column("message");
         DbColumn authorType = row.column("author_type");
         DbColumn chatId = row.column("chat_id");
+        DbColumn compile = row.column("compile");
         return new Prompt(
                 id.get(Integer.class),
                 message.get(String.class),
                 AuthorType.valueOf(authorType.get(String.class)),
-                chatId.get(Integer.class));
+                chatId.get(Integer.class),
+                compile.get(Boolean.class));
     }
 
     @Override
@@ -33,6 +35,7 @@ public record PromptMapper() implements DbMapper<Prompt> {
         map.put("message", value.message());
         map.put("authorType", value.authorType().name());
         map.put("chatId", value.chatId());
+        map.put("compile", value.compile());
         return map;
     }
 
@@ -43,6 +46,7 @@ public record PromptMapper() implements DbMapper<Prompt> {
         list.add(value.message());
         list.add(value.authorType().name());
         list.add(value.chatId());
+        list.add(value.compile());
         return list;
     }
 }
