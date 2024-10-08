@@ -1,10 +1,13 @@
 import {Component, createSignal, Resource, Setter} from "solid-js";
 import promptService from "../services/PromptService";
-import { Prompt } from "../interfaces/Prompt";
+import {createPrompt, Prompt} from "../interfaces/Prompt";
 import {Chat} from "../interfaces/Chat";
 import chatService from "../services/ChatService";
 import llmService from "../services/LLMService";
 import {useAppContext} from "../Context";
+import {AuthorType} from "../interfaces/AuthorType";
+import generatorService from "../services/GeneratorService";
+import {Utils} from "../services/Utils";
 
 const TextInput: Component = () => {
     const [{curChatId, selectedLLM, curChatPrompts, chats}] = useAppContext();
@@ -14,19 +17,18 @@ const TextInput: Component = () => {
         const messageToSend = message();
         setMessage("");
         try {
-            // await insertNewPrompt(messageToSend, "USER");
-            const newPrompt: Prompt = {
-                id: 0, // random value that should not be used
-                message: messageToSend.trim(),
-                authorType: "USER",
-                chatId: curChatId.accessor()!,
-            };
+            const newPrompt: Prompt = createPrompt(messageToSend, AuthorType.USER, curChatId.accessor()!);
+            await insertNewPrompt(newPrompt);
 
-            const response = await llmService.generateResponseFromLLM(newPrompt);
+            const response = await generatorService.generateResponseFromLLM(newPrompt);
             const execOutput = await llmService.executeClass(response);
 
             console.log("execution output : ");
             console.log(execOutput);
+
+
+            const llmPromt: Prompt = createPrompt(response, AuthorType.LLM, curChatId.accessor()!);
+            await insertNewPrompt(llmPromt);
 
             // const eventSource = new EventSource(`http://localhost:8080/api/gen/test`);
             //
@@ -48,7 +50,7 @@ const TextInput: Component = () => {
         }
         if (!curChatId.accessor()) {
             if(!selectedLLM.accessor()) {
-                alert("Please select an LLM Model");
+                Utils.showToast("Error", "Please select an LLM Model", "danger", "bi-exclamation-triangle");
             } else {
                 await createNewChat();
                 await fetchLLMResponse();
@@ -74,17 +76,12 @@ const TextInput: Component = () => {
         }
     };
 
-    const insertNewPrompt = async (message: string, authorType: string) => {
-        const newPrompt: Prompt = {
-            id: 0, // random value that should not be used
-            message: message.trim(),
-            authorType: authorType,
-            chatId: curChatId.accessor()!,
-        };
-
+    const insertNewPrompt = async (prompt: Prompt, send: boolean = false) => {
         try {
-            await promptService.createPrompt(newPrompt);
-            curChatPrompts.setter(prev => [...prev, newPrompt]);
+            if(send) {
+                await promptService.createPrompt(prompt);
+            }
+            curChatPrompts.setter(prev => [...prev, prompt]);
         } catch (error) {
             console.error("Failed to create prompt:", error);
         }
@@ -107,12 +104,8 @@ const TextInput: Component = () => {
                       }
                   }}
               ></textarea>
-                <button
-                    class="btn btn-primary rounded-end"
-                    type="button"
-                    onClick={handleSend}
-                >
-                    Send
+                <button class="btn btn-primary rounded-end" type="button" onClick={handleSend}>
+                    <i class="bi bi-send-fill"></i>
                 </button>
             </div>
         </div>

@@ -1,12 +1,13 @@
 import Config from '../Config';
 import {LLM} from "../interfaces/LLM";
-import {Chat} from "../interfaces/Chat";
 import {Prompt} from "../interfaces/Prompt";
+import {Utils} from "./Utils";
+
 
 class LLMService {
 
     private config: Config = Config.getInstance();
-    private apiUrl: string = `${this.config.getBackendUrl()}/api/llm/`;
+    private apiUrl: string = `${this.config.getBackendUrl()}/api/llm`;
     
     async getLLMS(): Promise<LLM[]> {
         const response = await fetch(`${this.apiUrl}`);
@@ -25,13 +26,8 @@ class LLMService {
     }
 
     async generateResponseFromLLM(prompt: Prompt): Promise<string>{
-        const data = await fetch(`${this.config.getBackendUrl()}/api/gen/class`, {
-            method: 'POST',
-            headers: {
-                'content-type' : 'application/json',
-            },
-            body: JSON.stringify(prompt)
-        });
+        const data = await fetch(`${this.config.getBackendUrl()}/api/gen/class`, Utils.createRequestInit(prompt, 'POST'));
+
         if (!data.ok) {
             throw new Error(`Error during GET query : ${data.statusText}`);
         }
@@ -39,13 +35,7 @@ class LLMService {
     }
 
     async executeClass(code : string): Promise<string>{
-        const data = await fetch(`${this.config.getBackendUrl()}/api/gen/exec`, {
-            method: 'POST',
-            headers: {
-                'content-type' : 'application/json',
-            },
-            body: code
-        });
+        const data = await fetch(`${this.config.getBackendUrl()}/api/gen/exec`, Utils.createRequestInit(code, 'POST'));
         if (!data.ok) {
             throw new Error(`Error during GET query : ${data.statusText}`);
         }

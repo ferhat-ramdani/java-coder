@@ -7,11 +7,13 @@ import fr.esiee.app.llmcheck.OllamaCheck;
 import fr.esiee.app.services.ApiService;
 import io.helidon.common.context.Contexts;
 import io.helidon.config.Config;
+import io.helidon.cors.CrossOriginConfig;
 import io.helidon.dbclient.DbClient;
 import io.helidon.http.media.jackson.JacksonSupport;
 import io.helidon.logging.common.LogConfig;
 import io.helidon.webserver.WebServer;
 import io.helidon.webserver.accesslog.AccessLogFeature;
+import io.helidon.webserver.cors.CorsSupport;
 import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.staticcontent.StaticContentService;
 import org.slf4j.Logger;
@@ -76,14 +78,6 @@ public class Main {
 
     OllamaCheck.init();
 
-    /*    ChatLanguageModel model =
-            OllamaChatModel.builder().baseUrl("http://localhost:11434").modelName("codellama:7b")
-                    .build();
-
-    // Example usage
-    var answer = model.generate(new SystemMessage("Respond only with java code, don't explain, just give the code. You must have a main method in your class."),
-            new UserMessage("current time"));
-    System.out.println(answer.content().text());*/
 
 
     var server = WebServer.builder()
@@ -107,7 +101,14 @@ public class Main {
    * Updates HTTP Routing.
    */
   static void routing(HttpRouting.Builder routing) {
-    routing.register("/api", new ApiService());
+    CorsSupport corsSupport = CorsSupport.builder()
+            .addCrossOrigin(CrossOriginConfig.builder()
+                    .allowOrigins("*")
+                    .allowMethods("*")
+                    .build())
+            .addCrossOrigin(CrossOriginConfig.create())
+            .build();
+    routing.register("/api", corsSupport, new ApiService());
     registerFrontEndRoutes(routing);
   }
 

@@ -1,5 +1,6 @@
 import Config from '../Config';
 import { Chat } from "../interfaces/Chat";
+import {Utils} from "./Utils";
 
 class ChatService {
 
@@ -25,13 +26,7 @@ class ChatService {
     }
 
     async createChat(chat: Chat) : Promise<Chat> {
-        const response = await fetch(`${this.apiUrl}/chat`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(chat),
-        });
+        const response = await fetch(`${this.apiUrl}/chat`, Utils.createRequestInit(chat, 'POST'));
         const data = await response.json();
 
         if (!response.ok) {
@@ -41,13 +36,7 @@ class ChatService {
     }
 
     async updateChat(chat: Chat){
-        const response = await fetch(`${this.apiUrl}/chat`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(chat),
-        });
+        const response = await fetch(`${this.apiUrl}/chat`, Utils.createRequestInit(chat, 'PUT'));
 
         if (!response.ok) {
             throw new Error(`Error during PUT query : ${response.statusText}`);

@@ -1,6 +1,7 @@
-import { Component, createResource, For } from "solid-js";
+import {Component, createResource, For} from "solid-js";
 import llmService from "../services/LLMService";
 import {useAppContext} from "../Context";
+import {SpinnerSmall} from "./Spinner";
 
 const fetchLLM = async () => await llmService.getLLMS();
 
@@ -16,10 +17,9 @@ const TopBar: Component = () => {
         }
     };
 
-    return (
-        <div class="d-flex bg-light border-bottom">
+    return (<div class="d-flex bg-light border-bottom">
             <div class="p-2 flex-grow-1 align-self-center">
-                <span class="ms-3 mb-0 h3">ClassGen</span>
+                <span class="ms-3 mb-0 h3">ChatGPT</span>
             </div>
             <div class="p-2 align-self-center">
                 <select
@@ -28,20 +28,16 @@ const TopBar: Component = () => {
                     disabled={llms.loading || curChatId.accessor() != null}
                     onChange={handleLLMChange}
                 >
-                    <option value="" selected={selectedLLM.accessor() === null}
-                            disabled>{llms.loading ? "Loading.." : "Select LLM Model"}</option>
-                    <For each={llms()}>
+                    <For each={llms()} fallback={<option>Loading...</option>}>
                         {item => (
-                            <option value={item.id} selected={selectedLLM.accessor()?.id === item.id}
-                                    data-bs-toggle="tooltip" data-bs-placement="top" title={item.caracteristics}>
+                            <option value={item.id} selected={selectedLLM.accessor()?.id === item.id} data-bs-toggle="tooltip" data-bs-placement="top" title={item.caracteristics}>
                                 {item.name}
                             </option>
                         )}
                     </For>
                 </select>
             </div>
-        </div>
-    );
+        </div>);
 };
 
 export default TopBar;
