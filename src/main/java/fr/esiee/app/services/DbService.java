@@ -250,9 +250,6 @@ public class DbService {
             .addParam(chat.llmId()).execute();
   }
 
-  @GET
-  @javax.ws.rs.Path("/chat/latest")
-  @Operation(summary = "Get latest chat", description = "Retrieves the latest chat with the specified parameters")
   public Chat getLatestChat(Chat chat) {
     return dbClient.execute()
             .createNamedGet("select-chat-by-params")
@@ -326,8 +323,9 @@ public class DbService {
   }
 
   @GET
-  @javax.ws.rs.Path("/llms")
-  @Operation(summary = "List all LLMs", description = "Retrieves a list of all LLMs")
+  @javax.ws.rs.Path("/llm/")
+  @Tag(name = "LLM", description = "endpoints to use llm")
+  @Operation(summary = "get LLMs", description = "Get list of all LLMs")
   public List<LLM> listLLMs() {
     return dbClient.execute()
             .namedQuery("select-all-llms")
@@ -336,8 +334,9 @@ public class DbService {
   }
 
   @GET
-  @javax.ws.rs.Path("/llms/{id}")
-  @Operation(summary = "Get LLM by ID", description = "Retrieves an LLM by its ID")
+  @javax.ws.rs.Path("/llm/{id}")
+  @Tag(name = "LLM", description = "endpoints to use llm")
+  @Operation(summary = "get LLMs", description = "Get list of all LLMs")
   public LLM getLLMById(@PathParam("id") int llmId) {
     return dbClient.execute()
             .createNamedGet("select-llm-by-id")

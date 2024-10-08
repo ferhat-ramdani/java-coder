@@ -1,14 +1,10 @@
 package fr.esiee.app.services;
 
-import fr.esiee.app.db.entities.AuthorType;
-import fr.esiee.app.db.entities.Prompt;
 import fr.esiee.app.dto.LLMElemDTO;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
 import io.helidon.webserver.http.*;
 import io.helidon.http.BadRequestException;
-
-import java.util.Objects;
 
 public class LLMService implements HttpService {
 
@@ -21,7 +17,7 @@ public class LLMService implements HttpService {
   @Override
   public void routing(HttpRules httpRules) {
     httpRules.get("/", this::getLLM)
-            .get("/{id}", this::getLLMByid);
+            .get("/{id}", this::getLLMById);
   }
 
   private void getLLM(ServerRequest req, ServerResponse res) {
@@ -29,9 +25,9 @@ public class LLMService implements HttpService {
     res.status(Status.OK_200).send(llmToSend);
   }
 
-  private void getLLMByid(ServerRequest req, ServerResponse res) {
+  private void getLLMById(ServerRequest req, ServerResponse res) {
     int llmId = req.path().pathParameters().first("id").map(Integer::parseInt)
-            .orElseThrow(() -> new BadRequestException("LLM ID is required"));
+            .orElseThrow(() -> new BadRequestException("LLM id is required"));
     var llm = dbService.getLLMById(llmId);
     var llmDTO = new LLMElemDTO(llm.id(),llm.name(),llm.model(), llm.caracteristics());
     res.send(llmDTO);
