@@ -195,6 +195,17 @@
             <groupId>io.helidon.webserver</groupId>
             <artifactId>helidon-webserver-access-log</artifactId>
         </dependency>
+
+        <!-- openAPI ui dependencies -->
+        <dependency>
+            <groupId>io.helidon.integrations.openapi-ui</groupId>
+            <artifactId>helidon-integrations-openapi-ui</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.helidon.openapi</groupId>
+            <artifactId>helidon-openapi</artifactId>
+        </dependency>
+        <!-- fin openAPI ui dependencies -->
     </dependencies>
 
     <build>
