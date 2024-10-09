@@ -30,23 +30,23 @@ db:
     # Table creation
     create-llm: "CREATE TABLE IF NOT EXISTS llm( id INTEGER NOT NULL PRIMARY KEY auto_increment, name VARCHAR(64) NOT NULL, model VARCHAR(128) NOT NULL, system_prompt VARCHAR NOT NULL, caracteristics VARCHAR NOT NULL)"
     create-chat: "CREATE TABLE IF NOT EXISTS Chat( id INTEGER NOT NULL PRIMARY KEY auto_increment, title VARCHAR(128) NOT NULL, last_activity TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, llm_id INTEGER NOT NULL REFERENCES llm (id) ON DELETE CASCADE ON UPDATE CASCADE)"
-    create-prompt: "CREATE TABLE IF NOT EXISTS Prompt( id INTEGER NOT NULL PRIMARY KEY auto_increment, message VARCHAR(1000000000) NOT NULL, author_type VARCHAR(10) NOT NULL CHECK (author_type IN ('SYSTEM', 'USER', 'LLM')), chat_id INTEGER NOT NULL REFERENCES Chat (id) ON DELETE CASCADE ON UPDATE CASCADE)"
+    create-prompt: "CREATE TABLE IF NOT EXISTS Prompt( id INTEGER NOT NULL PRIMARY KEY auto_increment, message VARCHAR(1000000000) NOT NULL, author_type VARCHAR(10) NOT NULL CHECK (author_type IN ('SYSTEM', 'USER', 'LLM')), chat_id INTEGER NOT NULL REFERENCES Chat (id) ON DELETE CASCADE ON UPDATE CASCADE, compile BOOL NOT NULL DEFAULT FALSE )"
 
     # Insert statements
     insert-llm: "INSERT INTO llm(name, model, system_prompt, caracteristics) VALUES(?, ?, ?, ?)"
     insert-chat: "INSERT INTO Chat(title, last_activity, llm_id) VALUES(?, ?, ?)"
-    insert-prompt: "INSERT INTO Prompt(message, author_type, chat_id) VALUES(?, ?, ?)"
+    insert-prompt: "INSERT INTO Prompt(message, author_type, chat_id, compile) VALUES(?, ?, ?, ?)"
 
     # Select all entries
     select-all-llms: "SELECT id, name, model, system_prompt, caracteristics FROM llm"
     select-all-chats: "SELECT id, title, last_activity, llm_id FROM Chat ORDER BY last_activity DESC"
-    select-all-prompts: "SELECT id, message, author_type, chat_id FROM Prompt"
+    select-all-prompts: "SELECT id, message, author_type, chat_id, compile FROM Prompt"
 
     # Select entries by id
     select-llm-by-id: "SELECT id, name, model, system_prompt, caracteristics FROM llm WHERE id = :id"
     select-chat-by-id: "SELECT id, title, last_activity, llm_id FROM Chat WHERE id = :id"
     select-chat-by-params: "SELECT id, title, last_activity, llm_id FROM Chat WHERE title = :title AND last_activity = :last_activity AND llm_id = :llm_id ORDER BY id DESC LIMIT 1"
-    select-prompt-by-id: "SELECT id, message, author_type, chat_id FROM Prompt WHERE id = :id"
+    select-prompt-by-id: "SELECT id, message, author_type, chat_id, compile FROM Prompt WHERE id = :id"
 
     # Retrieve llm and Chat from Prompt (through foreign keys)
     retrieve-llm-from-prompt: "SELECT llm.id, llm.name, llm.model FROM llm JOIN Prompt ON llm.id = Prompt.llm_id WHERE Prompt.id = :promptId"
@@ -55,7 +55,7 @@ db:
     # Update statements
     update-llm-by-id: "UPDATE llm SET name = :name, model = :model, system_prompt = systemPrompt, caracteristics = :caracteristics WHERE id = :id"
     update-chat-by-id: "UPDATE Chat SET title = :title, last_activity = :lastActivity, llm_id = :llmId WHERE id = :id"
-    update-prompt-by-id: "UPDATE Prompt SET message = :message, author_type = :authorType, chat_id = :chatId WHERE id = :id"
+    update-prompt-by-id: "UPDATE Prompt SET message = :message, author_type = :authorType, chat_id = :chatId, compile = :compile WHERE id = :id"
 
     # Delete statements (single entry)
     delete-llm-by-id: "DELETE FROM llm WHERE id = :id"
@@ -68,13 +68,13 @@ db:
     delete-all-prompts: "DELETE FROM Prompt"
 
     # Get prompts by chat id
-    select-prompts-by-chat-id: "SELECT id, message, author_type, chat_id FROM Prompt WHERE chat_id = :chatId ORDER BY id ASC"
+    select-prompts-by-chat-id: "SELECT id, message, author_type, chat_id, compile FROM Prompt WHERE chat_id = :chatId ORDER BY id ASC"
 
     # Update last_activity of Chat
     update-chat-last-activity: "UPDATE Chat SET last_activity = :lastActivity WHERE id = :id"
 
     # Get the first prompt of a chat
-    select-first-prompt-by-chat-id: "SELECT id, message, author_type, chat_id FROM Prompt WHERE chat_id = :chatId ORDER BY id ASC LIMIT 1"
+    select-first-prompt-by-chat-id: "SELECT id, message, author_type, chat_id, compile FROM Prompt WHERE chat_id = :chatId ORDER BY id ASC LIMIT 1"
 
     # Get the latest inserted chat id
     get-latest-chat-id: "SELECT id FROM Chat WHERE title = ? AND last_activity = ? AND llm_id = ? ORDER BY id DESC LIMIT 1"

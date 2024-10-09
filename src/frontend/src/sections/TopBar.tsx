@@ -1,4 +1,4 @@
-import { Component, createResource, For } from "solid-js";
+import {Component, createResource, For, Match, Switch} from "solid-js";
 import llmService from "../services/LLMService";
 import {useAppContext} from "../Context";
 
@@ -16,10 +16,9 @@ const TopBar: Component = () => {
         }
     };
 
-    return (
-        <div class="d-flex bg-light border-bottom">
+    return (<div class="d-flex bg-light border-bottom">
             <div class="p-2 flex-grow-1 align-self-center">
-                <span class="ms-3 mb-0 h3">ClassGen</span>
+                <span class="ms-3 mb-0 h3">ChatGPT</span>
             </div>
             <div class="p-2 align-self-center">
                 <select
@@ -30,7 +29,7 @@ const TopBar: Component = () => {
                 >
                     <option value="" selected={selectedLLM.accessor() === null}
                             disabled>{llms.loading ? "Loading.." : "Select LLM Model"}</option>
-                    <For each={llms()}>
+                    <For each={llms()} fallback={<option>Loading...</option>}>
                         {item => (
                             <option value={item.id} selected={selectedLLM.accessor()?.id === item.id}
                                     data-bs-toggle="tooltip" data-bs-placement="top" title={item.caracteristics}>
@@ -40,8 +39,7 @@ const TopBar: Component = () => {
                     </For>
                 </select>
             </div>
-        </div>
-    );
+    </div>);
 };
 
 export default TopBar;

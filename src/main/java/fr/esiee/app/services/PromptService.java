@@ -1,8 +1,10 @@
 package fr.esiee.app.services;
 
 import fr.esiee.app.db.entities.Prompt;
+import io.helidon.cors.CrossOriginConfig;
 import io.helidon.http.NotFoundException;
 import io.helidon.http.Status;
+import io.helidon.webserver.cors.CorsSupport;
 import io.helidon.webserver.http.Handler;
 import io.helidon.webserver.http.HttpRules;
 import io.helidon.webserver.http.HttpService;
@@ -20,10 +22,17 @@ public class PromptService implements HttpService {
 
   @Override
   public void routing(HttpRules httpRules) {
+    CorsSupport corsSupport = CorsSupport.builder()
+            .addCrossOrigin(CrossOriginConfig.builder()
+                    .allowOrigins("*")
+                    .allowMethods("*")
+                    .build())
+            .addCrossOrigin(CrossOriginConfig.create())
+            .build();
     httpRules.get("/", this::listPrompts)
             .get("/{id}", this::getPromptById)
             .get("/bychat/{id}", this::getPromptsByChatId)
-            .get("/bychat/{id}/first", this::getFirstPromptByChatId)
+            .get("/bychat/{id}/first", corsSupport, this::getFirstPromptByChatId)
             .post("/", Handler.create(Prompt.class, this::insertPrompt))
             .put("/", Handler.create(Prompt.class, this::updatePrompt))
             .delete("/{id}", this::deletePromptById);

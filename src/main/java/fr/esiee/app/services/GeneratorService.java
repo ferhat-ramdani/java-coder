@@ -79,14 +79,16 @@ public class GeneratorService implements HttpService {
     LOGGER.info("User request : {}", prompt.message());
 
     String generatedClass = "Error generating class.";
+    var compile = false;
     try {
       generatedClass = generateClassFromLLM(newLLM, prompt.message(), chat);
       LOGGER.info("Generated class after compilation : {}", generatedClass);
+      compile = true;
     } catch (IOException | RuntimeException e) {
       LOGGER.error("Error while generating class : {}", e.getMessage());
     }
 
-    var aiPrompt = new Prompt(0, generatedClass, AuthorType.LLM, chat.id());
+    var aiPrompt = new Prompt(0, generatedClass, AuthorType.LLM, chat.id(), compile);
     dbService.insertPrompt(aiPrompt);
     res.send(generatedClass);
   }
@@ -134,8 +136,7 @@ public class GeneratorService implements HttpService {
         errorsText = SYSTEM_ERR_MESSAGE_1 + code + SYSTEM_ERR_MESSAGE_2 + String.join("\n", errors);
       }
     }
-
-    return USER_ERR_MESSAGE;
+    throw new RuntimeException(USER_ERR_MESSAGE + errorsText);
   }
 
   private void updateModelSettings(LLM llm) {

@@ -1,5 +1,6 @@
 import Config from '../Config';
 import { Prompt } from "../interfaces/Prompt";
+import {Utils} from "./Utils";
 
 class PromptService {
 
@@ -39,13 +40,7 @@ class PromptService {
     }
 
     async createPrompt(prompt: Prompt) {
-        const response = await fetch(`${this.apiUrl}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(prompt),
-        });
+        const response = await fetch(`${this.apiUrl}`, Utils.createRequestInit(prompt, 'POST'));
 
         if (!response.ok) {
             throw new Error(`Error during POST query : ${response.statusText}`);
@@ -53,13 +48,7 @@ class PromptService {
     }
 
     async updatePrompt(prompt: Prompt) {
-        const response = await fetch(`${this.apiUrl}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(prompt),
-        });
+        const response = await fetch(`${this.apiUrl}`, Utils.createRequestInit(prompt, 'PUT'));
 
         if (!response.ok) {
             throw new Error(`Error during PUT query : ${response.statusText}`);

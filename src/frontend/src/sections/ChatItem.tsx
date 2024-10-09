@@ -1,15 +1,15 @@
-import {Component, createEffect, createResource} from "solid-js";
+import {Component, createResource, Show} from "solid-js";
 import ChatService from "../services/ChatService";
 import PromptService from "../services/PromptService";
-import LLMService from "../services/LLMService";
-import { TimestampUtils } from '../services/TimeStampUtils';
-import { Chat } from "../interfaces/Chat";
-import {useAppContext} from "../Context";
-import "../styles.css";
-import {Prompt} from "../interfaces/Prompt";
 import promptService from "../services/PromptService";
+import LLMService from "../services/LLMService";
+import {Utils} from '../services/Utils';
+import {Chat} from "../interfaces/Chat";
+import {useAppContext} from "../Context";
+import {Prompt} from "../interfaces/Prompt";
+import {SpinnerSmall} from "./Spinner";
 
-const fetchPromptsOfChat = async (chatId : number): Promise<Prompt[]> => {
+const fetchPromptsOfChat = async (chatId: number): Promise<Prompt[]> => {
     try {
         return await promptService.getPromptsByChatId(chatId);
     } catch (error) {
@@ -18,18 +18,19 @@ const fetchPromptsOfChat = async (chatId : number): Promise<Prompt[]> => {
     }
 }
 
-const ChatItem: Component<{chat : Chat}> = (prop) => {
-    const chat : Chat = prop.chat;
+const ChatItem: Component<{ chat: Chat }> = (prop) => {
+    const chat: Chat = prop.chat;
     const [{curChatPrompts, curChatId, selectedLLM, chats}] = useAppContext();
-    const timestamp = TimestampUtils.toHumanReadable(chat.lastActivity);
+    const timestamp = Utils.toHumanReadable(chat.lastActivity);
+
 
     const [fetchedFirstPrompt] = createResource(async () => {
-       try {
-           return await PromptService.getFirstPromptOfChat(chat.id);
-       } catch (error) {
-           console.error("Error fetching first prompt of chat", error);
-           return null;
-       }
+        try {
+            return await PromptService.getFirstPromptOfChat(chat.id);
+        } catch (error) {
+            console.error("Error fetching first prompt of chat", error);
+            return null;
+        }
     });
 
     const [fetchedLLM, {refetch}] = createResource(async () => {
@@ -43,7 +44,7 @@ const ChatItem: Component<{chat : Chat}> = (prop) => {
 
     const handleClick = async () => {
         curChatId.setter(chat.id);
-        if(fetchedLLM()) {
+        if (fetchedLLM()) {
             selectedLLM.setter(fetchedLLM()!);
         } else {
             refetch()
@@ -58,8 +59,15 @@ const ChatItem: Component<{chat : Chat}> = (prop) => {
         }
     };
 
+    const showDelete = () => {
+        if (curChatId.accessor() != chat.id) {
+            document.getElementById(`${chat.id}-remove`)?.classList.toggle('d-block');
+            document.getElementById(`${chat.id}-remove`)?.classList.toggle('d-none');
+        }
+    }
+
     const handleDelete = async () => {
-        const chatId = curChatId.accessor();
+        const chatId = chat.id;
         if (chatId) {
             try {
                 const prompts = await PromptService.getPromptsByChatId(chatId);
@@ -77,30 +85,35 @@ const ChatItem: Component<{chat : Chat}> = (prop) => {
         chats.mutator(chats.resource()?.filter(Chat => Chat.id !== chatId));
     };
 
-    return (
-        <div
-            class={`d-flex justify-content-between align-items-center hover-darken rounded position-relative
-            ${curChatId.accessor() === chat.id ? 'darkened' : 'brightened'}`}
-        >
-            <div class="p-2 border-bottom w-75 pg-warning" onClick={handleClick}>
-                <div class="w-100 text-truncate">
-                    <strong>
-                        {fetchedFirstPrompt.loading ? "Prompt loading" :
-                        fetchedFirstPrompt() ? fetchedFirstPrompt()!.message : "- No Title -"}
-                    </strong>
+    return (<div
+            class={`d-flex justify-content-between align-items-center hover-darken rounded position-relative border-bottom ${curChatId.accessor() === chat.id ? 'darkened' : 'brightened'}`}
+            onClick={handleClick}
+            onMouseEnter={() => {
+                showDelete();
+            }}
+            onMouseLeave={() => {
+                showDelete();
+            }}>
+            <div class="p-2 text-truncate">
+                <div class="text-truncate">
+                    <Show when={!fetchedFirstPrompt.loading} fallback={<SpinnerSmall text="Prompt loading"/>} keyed>
+                        <strong>{fetchedFirstPrompt() ? fetchedFirstPrompt()!.message : "- No Title -"}</strong>
+                    </Show>
                 </div>
-                <div>{timestamp}</div>
-                <div>
-                    {fetchedLLM.loading ? "LLM loading..." : fetchedLLM() ? `${fetchedLLM()!.name}` : "- No LLM -"}
-                </div>
+                <div class="text-truncate">{timestamp}</div>
+                <Show when={!fetchedLLM.loading} fallback={<SpinnerSmall text="LLM loading"/>} keyed>
+                    <div class="text-truncate">
+                        {fetchedLLM() ? `${fetchedLLM()!.name}` : "- No LLM -"}
+                    </div>
+                </Show>
             </div>
-            <div class="position-absolute me-2" style="right: 0">
-                <button class={`btn btn-danger ${curChatId.accessor() === chat.id ? 'd-block' : 'd-none'}`} onClick={handleDelete}>
-                    Delete
+            <div class="my-2">
+                <button id={`${chat.id}-remove`} type="button"
+                        class={`btn-close ${curChatId.accessor() === chat.id ? 'd-block' : 'd-none'}`}
+                        onClick={handleDelete}>
                 </button>
             </div>
-        </div>
-    );
+        </div>);
 };
 
 export default ChatItem;
