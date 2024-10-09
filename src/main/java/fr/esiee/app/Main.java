@@ -11,6 +11,7 @@ import io.helidon.cors.CrossOriginConfig;
 import io.helidon.dbclient.DbClient;
 import io.helidon.http.media.jackson.JacksonSupport;
 import io.helidon.logging.common.LogConfig;
+import io.helidon.openapi.OpenApiFeature;
 import io.helidon.webserver.WebServer;
 import io.helidon.webserver.accesslog.AccessLogFeature;
 import io.helidon.webserver.cors.CorsSupport;
@@ -85,9 +86,7 @@ public class Main {
                     .mediaSupportsDiscoverServices(false)
                     .addMediaSupport(JacksonSupport.create(config))
                     .build())
-            .addFeature(AccessLogFeature.builder()
-                    .commonLogFormat()
-                    .build())
+            .addFeature(OpenApiFeature.create(config.get("openapi")))
             .config(config.get("server"))
             .routing(Main::routing).build().start();
 
