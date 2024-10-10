@@ -23,16 +23,6 @@ const ChatItem: Component<{ chat: Chat }> = (prop) => {
     const [{curChatPrompts, curChatId, selectedLLM, chats}] = useAppContext();
     const timestamp = Utils.toHumanReadable(chat.lastActivity);
 
-
-    const [fetchedFirstPrompt] = createResource(async () => {
-        try {
-            return await PromptService.getFirstPromptOfChat(chat.id);
-        } catch (error) {
-            console.error("Error fetching first prompt of chat", error);
-            return null;
-        }
-    });
-
     const [fetchedLLM, {refetch}] = createResource(async () => {
         try {
             return await LLMService.getLlmById(chat.llmId);
@@ -96,9 +86,7 @@ const ChatItem: Component<{ chat: Chat }> = (prop) => {
             }}>
             <div class="p-2 text-truncate">
                 <div class="text-truncate">
-                    <Show when={!fetchedFirstPrompt.loading} fallback={<SpinnerSmall text="Prompt loading"/>} keyed>
-                        <strong>{fetchedFirstPrompt() ? fetchedFirstPrompt()!.message : "- No Title -"}</strong>
-                    </Show>
+                    <strong>{chat.title ? chat.title : "- No Title -"}</strong>
                 </div>
                 <div class="text-truncate">{timestamp}</div>
                 <Show when={!fetchedLLM.loading} fallback={<SpinnerSmall text="LLM loading"/>} keyed>

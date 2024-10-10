@@ -31,14 +31,6 @@ class PromptService {
         return await response.json();
     }
 
-    async getFirstPromptOfChat(chatId: number): Promise<Prompt> {
-        const response = await fetch(`${this.apiUrl}/bychat/${chatId}/first`);
-        if (!response.ok) {
-            throw new Error(`Error during GET query : ${response.statusText}`);
-        }
-        return await response.json();
-    }
-
     async createPrompt(prompt: Prompt) {
         const response = await fetch(`${this.apiUrl}`, Utils.createRequestInit(prompt, 'POST'));
 

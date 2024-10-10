@@ -52,7 +52,7 @@ const TextInput: Component = () => {
             if(!selectedLLM.accessor()) {
                 Utils.showToast("Error", "Please select an LLM Model", "danger", "bi-exclamation-triangle");
             } else {
-                await createNewChat();
+                await createNewChat(message());
                 await fetchLLMResponse();
             }
         } else if(selectedLLM.accessor()) {
@@ -60,9 +60,9 @@ const TextInput: Component = () => {
         }
     };
 
-    const createNewChat = async () => {
+    const createNewChat = async (title = "") => {
         if(selectedLLM.accessor()) {
-            const newChat: Chat = { id: 0, title: "", lastActivity: Date.now(), llmId: selectedLLM.accessor()!.id };
+            const newChat: Chat = { id: 0, title: title, lastActivity: Date.now(), llmId: selectedLLM.accessor()!.id };
             try {
                 const createdChat = await chatService.createChat(newChat);
                 curChatId.setter(createdChat.id);
