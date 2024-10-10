@@ -24,18 +24,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 
-@OpenAPIDefinition(
-        info = @Info(
-                title = "GPT for dev API services",
-                description = "Services for manipulating chats, prompts and llms"
-        ),
-        servers = {
-                @Server(
-                        description = "localhost",
-                        url = "http://localhost:8080")
-        }
-)
-@Path("/api")
 public class DbService {
 
   private static final Logger LOGGER = System.getLogger(DbService.class.getName());
@@ -128,20 +116,12 @@ public class DbService {
             .toList().size();
   }
 
-  @GET
-  @javax.ws.rs.Path("/chat/")
-  @Tag(name = "Chat", description = "endpoints to manipulate chats")
-  @Operation(summary = "List all chats", description = "Retrieves a list of all chats")
   public List<Chat> listChats() {
     return dbClient.execute()
             .namedQuery("select-all-chats")
             .map(e -> e.as(Chat.class)).toList();
   }
 
-  @GET
-  @javax.ws.rs.Path("/prompt/")
-  @Tag(name = "Prompts", description = "endpoints to manipulate prompts")
-  @Operation(summary = "List all prompts", description = "Retrieves a list of all prompts")
   public List<Prompt> listPrompts() {
     return dbClient.execute()
             .namedQuery("select-all-prompts")
@@ -149,11 +129,7 @@ public class DbService {
             .toList();
   }
 
-  @GET
-  @javax.ws.rs.Path("/prompt/{id}")
-  @Tag(name = "Prompts", description = "endpoints to manipulate prompts")
-  @Operation(summary = "Get prompt by ID", description = "Retrieves a prompt by its ID")
-  public Prompt getPromptById(@PathParam("id") int promptId) {
+  public Prompt getPromptById(int promptId) {
     return dbClient.execute()
             .createNamedGet("select-prompt-by-id")
             .addParam("id", promptId)
@@ -162,10 +138,6 @@ public class DbService {
             .as(Prompt.class);
   }
 
-  @POST
-  @javax.ws.rs.Path("/prompt/")
-  @Tag(name = "Prompts", description = "endpoints to manipulate prompts")
-  @Operation(summary = "Insert a prompt", description = "Inserts a prompt into the database")
   public long insertPrompt(Prompt prompt) {
     if (prompt.id() < 0 || prompt.chatId() < 0) {
       throw new IllegalArgumentException("id, llmId, or chatId is negative");
@@ -195,10 +167,6 @@ public class DbService {
             .execute();
   }
 
-  @PUT
-  @javax.ws.rs.Path("/prompt/")
-  @Tag(name = "Prompts", description = "endpoints to manipulate prompts")
-  @Operation(summary = "Update a prompt", description = "Updates a prompt in the database")
   public long updatePrompt(Prompt prompt) {
     if (prompt.id() < 0 || prompt.chatId() < 0) {
       throw new IllegalArgumentException("id, llmId, or chatId is negative");
@@ -209,11 +177,7 @@ public class DbService {
     return dbClient.execute().createNamedUpdate("update-prompt-by-id").namedParam(prompt).execute();
   }
 
-  @DELETE
-  @javax.ws.rs.Path("/prompt/{id}")
-  @Tag(name = "Prompts", description = "endpoints to manipulate prompts")
-  @Operation(summary = "Delete a prompt by ID", description = "Deletes a prompt by its ID")
-  public long deletePromptById(@PathParam("id") int promptId) {
+  public long deletePromptById(int promptId) {
     var count = dbClient.execute().createNamedDelete("delete-prompt-by-id")
             .addParam("id", promptId)
             .execute();
@@ -223,11 +187,7 @@ public class DbService {
     return count;
   }
 
-  @GET
-  @javax.ws.rs.Path("/prompt/bychat/{id}")
-  @Tag(name = "Prompts", description = "endpoints to manipulate prompts")
-  @Operation(summary = "List prompts by chat ID", description = "Retrieves a list of prompts by chat ID")
-  public List<Prompt> getPromptsByChatId(@PathParam("id") int promptId) {
+  public List<Prompt> getPromptsByChatId(int promptId) {
     return dbClient.execute()
             .createNamedQuery("select-prompts-by-chat-id")
             .addParam("chatId", promptId)
@@ -236,10 +196,6 @@ public class DbService {
             .toList();
   }
 
-  @POST
-  @javax.ws.rs.Path("/chat")
-  @Tag(name = "Chat", description = "endpoints to manipulate chats")
-  @Operation(summary = "Insert a chat", description = "Inserts a chat into the database")
   public long insertChat(Chat chat) {
     if (chat.id() < 0 || chat.llmId() < 0) {
       throw new IllegalArgumentException("id or llmId is negative");
@@ -262,10 +218,7 @@ public class DbService {
             .as(Chat.class);
   }
 
-  @GET
-  @javax.ws.rs.Path("/chat/{id}")
-  @Operation(summary = "Check if chat exists", description = "Checks if a chat exists by its ID")
-  public boolean chatExists(@PathParam("id") int chatId) {
+  public boolean chatExists(int chatId) {
     return dbClient.execute()
             .createNamedGet("select-chat-by-id")
             .addParam("id", chatId)
@@ -281,11 +234,7 @@ public class DbService {
             .isPresent();
   }
 
-  @GET
-  @javax.ws.rs.Path("/chat/{id}")
-  @Tag(name = "Prompts", description = "endpoints to manipulate prompts")
-  @Operation(summary = "Get chat by ID", description = "Retrieves a chat by its ID")
-  public Chat getChatById(@PathParam("id") int chatId) {
+  public Chat getChatById(int chatId) {
     return dbClient.execute()
             .createNamedGet("select-chat-by-id")
             .addParam("id", chatId)
@@ -294,10 +243,6 @@ public class DbService {
             .as(Chat.class);
   }
 
-  @PUT
-  @javax.ws.rs.Path("/chat/")
-  @Tag(name = "Chat", description = "endpoints to manipulate chats")
-  @Operation(summary = "Update a chat", description = "Updates a chat in the database")
   public long updateChat(Chat chat) {
     if (chat.id() < 0 || chat.llmId() < 0) {
       throw new IllegalArgumentException("id or llmId is negative");
@@ -309,11 +254,7 @@ public class DbService {
             .namedParam(chat).execute();
   }
 
-  @DELETE
-  @javax.ws.rs.Path("/chat/{id}")
-  @Tag(name = "Chat", description = "endpoints to manipulate chats")
-  @Operation(summary = "Delete a chat by ID", description = "Deletes a chat by its ID")
-  public long deleteChatById(@PathParam("id") int chatId) {
+  public long deleteChatById(int chatId) {
     var count = dbClient.execute().createNamedDelete("delete-chat-by-id")
             .addParam("id", chatId)
             .execute();
@@ -323,10 +264,6 @@ public class DbService {
     return count;
   }
 
-  @GET
-  @javax.ws.rs.Path("/llm/")
-  @Tag(name = "LLM", description = "endpoints to use llm")
-  @Operation(summary = "get LLMs", description = "Get list of all LLMs")
   public List<LLM> listLLMs() {
     return dbClient.execute()
             .namedQuery("select-all-llms")
@@ -334,11 +271,7 @@ public class DbService {
             .toList();
   }
 
-  @GET
-  @javax.ws.rs.Path("/llm/{id}")
-  @Tag(name = "LLM", description = "endpoints to use llm")
-  @Operation(summary = "get LLMs", description = "Get list of all LLMs")
-  public LLM getLLMById(@PathParam("id") int llmId) {
+  public LLM getLLMById(int llmId) {
     return dbClient.execute()
             .createNamedGet("select-llm-by-id")
             .addParam("id", llmId)
@@ -347,11 +280,7 @@ public class DbService {
             .as(LLM.class);
   }
 
-  @GET
-  @javax.ws.rs.Path("/prompt/bychat/{id}/first")
-  @Tag(name = "Prompts", description = "endpoints to manipulate prompts")
-  @Operation(summary = "Get first prompt by chat ID", description = "Retrieves the first prompt by chat ID")
-  public Prompt getFirstPromptByChatId(@PathParam("id") int chatId) {
+  public Prompt getFirstPromptByChatId(int chatId) {
     return dbClient.execute()
             .createNamedQuery("select-first-prompt-by-chat-id")
             .addParam("chatId", chatId)
