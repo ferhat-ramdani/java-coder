@@ -8,7 +8,30 @@ import io.helidon.webserver.http.HttpRules;
 import io.helidon.webserver.http.HttpService;
 import io.helidon.webserver.http.ServerRequest;
 import io.helidon.webserver.http.ServerResponse;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.servers.Server;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+import javax.ws.rs.*;
+
+@OpenAPIDefinition(
+        info = @Info(
+                title = "GPT for dev API services",
+                description = "Services for manipulating chats, prompts and llms"
+        ),
+        servers = {
+                @Server(
+                        description = "localhost",
+                        url = "http://localhost:8080")
+        }
+)
+@Tag(name = "Chat", description = "endpoints to manipulate chats")
+@Path("/api/chat")
 public class ChatService implements HttpService {
 
   private final DbService dbClient;
@@ -26,18 +49,33 @@ public class ChatService implements HttpService {
             .delete("/{id}", this::deleteChatById);
   }
 
-  public void getChatById(ServerRequest request, ServerResponse response) {
+  @GET
+  @javax.ws.rs.Path("/{id}")
+  @Operation(summary = "Get chat by ID", description = "Retrieves a chat by its ID")
+  public void getChatById(
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the chat to retrieve", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest request,
+          @Parameter(hidden = true) ServerResponse response
+  ) {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new BadRequestException("Chat ID is required"));
     var chat = dbClient.getChatById(chatId);
     response.send(chat);
   }
 
-  public void listChats(ServerRequest request, ServerResponse response) {
+  @GET
+  @javax.ws.rs.Path("/")
+  @Operation(summary = "List all chats", description = "Retrieves a list of all chats")
+  public void listChats(
+          @Parameter(hidden = true) ServerRequest request,
+          @Parameter(hidden = true) ServerResponse response
+  ) {
     response.send(dbClient.listChats());
   }
 
-  public void insertChat(Chat chat, ServerResponse response) {
+  @POST
+  @javax.ws.rs.Path("")
+  @Operation(summary = "Insert a chat", description = "Inserts a chat into the database")
+  public void insertChat(Chat chat, @Parameter(hidden = true) ServerResponse response) {
     long insertedRows = dbClient.insertChat(chat);
     if (insertedRows <= 0) {
       response.status(Status.BAD_REQUEST_400).send("Failed to insert chat");
@@ -47,7 +85,10 @@ public class ChatService implements HttpService {
     response.status(Status.CREATED_201).send(latestChat);
   }
 
-  public void updateChat(Chat chat, ServerResponse response) {
+  @PUT
+  @javax.ws.rs.Path("/")
+  @Operation(summary = "Update a chat", description = "Updates a chat in the database")
+  public void updateChat(Chat chat, @Parameter(hidden = true) ServerResponse response) {
     long updatedRows = dbClient.updateChat(chat);
     if (updatedRows <= 0) {
       response.status(Status.BAD_REQUEST_400).send("Failed to update chat");
@@ -56,7 +97,13 @@ public class ChatService implements HttpService {
     response.status(Status.OK_200).send("Updated " + updatedRows + " rows");
   }
 
-  public void deleteChatById(ServerRequest request, ServerResponse response) {
+  @DELETE
+  @javax.ws.rs.Path("/{id}")
+  @Operation(summary = "Delete a chat by ID", description = "Deletes a chat by its ID")
+  public void deleteChatById(
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the chat to delete", schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest request,
+          @Parameter(hidden = true) ServerResponse response
+  ) {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new BadRequestException("Chat ID is required"));
     var count = dbClient.deleteChatById(chatId);

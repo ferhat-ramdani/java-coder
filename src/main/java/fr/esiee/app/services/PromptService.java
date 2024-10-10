@@ -10,7 +10,30 @@ import io.helidon.webserver.http.HttpRules;
 import io.helidon.webserver.http.HttpService;
 import io.helidon.webserver.http.ServerRequest;
 import io.helidon.webserver.http.ServerResponse;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.servers.Server;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
+import javax.ws.rs.*;
+
+@OpenAPIDefinition(
+        info = @Info(
+                title = "GPT for dev API services",
+                description = "Services for manipulating chats, prompts and llms"
+        ),
+        servers = {
+                @Server(
+                        description = "localhost",
+                        url = "http://localhost:8080")
+        }
+)
+@Tag(name = "Prompts", description = "endpoints to manipulate prompts")
+@Path("/api/prompt/")
 public class PromptService implements HttpService {
 
   private final DbService dbClient;
@@ -18,7 +41,6 @@ public class PromptService implements HttpService {
   public PromptService() {
     this.dbClient = DbService.getInstance();
   }
-
 
   @Override
   public void routing(HttpRules httpRules) {
@@ -38,11 +60,17 @@ public class PromptService implements HttpService {
             .delete("/{id}", this::deletePromptById);
   }
 
-  public void listPrompts(ServerRequest request, ServerResponse response) {
+  @GET
+  @javax.ws.rs.Path("/")
+  @Operation(summary = "List all prompts", description = "Retrieves a list of all prompts")
+  public void listPrompts(@Parameter(hidden = true) ServerRequest request, @Parameter(hidden = true) ServerResponse response) {
     response.send(dbClient.listPrompts());
   }
 
-  public void insertPrompt(Prompt prompt, ServerResponse response) {
+  @POST
+  @javax.ws.rs.Path("/")
+  @Operation(summary = "Insert a prompt", description = "Inserts a prompt into the database")
+  public void insertPrompt(Prompt prompt, @Parameter(hidden = true) ServerResponse response) {
     long insertedRows = dbClient.insertPrompt(prompt);
     if (insertedRows <= 0) {
       response.status(Status.BAD_REQUEST_400).send("Failed to insert prompt");
@@ -51,7 +79,10 @@ public class PromptService implements HttpService {
     response.status(Status.CREATED_201).send("Prompt inserted successfully");
   }
 
-  public void updatePrompt(Prompt prompt, ServerResponse response) {
+  @PUT
+  @javax.ws.rs.Path("/")
+  @Operation(summary = "Update a prompt", description = "Updates a prompt in the database")
+  public void updatePrompt(Prompt prompt, @Parameter(hidden = true) ServerResponse response) {
     long updatedRows = dbClient.updatePrompt(prompt);
     if (updatedRows <= 0) {
       response.status(Status.BAD_REQUEST_400).send("Failed to update prompt");
@@ -60,28 +91,52 @@ public class PromptService implements HttpService {
     response.status(Status.OK_200).send("Prompt updated successfully");
   }
 
-  public void deletePromptById(ServerRequest request, ServerResponse response) {
+  @DELETE
+  @javax.ws.rs.Path("/{id}")
+  @Operation(summary = "Delete a prompt by ID", description = "Deletes a prompt by its ID")
+  public void deletePromptById(
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the prompt to delete", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest request,
+          @Parameter(hidden = true) ServerResponse response
+  ) {
     int promptId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new NotFoundException("Prompt ID is required"));
     long deletedRows = dbClient.deletePromptById(promptId);
     response.status(Status.OK_200).send("Deleted " + deletedRows + " rows");
   }
 
-  public void getPromptById(ServerRequest request, ServerResponse response) {
+  @GET
+  @javax.ws.rs.Path("/{id}")
+  @Operation(summary = "Get prompt by ID", description = "Retrieves a prompt by its ID")
+  public void getPromptById(
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the prompt to retrieve", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest request,
+          @Parameter(hidden = true) ServerResponse response
+  ) {
     int promptId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new NotFoundException("Prompt ID is required"));
     var prompt = dbClient.getPromptById(promptId);
     response.send(prompt);
   }
 
-  public void getPromptsByChatId(ServerRequest request, ServerResponse response) {
+  @GET
+  @javax.ws.rs.Path("/bychat/{id}")
+  @Operation(summary = "List prompts by chat ID", description = "Retrieves a list of prompts by chat ID")
+  public void getPromptsByChatId(
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the chat used to retrieve prompts", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest request,
+          @Parameter(hidden = true) ServerResponse response
+  ) {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new NotFoundException("Chat ID is required"));
     var prompts = dbClient.getPromptsByChatId(chatId);
     response.send(prompts);
   }
 
-  public void getFirstPromptByChatId(ServerRequest request, ServerResponse response) {
+  @GET
+  @javax.ws.rs.Path("/bychat/{id}/first")
+  @Operation(summary = "Get first prompt by chat ID", description = "Retrieves the first prompt by chat ID")
+  public void getFirstPromptByChatId(
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the chat used to retrieve first prompt", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest request,
+          @Parameter(hidden = true) ServerResponse response
+  ) {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new NotFoundException("Chat ID is required"));
     var prompt = dbClient.getFirstPromptByChatId(chatId);
