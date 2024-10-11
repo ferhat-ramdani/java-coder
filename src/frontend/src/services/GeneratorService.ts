@@ -7,16 +7,16 @@ class GeneratorService {
     private config: Config = Config.getInstance();
     private apiUrl: string = `${this.config.getBackendUrl()}/api/gen`;
 
-    async generateResponseFromLLM(prompt: Prompt): Promise<string>{
-        const data = await fetch(`${this.apiUrl}/class`, Utils.createRequestInit(prompt, 'POST'));
+    async generateResponseFromLLM(prompt: Prompt): Promise<Prompt>{
+        const data = await fetch(`${this.apiUrl}/class`, Utils.createRequestInit(1, 'POST'));
         if (!data.ok) {
             throw new Error(`Error during GET query : ${data.statusText}`);
         }
-        return data.text();
+        return data.json();
     }
 
-    async executeClass(code : string): Promise<string>{
-        const data = await fetch(`${this.config.getBackendUrl()}/api/gen/exec`, Utils.createRequestInit(code, 'POST'));
+    async executeClass(id : string): Promise<string>{
+        const data = await fetch(`${this.config.getBackendUrl()}/api/gen/exec/`, Utils.createRequestInit(id, 'POST'));
         if (!data.ok) {
             throw new Error(`Error during GET query : ${data.statusText}`);
         }

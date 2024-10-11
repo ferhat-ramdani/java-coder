@@ -19,16 +19,12 @@ const TextInput: Component = () => {
             const newPrompt: Prompt = createPrompt(messageToSend, AuthorType.USER, curChatId.accessor()!);
             await insertNewPrompt(newPrompt);
 
-            const response = await generatorService.generateResponseFromLLM(newPrompt);
+            const llmPromt = await generatorService.generateResponseFromLLM(newPrompt);
+            await insertNewPrompt(llmPromt);
+            console.log("RESP: ", llmPromt )
 
             // const execOutput = await generatorService.executeClass(response);
             // console.log(execOutput);
-
-            console.log("execution output : ");
-
-
-            const llmPromt: Prompt = createPrompt(response, AuthorType.LLM, curChatId.accessor()!);
-            await insertNewPrompt(llmPromt);
 
             // const eventSource = new EventSource(`http://localhost:8080/api/gen/test`);
             //
