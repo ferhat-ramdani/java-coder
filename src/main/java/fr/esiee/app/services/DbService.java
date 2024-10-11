@@ -11,15 +11,11 @@ import io.helidon.dbclient.DbClient;
 import io.helidon.dbclient.DbExecute;
 import io.helidon.dbclient.DbTransaction;
 import io.helidon.http.NotFoundException;
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.info.Info;
-import io.swagger.v3.oas.annotations.servers.Server;
-import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.ws.rs.*;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
@@ -54,7 +50,9 @@ public class DbService {
                 llm.get("name").asText(),
                 llm.get("model").asText(),
                 llm.get("system_prompt").asText(""),
-                llm.get("caracteristics").asText(""));
+                llm.get("caracteristics").asText(""),
+                llm.get("temp").asDouble(0),
+                llm.get("seed").asInt(new SecureRandom().nextInt()));
       }
     } catch (Exception e) {
       throw new RuntimeException(e);
