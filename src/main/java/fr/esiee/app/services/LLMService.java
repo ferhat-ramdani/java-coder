@@ -1,6 +1,6 @@
 package fr.esiee.app.services;
 
-import fr.esiee.app.dto.LLMElemDTO;
+import fr.esiee.app.dto.LLMDTO;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
 import io.helidon.webserver.http.*;
@@ -48,7 +48,7 @@ public class LLMService implements HttpService {
   @javax.ws.rs.Path("/")
   @Operation(summary = "get LLMs", description = "Get list of all LLMs")
   public void getLLM(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
-    var llmToSend = dbService.listLLMs().stream().map(e -> new LLMElemDTO(e.id(),e.name(),e.model(), e.caracteristics())).toList();
+    var llmToSend = dbService.listLLMs().stream().map(e -> new LLMDTO(e.id(),e.name(),e.model(), e.caracteristics())).toList();
     res.status(Status.OK_200).send(llmToSend);
   }
 
@@ -62,7 +62,7 @@ public class LLMService implements HttpService {
     int llmId = req.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new BadRequestException("LLM id is required"));
     var llm = dbService.getLLMById(llmId);
-    var llmDTO = new LLMElemDTO(llm.id(),llm.name(),llm.model(), llm.caracteristics());
+    var llmDTO = new LLMDTO(llm.id(),llm.name(),llm.model(), llm.caracteristics());
     res.send(llmDTO);
   }
 }

@@ -1,4 +1,5 @@
-import {Toast} from "bootstrap";
+import {Modal, Toast} from "bootstrap";
+import {ErrorResponse} from "../interfaces/ErrorResponse";
 
 class Utils {
     static toHumanReadable(timestamp: number): string {
@@ -8,15 +9,13 @@ class Utils {
 
     static createRequestInit(body: any, method: string): RequestInit {
         return {
-            method: method.toLocaleUpperCase(),
-            headers: {
+            method: method.toLocaleUpperCase(), headers: {
                 'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(body),
+            }, body: JSON.stringify(body),
         };
     }
 
-    static  showToast(title: string, message: string, color: string = 'light', icon: string = 'bi-info-circle', delay: number = 2500) {
+    static showToast(title: string, message: string, color: string = 'light', icon: string = 'bi-info-circle', delay: number = 2500) {
         let toastContainer = document.getElementById('toast-container');
 
         if (!toastContainer) {
@@ -46,7 +45,7 @@ class Utils {
 
         toastContainer.appendChild(toastElement);
 
-        const toast = new Toast(toastElement, { delay: delay });
+        const toast = new Toast(toastElement, {delay: delay});
         toast.show();
         toastElement.addEventListener('hidden.bs.toast', () => {
             if (toastElement.parentNode) {
@@ -54,6 +53,51 @@ class Utils {
             }
         });
     }
+
+    static showNoActionModal(title: string, message: string) {
+        const modalElement = document.createElement('div');
+        modalElement.innerHTML = `
+            <div class="modal fade" tabindex="-1" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">${title}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <pre>${message}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+
+        const modalHTML = modalElement.firstElementChild as HTMLElement;
+
+        document.body.appendChild(modalHTML);
+
+        const modalInstance = new Modal(modalHTML);
+        modalInstance.show();
+        modalHTML.addEventListener('hidden.bs.modal', () => {
+            if (modalHTML.parentNode) {
+                modalHTML.parentNode.removeChild(modalHTML);
+            }
+        });
+    }
+
+    static async showErrorToast(response: Response, defaultMessage: string) {
+        if (!response.ok) {
+            let message = defaultMessage;
+            try {
+                const errorData: ErrorResponse = await response.json();
+                message = errorData.message;
+                Utils.showToast(`Error - ${errorData.statusCode}: ${errorData.statusMessage}`, errorData.message, "danger", "bi-exclamation-triangle");
+            } catch (jsonError) {
+                Utils.showToast("Error", defaultMessage, "danger", "bi-exclamation-triangle");
+            }
+            throw new Error(message);
+        }
+    }
 }
 
-export { Utils };
+export {Utils};

@@ -3,17 +3,19 @@ package fr.esiee.app;
 
 import fr.esiee.app.config.LLMProviderConfig;
 import fr.esiee.app.config.mapper.LLMProviderConfigMapper;
+import fr.esiee.app.errors.ErrorUtils;
 import fr.esiee.app.llmcheck.OllamaCheck;
 import fr.esiee.app.services.ApiService;
 import io.helidon.common.context.Contexts;
 import io.helidon.config.Config;
 import io.helidon.cors.CrossOriginConfig;
 import io.helidon.dbclient.DbClient;
+import io.helidon.http.NotFoundException;
+import io.helidon.http.Status;
 import io.helidon.http.media.jackson.JacksonSupport;
 import io.helidon.logging.common.LogConfig;
 import io.helidon.openapi.OpenApiFeature;
 import io.helidon.webserver.WebServer;
-import io.helidon.webserver.accesslog.AccessLogFeature;
 import io.helidon.webserver.cors.CorsSupport;
 import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.staticcontent.StaticContentService;
@@ -108,6 +110,11 @@ public class Main {
             .addCrossOrigin(CrossOriginConfig.create())
             .build();
     routing.register("/api", corsSupport, new ApiService());
+
+    routing.error(NotFoundException.class, (req, res, ex) -> {
+      ErrorUtils.send(res, Status.BAD_REQUEST_400, ex.getMessage());
+    });
+
     registerFrontEndRoutes(routing);
   }
 

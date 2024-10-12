@@ -11,17 +11,17 @@ class LLMService {
     
     async getLLMS(): Promise<LLM[]> {
         const response = await fetch(`${this.apiUrl}`);
-        if (!response.ok) {
-            throw new Error(`Error during GET query : ${response.statusText}`);
-        }
+
+        await Utils.showErrorToast(response, "Error during LLMs retrieval.");
+
         return await response.json();
     }
 
     async getLlmById(id: number): Promise<LLM> {
         const response = await fetch(`${this.apiUrl}/${id}`);
-        if (!response.ok) {
-            throw new Error(`Error during GET query : ${response.statusText}`);
-        }
+
+        await Utils.showErrorToast(response, "Error during LLM retrieval.");
+
         return await response.json();
     }
 }
