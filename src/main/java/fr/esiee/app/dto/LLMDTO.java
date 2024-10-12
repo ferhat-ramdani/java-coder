@@ -1,8 +1,8 @@
 package fr.esiee.app.dto;
 
-public record LLMElemDTO(int id, String name, String model, String caracteristics) {
+public record LLMDTO(int id, String name, String model, String caracteristics) {
 
-  public LLMElemDTO {
+  public LLMDTO {
     if (name == null || model == null || caracteristics == null) {
       throw new IllegalArgumentException("name or model is null");
     }

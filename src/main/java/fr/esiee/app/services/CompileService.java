@@ -1,5 +1,6 @@
 package fr.esiee.app.services;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,9 +33,8 @@ class CompileService {
     return compileJavaClass(code, className.get());
   }
 
-  public static String compileAndExecuteText(String text) throws IOException, InterruptedException {
-    Objects.requireNonNull(text);
-    String code = extractCode(text);
+  public static String compileAndExecuteText(String code) throws IOException, InterruptedException {
+    Objects.requireNonNull(code);
     var className = extractClassName(code);
     if (className.isEmpty()) {
       throw new IllegalStateException("no class name could be extracted");
@@ -58,6 +58,10 @@ class CompileService {
     }
   }
 
+  private static boolean isPosixFamily() {
+    return SystemUtils.IS_OS_UNIX || SystemUtils.IS_OS_LINUX || SystemUtils.IS_OS_MAC;
+  }
+
   private static String compileAndExecuteJavaCode(String javaCode, String className) throws IOException, InterruptedException {
     Objects.requireNonNull(javaCode);
     Objects.requireNonNull(className);
@@ -71,7 +75,9 @@ class CompileService {
       if (!compileErrors.isEmpty()) {
         return String.join("\n", compileErrors);
       }
-      addExecutePermission(classFilePath);
+      if(isPosixFamily()) {
+        addExecutePermission(classFilePath);
+      }
       return executeClassFile(targetDir, className);
     } finally {
       deleteFile(classFilePath);
@@ -149,7 +155,7 @@ class CompileService {
   }
 
   private static Path createTempPath() throws IOException {
-    var tempDir = Files.createTempDirectory("ollama-install");
+    var tempDir = Files.createTempDirectory("chat-gpt-services");
     tempDir.toFile().deleteOnExit();
     return tempDir;
   }
@@ -175,24 +181,5 @@ class CompileService {
     Pattern pattern = Pattern.compile(regex);
     Matcher matcher = pattern.matcher(code);
     return Optional.ofNullable(matcher.find() ? matcher.group(1) : null);
-  }
-
-  public static void main(String[] args) throws IOException, InterruptedException {
-    var content = """
-            Here's how you can generate a random number in Java:
-            ```java
-            import java.util.Random;
-            public class RandomNumberGenerator {
-              public static void main(String[] args) {
-                Random random = new Random();
-                int randomNumber = random.nextInt(100);  // Generates a random number between 0 and 99
-                System.out.println("Generated random number: " + randomNumber);
-              }
-            }
-            ```
-            This code uses the Random class to generate numbers.
-            """;
-    var output = compileAndExecuteText(content);
-    System.out.println(output);
   }
 }

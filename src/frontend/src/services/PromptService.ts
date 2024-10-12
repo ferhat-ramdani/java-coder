@@ -25,18 +25,16 @@ class PromptService {
 
     async getPromptsByChatId(chatId: number): Promise<Prompt[]> {
         const response = await fetch(`${this.apiUrl}/bychat/${chatId}`);
-        if (!response.ok) {
-            throw new Error(`Error during GET query : ${response.statusText}`);
-        }
+
+        await Utils.showErrorToast(response, "Error during prompts retrieval.");
+
         return await response.json();
     }
 
     async createPrompt(prompt: Prompt) {
         const response = await fetch(`${this.apiUrl}`, Utils.createRequestInit(prompt, 'POST'));
 
-        if (!response.ok) {
-            throw new Error(`Error during POST query : ${response.statusText}`);
-        }
+        await Utils.showErrorToast(response, "Error during prompt creation.");
     }
 
     async updatePrompt(prompt: Prompt) {
@@ -52,9 +50,7 @@ class PromptService {
             method: 'DELETE',
         });
 
-        if (!response.ok) {
-            throw new Error(`Error during DELETE query : ${response.statusText}`);
-        }
+        await Utils.showErrorToast(response, "Error during prompt deletion.");
     }
 }
 

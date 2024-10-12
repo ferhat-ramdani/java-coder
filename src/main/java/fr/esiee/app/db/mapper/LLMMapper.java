@@ -19,7 +19,16 @@ public record LLMMapper() implements DbMapper<LLM> {
         var model = row.column("model");
         var systemPrompt = row.column("system_prompt");
         var caracteristics = row.column("caracteristics");
-        return new LLM(id.get(Integer.class), name.get(String.class), model.get(String.class), systemPrompt.get(String.class), caracteristics.get(String.class));
+        var temp = row.column("temp");
+        var seed = row.column("seed");
+        return new LLM(id.getInt(),
+                name.getString(),
+                model.getString(),
+                systemPrompt.getString(),
+                caracteristics.getString(),
+                temp.getDouble(),
+                seed.getInt()
+        );
     }
 
     @Override
@@ -30,6 +39,8 @@ public record LLMMapper() implements DbMapper<LLM> {
         map.put("model", value.model());
         map.put("systemPrompt", value.systemPrompt());
         map.put("caracteristics", value.caracteristics());
+        map.put("temp", value.temp());
+        map.put("seed", value.seed());
         return map;
     }
 
@@ -41,6 +52,8 @@ public record LLMMapper() implements DbMapper<LLM> {
         list.add(value.model());
         list.add(value.systemPrompt());
         list.add(value.caracteristics());
+        list.add(value.temp());
+        list.add(value.seed());
         return list;
     }
 }
