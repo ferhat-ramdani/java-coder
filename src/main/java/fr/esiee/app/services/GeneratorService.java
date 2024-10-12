@@ -83,23 +83,22 @@ public class GeneratorService implements HttpService {
     var compile = false;
     try {
       generatedClass = generateClassFromLLM(newLLM, prompt.message());
-      LOGGER.info("Generated class after compilation : {}", generatedClass);
+      LOGGER.info("Class generated successfully.");
       compile = true;
     } catch (IOException | RuntimeException e) {
-      LOGGER.error("Error while generating class : {}", e.getMessage());
+      LOGGER.error("Error during class generation.");
     }
 
     var aiPrompt = new Prompt(0, generatedClass, AuthorType.LLM, chat.id(), compile);
     dbService.insertPrompt(aiPrompt);
-    res.send(aiPrompt);
+    var realPrompt = dbService.getPromptByPromptInfo(aiPrompt);
+    res.send(realPrompt);
   }
 
   @POST
   @javax.ws.rs.Path("/exec")
   @Operation(summary = "Execute a class", description = "Executes a java class and returns the output")
   public void executeClass(int promtId, @Parameter(hidden = true) ServerResponse res) {
-
-    System.out.println("Prompt id : " + promtId);
     var prompt = dbService.getPromptById(promtId);
     if (!prompt.compile()) {
       ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, "Prompt not supposed to be compiled.");

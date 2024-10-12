@@ -21,20 +21,8 @@ const TextInput: Component = () => {
 
             const llmPromt = await generatorService.generateResponseFromLLM(newPrompt);
             await insertNewPrompt(llmPromt);
-            console.log("RESP: ", llmPromt )
 
-            // const execOutput = await generatorService.executeClass(response);
-            // console.log(execOutput);
-
-            // const eventSource = new EventSource(`http://localhost:8080/api/gen/test`);
-            //
-            // eventSource.onmessage = (event) => {
-            //     const newMessage = event.data;
-            //     console.log("msg", event);
-            //     console.log("new", newMessage);
-            // };
-
-            // await insertNewPrompt(response, "LLM");
+    // Faire la progression.
         } catch (error) {
             console.error("Error fetching llm response:", error);
         }

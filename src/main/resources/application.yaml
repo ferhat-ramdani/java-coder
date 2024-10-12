@@ -77,3 +77,6 @@ db:
 
     # Get the latest inserted chat id
     get-latest-chat-id: "SELECT id FROM Chat WHERE title = ? AND last_activity = ? AND llm_id = ? ORDER BY id DESC LIMIT 1"
+
+    # Get the latest inserted prompt id
+    get-prompt-by-prompt-info: "SELECT * FROM Prompt WHERE message = :message AND author_type = :authorType AND chat_id = :chatId AND compile = :compile ORDER BY id DESC LIMIT 1"

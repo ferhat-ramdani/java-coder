@@ -216,6 +216,18 @@ public class DbService {
             .as(Chat.class);
   }
 
+  public Prompt getPromptByPromptInfo(Prompt prompt) {
+    return dbClient.execute()
+            .createNamedGet("get-prompt-by-prompt-info")
+            .addParam("message", prompt.message())
+            .addParam("authorType", prompt.authorType().name())
+            .addParam("chatId", prompt.chatId())
+            .addParam("compile", prompt.compile())
+            .execute()
+            .orElseThrow(() -> new NotFoundException("Prompt not found"))
+            .as(Prompt.class);
+  }
+
   public boolean chatExists(int chatId) {
     return dbClient.execute()
             .createNamedGet("select-chat-by-id")
