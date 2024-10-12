@@ -102,14 +102,20 @@ public class Main {
    * Updates HTTP Routing.
    */
   static void routing(HttpRouting.Builder routing) {
-    CorsSupport corsSupport = CorsSupport.builder()
-            .addCrossOrigin(CrossOriginConfig.builder()
-                    .allowOrigins("*")
-                    .allowMethods("*")
-                    .build())
-            .addCrossOrigin(CrossOriginConfig.create())
-            .build();
-    routing.register("/api", corsSupport, new ApiService());
+
+    if (isDebugMode()) {
+      CorsSupport corsSupport = CorsSupport.builder()
+              .addCrossOrigin(CrossOriginConfig.builder()
+                      .allowOrigins("*")
+                      .allowMethods("*")
+                      .build())
+              .addCrossOrigin(CrossOriginConfig.create())
+              .build();
+      routing.register("/api", corsSupport, new ApiService());
+    } else {
+      routing.register("/api", new ApiService());
+    }
+
 
     routing.error(NotFoundException.class, (req, res, ex) -> {
       ErrorUtils.send(res, Status.BAD_REQUEST_400, ex.getMessage());
