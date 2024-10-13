@@ -58,7 +58,7 @@ class Utils {
         const modalElement = document.createElement('div');
         modalElement.innerHTML = `
             <div class="modal fade" tabindex="-1" aria-hidden="true">
-              <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+              <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
                 <div class="modal-content">
                   <div class="modal-header">
                     <h5 class="modal-title">${title}</h5>
