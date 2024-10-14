@@ -1,5 +1,7 @@
 package fr.esiee.app.dto;
 
+import fr.esiee.app.db.entities.LLM;
+
 public record LLMDTO(int id, String name, String model, String caracteristics) {
 
   public LLMDTO {
@@ -9,6 +11,10 @@ public record LLMDTO(int id, String name, String model, String caracteristics) {
     if(name.isBlank() || model.isBlank()){
       throw new IllegalArgumentException("name or model is empty");
     }
+  }
+
+  public static LLMDTO copyOf(LLM llm) {
+    return new LLMDTO(llm.id(), llm.name(), llm.model(), llm.caracteristics());
   }
 
 }
