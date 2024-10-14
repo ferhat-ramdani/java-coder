@@ -17,37 +17,34 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 class CompileService {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CompileService.class);
+  enum Operation {
+    COMPILE, EXECUTE
+  }
 
-  public static List<String> processAndCompileText(String code) throws IOException {
+  public static String processText(String code, Operation operation) throws IOException, InterruptedException {
     Objects.requireNonNull(code);
     var className = extractClassName(code);
     if (className.isEmpty()) {
       throw new IllegalStateException("no class name could be extracted");
     }
-    return compileJavaClass(code, className.get());
+    return switch (operation) {
+      case COMPILE -> compileJavaClass(code, className.get());
+      case EXECUTE -> compileAndExecuteJavaCode(code, className.get());
+    };
   }
 
-  public static String compileAndExecuteText(String code) throws IOException, InterruptedException {
-    Objects.requireNonNull(code);
-    var className = extractClassName(code);
-    if (className.isEmpty()) {
-      throw new IllegalStateException("no class name could be extracted");
-    }
-    return compileAndExecuteJavaCode(code, className.get());
-  }
-
-  private static List<String> compileJavaClass(String javaCode, String className) throws IOException {
+  private static String compileJavaClass(String javaCode, String className) throws IOException {
     Objects.requireNonNull(javaCode);
     Objects.requireNonNull(className);
-    var targetDir = createTempPath().toString();
-    var javaFilePath = targetDir + "/" + className + ".java";
-    var classFilePath = targetDir + "/" + className + ".class";
+    var targetDir = createTempPath();
+    var javaFilePath = targetDir.resolve(className + ".java");
+    var classFilePath = targetDir.resolve(className + ".class");
 
     try {
       writeToFile(javaCode, javaFilePath);
@@ -58,22 +55,18 @@ class CompileService {
     }
   }
 
-  private static boolean isPosixFamily() {
-    return SystemUtils.IS_OS_UNIX || SystemUtils.IS_OS_LINUX || SystemUtils.IS_OS_MAC;
-  }
-
   private static String compileAndExecuteJavaCode(String javaCode, String className) throws IOException, InterruptedException {
     Objects.requireNonNull(javaCode);
     Objects.requireNonNull(className);
-    var targetDir = createTempPath().toString();
-    var javaFilePath = targetDir + "/" + className + ".java";
-    var classFilePath = targetDir + "/" + className + ".class";
+    var targetDir = createTempPath();
+    var javaFilePath = targetDir.resolve(className + ".java");
+    var classFilePath = targetDir.resolve(className + ".class");
 
     try {
       writeToFile(javaCode, javaFilePath);
       var compileErrors = compileJavaFile(javaFilePath);
       if (!compileErrors.isEmpty()) {
-        return String.join("\n", compileErrors);
+        return compileErrors;
       }
       if(isPosixFamily()) {
         addExecutePermission(classFilePath);
@@ -85,7 +78,28 @@ class CompileService {
     }
   }
 
-  private static List<String> compileJavaFile(String javaFilePath) {
+  private static boolean isPosixFamily() {
+    return SystemUtils.IS_OS_UNIX || SystemUtils.IS_OS_LINUX || SystemUtils.IS_OS_MAC;
+  }
+
+  private static String executeClassFile(Path classDirectory, String className) throws IOException, InterruptedException {
+    Objects.requireNonNull(classDirectory);
+    Objects.requireNonNull(className);
+    var output = "";
+    try (var outputStream = new ByteArrayOutputStream();
+         var printStream = new PrintStream(outputStream, true, StandardCharsets.UTF_8)) {
+      var processBuilder = new ProcessBuilder("java", "-cp", classDirectory.toString(), className);
+      var process = processBuilder.redirectErrorStream(true).start();
+      try (var processOutput = process.getInputStream()) {
+        processOutput.transferTo(printStream);
+      }
+      process.waitFor();
+      output = outputStream.toString(StandardCharsets.UTF_8);
+    }
+    return output;
+  }
+
+  private static String compileJavaFile(Path javaFilePath) {
     Objects.requireNonNull(javaFilePath);
     var compiler = ToolProvider.getSystemJavaCompiler();
     var diagnostics = new DiagnosticCollector<JavaFileObject>();
@@ -104,58 +118,40 @@ class CompileService {
         errors.add(error);
       }
     }
-    return errors;
+    return String.join("\n", errors);
   }
 
-  private static void addExecutePermission(String filePath) throws IOException {
-    Objects.requireNonNull(filePath);
-    var path = Paths.get(filePath);
+  private static void addExecutePermission(Path path) throws IOException {
+    Objects.requireNonNull(path);
     var permissions = Files.getPosixFilePermissions(path);
     permissions.add(PosixFilePermission.OWNER_EXECUTE);
     Files.setPosixFilePermissions(path, permissions);
   }
 
-  private static String executeClassFile(String classDirectory, String className) throws IOException, InterruptedException {
-    Objects.requireNonNull(classDirectory);
-    Objects.requireNonNull(className);
-    var output = "";
-    try (var outputStream = new ByteArrayOutputStream();
-         var printStream = new PrintStream(outputStream, true, StandardCharsets.UTF_8)) {
-      var processBuilder = new ProcessBuilder("java", "-cp", classDirectory, className);
-      var process = processBuilder.redirectErrorStream(true).start();
-      try (var processOutput = process.getInputStream()) {
-        processOutput.transferTo(printStream);
-      }
-      process.waitFor();
-      output = outputStream.toString(StandardCharsets.UTF_8);
-    }
-    return output;
-  }
-
-  private static void writeToFile(String content, String filePath) throws IOException {
+  private static void writeToFile(String content, Path filePath) throws IOException {
     Objects.requireNonNull(content);
-    var path = Paths.get(filePath);
-    Files.createDirectories(path.getParent());
-    Files.createFile(path);
+    Files.createDirectories(filePath.getParent());
+    Files.createFile(filePath);
 
-    try (var writer = Files.newBufferedWriter(path)) {
+    try (var writer = Files.newBufferedWriter(filePath)) {
       writer.write(content);
     }
   }
 
-  private static void deleteFile(String filePath) {
+  private static void deleteFile(Path filePath) {
     Objects.requireNonNull(filePath);
-    var classFile = new File(filePath);
 
-    if (classFile.exists()) {
-      if (!classFile.delete()) {
-        throw new RuntimeException("Cannot delete " + filePath);
+    if (Files.exists(filePath)) {
+      try {
+        Files.delete(filePath);
+      } catch (IOException e) {
+        throw new RuntimeException("Cannot delete " + filePath, e);
       }
     }
   }
 
   private static Path createTempPath() throws IOException {
-    var tempDir = Files.createTempDirectory("chat-gpt-services");
+    var tempDir = Files.createTempDirectory("compile-exec-files");
     tempDir.toFile().deleteOnExit();
     return tempDir;
   }
