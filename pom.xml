@@ -169,7 +169,7 @@
             <artifactId>jaxb-api</artifactId>
             <version>2.1</version>
         </dependency>
-        <!-- fin openapi doc -->
+        <!-- end of openapi doc -->
 
         <!--        AUTRE-->
         <dependency>
@@ -215,7 +215,7 @@
             <groupId>io.helidon.openapi</groupId>
             <artifactId>helidon-openapi</artifactId>
         </dependency>
-        <!-- fin openAPI ui dependencies -->
+        <!-- end of openAPI ui dependencies -->
     </dependencies>
 
     <build>
@@ -368,7 +368,7 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- fin openapi doc -->
+            <!-- end of openapi doc -->
         </plugins>
     </build>
 </project>

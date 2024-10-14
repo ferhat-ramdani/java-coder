@@ -85,8 +85,8 @@ public class GeneratorService implements HttpService {
       generatedClass = generateClassFromLLM(newLLM, prompt.message());
       LOGGER.info("Class generated successfully.");
       compile = true;
-    } catch (IOException | RuntimeException e) {
-      LOGGER.error("Error during class generation.");
+    } catch (IOException | RuntimeException | InterruptedException e) {
+      throw new RuntimeException(e.getMessage());
     }
 
     var aiPrompt = new Prompt(0, generatedClass, AuthorType.LLM, chat.id(), compile);
@@ -108,15 +108,14 @@ public class GeneratorService implements HttpService {
     String output;
     try {
       LOGGER.info("Executing class ...");
-      output = CompileService.compileAndExecuteText(prompt.message());
+      output = CompileService.processText(prompt.message(), CompileService.Operation.EXECUTE);
     } catch (IOException | InterruptedException e) {
-      output = "An error occurred while executing class.";
-      LOGGER.error("{}", output);
+      throw new RuntimeException(e.getMessage());
     }
     res.send(output);
   }
 
-  private String generateClassFromLLM(LLM llm, String requestText) throws IOException {
+  private String generateClassFromLLM(LLM llm, String requestText) throws IOException, InterruptedException {
     Objects.requireNonNull(llm);
     Objects.requireNonNull(requestText);
 
@@ -135,14 +134,14 @@ public class GeneratorService implements HttpService {
       String code = CompileService.extractCode(answer);
       LOGGER.info("Code extracted from response.");
 
-      var errors = CompileService.processAndCompileText(code);
+      var errors = CompileService.processText(code, CompileService.Operation.COMPILE);
 
       if (errors.isEmpty()) {
         LOGGER.info("No errors found in generated code.");
         return code;
       } else {
         LOGGER.error("Errors found in generated code.");
-        errorsText = SYSTEM_ERR_MESSAGE_2 + String.join("\n", errors);
+        errorsText = SYSTEM_ERR_MESSAGE_2 + errors;
       }
     }
     throw new RuntimeException(USER_ERR_MESSAGE + errorsText);

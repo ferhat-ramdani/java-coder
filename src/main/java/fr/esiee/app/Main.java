@@ -45,7 +45,7 @@ public class Main {
     return Config.global().get("debug").asBoolean().orElse(false);
   }
 
-  public static void main(String[] args) throws IOException, InterruptedException {
+  public static void main(String[] args) {
 
     LogConfig.configureRuntime();
 
@@ -81,8 +81,6 @@ public class Main {
 
     OllamaCheck.init();
 
-
-
     var server = WebServer.builder()
             .mediaContext(it -> it
                     .mediaSupportsDiscoverServices(false)
@@ -94,7 +92,7 @@ public class Main {
 
     Contexts.globalContext().register(server);
 
-    System.out.println("WEB server is up! http://localhost:" + server.port());
+    LOGGER.info("WEB server is up! http://localhost:{}", server.port());
 
   }
 
