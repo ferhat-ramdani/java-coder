@@ -281,6 +281,14 @@ public class DbService {
             .toList();
   }
 
+  public LLM getFirstLLM() {
+    return dbClient.execute()
+            .createNamedGet("get-first-llm")
+            .execute()
+            .orElseThrow(() -> new NotFoundException("LLM not found"))
+            .as(LLM.class);
+  }
+
   public LLM getLLMById(int llmId) {
     return dbClient.execute()
             .createNamedGet("select-llm-by-id")

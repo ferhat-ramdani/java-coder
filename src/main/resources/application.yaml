@@ -80,3 +80,6 @@ db:
 
     # Get the latest inserted prompt id
     get-prompt-by-prompt-info: "SELECT * FROM Prompt WHERE message = :message AND author_type = :authorType AND chat_id = :chatId AND compile = :compile ORDER BY id DESC LIMIT 1"
+
+    # Get the first LLM
+    get-first-llm: "SELECT * FROM llm ORDER BY id ASC LIMIT 1"

@@ -17,6 +17,14 @@ class LLMService {
         return await response.json();
     }
 
+    async getFirstLLM(): Promise<LLM> {
+        const response = await fetch(`${this.apiUrl}/first/llm`);
+
+        await Utils.showErrorToast(response, "Error during LLM retrieval.");
+
+        return await response.json();
+    }
+
     async getLlmById(id: number): Promise<LLM> {
         const response = await fetch(`${this.apiUrl}/${id}`);
 

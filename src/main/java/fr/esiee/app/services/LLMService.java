@@ -40,21 +40,30 @@ public class LLMService implements HttpService {
 
   @Override
   public void routing(HttpRules httpRules) {
-    httpRules.get("/", this::getLLM)
-            .get("/{id}", this::getLLMById);
+    httpRules.get("/", this::getListOfLLM)
+            .get("/{id}", this::getLLMById)
+            .get("/first/llm", this::getFirstLLM);
   }
 
   @GET
   @javax.ws.rs.Path("/")
   @Operation(summary = "get LLMs", description = "Get list of all LLMs")
-  public void getLLM(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
-    var llmToSend = dbService.listLLMs().stream().map(e -> new LLMDTO(e.id(),e.name(),e.model(), e.caracteristics())).toList();
-    res.status(Status.OK_200).send(llmToSend);
+  public void getListOfLLM(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
+    var llmsToSend = dbService.listLLMs().stream().map(e -> new LLMDTO(e.id(),e.name(),e.model(), e.caracteristics())).toList();
+    res.status(Status.OK_200).send(llmsToSend);
+  }
+
+  @GET
+  @javax.ws.rs.Path("/first")
+  @Operation(summary = "get first LLM", description = "Get the first LLM of the list of supported LLMs")
+  public void getFirstLLM(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
+    var llm = dbService.getFirstLLM();
+    res.status(Status.OK_200).send(LLMDTO.copyOf(llm));
   }
 
   @GET
   @javax.ws.rs.Path("/{id}")
-  @Operation(summary = "get LLMs", description = "Get list of all LLMs")
+  @Operation(summary = "get LLM by ID", description = "Get a LLM by its ID")
   public void getLLMById(
           @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the llm to retrieve", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest req,
           @Parameter(hidden = true) ServerResponse res
@@ -62,7 +71,6 @@ public class LLMService implements HttpService {
     int llmId = req.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new BadRequestException("LLM id is required"));
     var llm = dbService.getLLMById(llmId);
-    var llmDTO = new LLMDTO(llm.id(),llm.name(),llm.model(), llm.caracteristics());
-    res.send(llmDTO);
+    res.status(Status.OK_200).send(LLMDTO.copyOf(llm));
   }
 }

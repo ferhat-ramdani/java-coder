@@ -11,6 +11,7 @@ import {Utils} from "../services/Utils";
 const TextInput: Component = () => {
     const [{curChatId, selectedLLM, curChatPrompts, chats}] = useAppContext();
     const [message, setMessage] = createSignal("");
+    const [sendDisabled, setSendDisabled] = createSignal(false);
 
     const fetchLLMResponse = async () => {
         const messageToSend = message();
@@ -22,7 +23,7 @@ const TextInput: Component = () => {
             const llmPromt = await generatorService.generateResponseFromLLM(newPrompt);
             await insertNewPrompt(llmPromt);
 
-    // Faire la progression.
+            // Faire la progression.
         } catch (error) {
             console.error("Error fetching llm response:", error);
         }
@@ -36,11 +37,15 @@ const TextInput: Component = () => {
             if(!selectedLLM.accessor()) {
                 Utils.showToast("Error", "Please select an LLM Model", "danger", "bi-exclamation-triangle");
             } else {
+                setSendDisabled(true);
                 await createNewChat(message());
                 await fetchLLMResponse();
+                setSendDisabled(false);
             }
         } else if(selectedLLM.accessor()) {
+            setSendDisabled(true);
             await fetchLLMResponse();
+            setSendDisabled(false);
         }
     };
 
@@ -82,13 +87,13 @@ const TextInput: Component = () => {
                   value={message()}
                   onInput={(e) => setMessage(e.currentTarget.value)}
                   onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === 'Enter' && !sendDisabled()) {
                           e.preventDefault();
                           handleSend();
                       }
                   }}
               ></textarea>
-                <button class="btn btn-primary rounded-end" type="button" onClick={handleSend}>
+                <button class="btn btn-primary rounded-end" type="button" disabled={sendDisabled()} onClick={handleSend}>
                     <i class="bi bi-send-fill"></i>
                 </button>
             </div>

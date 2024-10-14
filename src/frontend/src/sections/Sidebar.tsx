@@ -1,14 +1,32 @@
-import {Component, For, Show} from "solid-js";
+import {Component, createResource, For, onMount, Show} from "solid-js";
 import ChatItem from "./ChatItem";
 import {useAppContext} from "../Context";
 import {SpinnerSmall} from "./Spinner";
+import llmService from "../services/LLMService";
+import {LLM} from "../interfaces/LLM";
+
+const fetchFirstLLM = async (): Promise<LLM|null> => {
+    try {
+        return await llmService.getFirstLLM();
+    } catch (error) {
+        console.error("Error fetching first llm:", error);
+        return null;
+    }
+}
 
 const Sidebar: Component = () => {
+
+    onMount(async () => {
+        const llm = await fetchFirstLLM();
+        selectedLLM.setter(llm);
+    });
     const [{curChatId, curChatPrompts, selectedLLM, chats}] = useAppContext();
-    const createNewChat = () => {
+    const createNewChat = async () => {
         curChatId.setter(null);
         selectedLLM.setter(null);
         curChatPrompts.setter([]);
+        const llm = await llmService.getFirstLLM();
+        selectedLLM.setter(llm);
     };
 
     return (
