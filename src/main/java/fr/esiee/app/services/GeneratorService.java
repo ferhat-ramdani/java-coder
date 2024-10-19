@@ -1,5 +1,8 @@
 package fr.esiee.app.services;
 
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.ChatMessageType;
+import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.service.AiServices;
@@ -64,14 +67,14 @@ public class GeneratorService implements HttpService {
     String generatedClass;
     var compile = false;
     try {
-      generatedClass = generateClassFromLLM(newLLM, prompt.message());
+      generatedClass = generateClassFromLLM(newLLM, chat.id(), prompt.message());
       LOGGER.info("Class generated successfully.");
       compile = true;
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException(e.getMessage());
     }
 
-    var aiPrompt = new Prompt(0, generatedClass, AuthorType.LLM, chat.id(), compile);
+    var aiPrompt = new Prompt(0, generatedClass, AuthorType.AI, chat.id(), compile);
     dbService.insertPrompt(aiPrompt);
     var realPrompt = dbService.getPromptByPromptInfo(aiPrompt);
     res.send(realPrompt);
@@ -80,8 +83,8 @@ public class GeneratorService implements HttpService {
   @POST
   @javax.ws.rs.Path("/exec")
   @Operation(summary = "Execute a class", description = "Executes a java class and returns the output")
-  public void executeClass(int promtId, @Parameter(hidden = true) ServerResponse res) {
-    var prompt = dbService.getPromptById(promtId);
+  public void executeClass(int promptId, @Parameter(hidden = true) ServerResponse res) {
+    var prompt = dbService.getPromptById(promptId);
     if (!prompt.compile()) {
       ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, "Prompt not supposed to be compiled.");
       return;
@@ -97,20 +100,20 @@ public class GeneratorService implements HttpService {
     res.send(output);
   }
 
-  private String generateClassFromLLM(LLM llm, String requestText) throws IOException, InterruptedException {
+  private String generateClassFromLLM(LLM llm, int chatId, String requestText) throws IOException, InterruptedException {
     Objects.requireNonNull(llm);
     Objects.requireNonNull(requestText);
 
     if (llm != curLLM || model == null || assistant == null) {
-      updateModelSettings(llm);
+      updateModelSettings(llm, chatId);
       curLLM = llm;
     }
 
     String errorsText = null;
-    for (int attempt = 0; attempt < NB_ATTEMPTS; attempt++) {
+    for (int attempt = 1; attempt <= NB_ATTEMPTS; attempt++) {
       LOGGER.info("Attempting to generate a class : {}/{}", attempt, NB_ATTEMPTS);
 
-      var answer = assistant.chat(attempt == 0 ? requestText : errorsText);
+      var answer = assistant.chat(attempt == 1 ? requestText : errorsText);
       LOGGER.info("Assistant made a response.");
 
       String code = CompileService.extractCode(answer);
@@ -133,8 +136,9 @@ public class GeneratorService implements HttpService {
     String chat(@UserMessage String userMessage);
   }
 
-  private void updateModelSettings(LLM llm) {
+  private void updateModelSettings(LLM llm, int chatId) {
     var chatMemory = MessageWindowChatMemory.withMaxMessages(MAX_MEMORY_PROMPTS);
+    updateMemoryWithPreviousPrompts(chatMemory, chatId);
     model = OllamaChatModel.builder()
             .baseUrl(llmConfig.baseUrl())
             .modelName(llm.model())
@@ -147,5 +151,23 @@ public class GeneratorService implements HttpService {
             .systemMessageProvider(_ -> llm.systemPrompt())
             .chatMemory(chatMemory)
             .build();
+  }
+
+  private void updateMemoryWithPreviousPrompts(ChatMemory chatMemory, int chatId) {
+    var dbService = new DbService();
+    var prevPrompts = dbService.getPromptsByChatId(chatId);
+    prevPrompts.stream()
+            .filter(prompt -> prompt.authorType() != AuthorType.SYSTEM)
+            .forEach(prompt -> chatMemory.add(new ChatMessage() {
+                @Override
+                public ChatMessageType type() {
+                  return ChatMessageType.valueOf(prompt.authorType().name());
+                }
+
+                @Override
+                public String text() {
+                  return prompt.message();
+                }
+              }));
   }
 }
