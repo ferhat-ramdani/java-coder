@@ -12,6 +12,7 @@ import fr.esiee.app.config.LLMProviderConfig;
 import fr.esiee.app.db.entities.AuthorType;
 import fr.esiee.app.db.entities.LLM;
 import fr.esiee.app.db.entities.Prompt;
+import fr.esiee.app.exception.RestApiException;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
 import io.helidon.webserver.http.Handler;
@@ -35,7 +36,6 @@ public class GeneratorService implements HttpService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GeneratorService.class);
   private static final String SYSTEM_ERR_MESSAGE = "Here are the compilation errors, correct them.";
-  private static final String USER_ERR_MESSAGE = "There are compilation errors in the generated class : ";
   private final DbService dbService;
   private final LLMProviderConfig llmConfig;
   private final int NB_ATTEMPTS = 3;
@@ -49,6 +49,8 @@ public class GeneratorService implements HttpService {
     this.dbService = Contexts.globalContext().get(DbService.class).orElse(DbService.getInstance());
     this.llmConfig = Contexts.globalContext().get(LLMProviderConfig.class).orElse(LLMProviderConfig.defaultConfig());
   }
+
+  private record ClassResponse(String code, boolean compile) {}
 
   @Override
   public void routing(HttpRules rules) {
@@ -64,17 +66,16 @@ public class GeneratorService implements HttpService {
     var newLLM = dbService.getLLMById(chat.llmId());
     dbService.insertPrompt(prompt);
 
-    String generatedClass;
-    var compile = false;
+    ClassResponse generatedClass = null;
     try {
       generatedClass = generateClassFromLLM(newLLM, chat.id(), prompt.message());
       LOGGER.info("Class generated successfully.");
-      compile = true;
-    } catch (IOException | InterruptedException e) {
-      throw new RuntimeException(e.getMessage());
+    } catch (IOException | InterruptedException e) { // Catch is necessary because whe are in a BiConsumer lambda
+      throw new RestApiException(e);
     }
 
-    var aiPrompt = new Prompt(0, generatedClass, AuthorType.AI, chat.id(), compile);
+    // There generatedClass is never null, the generateClassFromLLM method throws an exception
+    var aiPrompt = new Prompt(0, generatedClass.code(), AuthorType.AI, chat.id(), generatedClass.compile());
     dbService.insertPrompt(aiPrompt);
     var realPrompt = dbService.getPromptByPromptInfo(aiPrompt);
     res.send(realPrompt);
@@ -86,21 +87,21 @@ public class GeneratorService implements HttpService {
   public void executeClass(int promptId, @Parameter(hidden = true) ServerResponse res) {
     var prompt = dbService.getPromptById(promptId);
     if (!prompt.compile()) {
-      ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, "Prompt not supposed to be compiled.");
+      ErrorUtils.send(res, Status.NOT_ACCEPTABLE_406, "Prompt not supposed to be compiled.");
       return;
     }
 
     String output;
     try {
-      LOGGER.info("Executing class ...");
+      LOGGER.info("Executing class, promptId : {}", promptId);
       output = CompileService.processText(prompt.message(), CompileService.Operation.EXECUTE);
-    } catch (IOException | InterruptedException e) {
-      throw new RuntimeException(e.getMessage());
+    } catch (IOException | InterruptedException e) { // Catch is necessary because whe are in a BiConsumer lambda
+      throw new RestApiException(e);
     }
     res.send(output);
   }
 
-  private String generateClassFromLLM(LLM llm, int chatId, String requestText) throws IOException, InterruptedException {
+  private ClassResponse generateClassFromLLM(LLM llm, int chatId, String requestText) throws IOException, InterruptedException {
     Objects.requireNonNull(llm);
     Objects.requireNonNull(requestText);
 
@@ -110,26 +111,27 @@ public class GeneratorService implements HttpService {
     }
 
     String errorsText = null;
+    String code = null;
     for (int attempt = 1; attempt <= NB_ATTEMPTS; attempt++) {
       LOGGER.info("Attempting to generate a class : {}/{}", attempt, NB_ATTEMPTS);
 
       var answer = assistant.chat(attempt == 1 ? requestText : errorsText);
       LOGGER.info("Assistant made a response.");
 
-      String code = CompileService.extractCode(answer);
+      code = CompileService.extractCode(answer);
       LOGGER.info("Code extracted from response.");
 
       var errors = CompileService.processText(code, CompileService.Operation.COMPILE);
 
       if (errors.isEmpty()) {
         LOGGER.info("No errors found in generated code.");
-        return code;
+        return new ClassResponse(code, true);
       } else {
         LOGGER.error("Errors found in generated code.");
         errorsText = SYSTEM_ERR_MESSAGE + errors;
       }
     }
-    throw new RuntimeException(USER_ERR_MESSAGE + errorsText);
+    return new ClassResponse(code, false);
   }
 
   private interface Assistant {
@@ -154,7 +156,6 @@ public class GeneratorService implements HttpService {
   }
 
   private void updateMemoryWithPreviousPrompts(ChatMemory chatMemory, int chatId) {
-    var dbService = new DbService();
     var prevPrompts = dbService.getPromptsByChatId(chatId);
     prevPrompts.stream()
             .filter(prompt -> prompt.authorType() != AuthorType.SYSTEM)
