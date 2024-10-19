@@ -1,11 +1,12 @@
 package fr.esiee.app.services;
 
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.ChatMessageType;
+import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.service.AiServices;
-import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
-import dev.langchain4j.service.V;
 import fr.esiee.app.errors.ErrorUtils;
 import fr.esiee.app.config.LLMProviderConfig;
 import fr.esiee.app.db.entities.AuthorType;
@@ -17,11 +18,8 @@ import io.helidon.webserver.http.Handler;
 import io.helidon.webserver.http.HttpRules;
 import io.helidon.webserver.http.HttpService;
 import io.helidon.webserver.http.ServerResponse;
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.info.Info;
-import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,25 +29,12 @@ import javax.ws.rs.Path;
 import java.io.IOException;
 import java.util.Objects;
 
-@OpenAPIDefinition(
-        info = @Info(
-                title = "GPT for dev API services",
-                description = "Services for manipulating chats, prompts and llms"
-        ),
-        servers = {
-                @Server(
-                        description = "localhost",
-                        url = "http://localhost:8080")
-        }
-)
 @Tag(name = "Generator", description = "endpoints to use generator")
 @Path("/api/gen")
 public class GeneratorService implements HttpService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GeneratorService.class);
-
-  private static final String SYSTEM_ERR_MESSAGE_2 = """
-  Here are the compilation errors, correct them.""";
+  private static final String SYSTEM_ERR_MESSAGE = "Here are the compilation errors, correct them.";
   private static final String USER_ERR_MESSAGE = "There are compilation errors in the generated class : ";
   private final DbService dbService;
   private final LLMProviderConfig llmConfig;
@@ -79,17 +64,17 @@ public class GeneratorService implements HttpService {
     var newLLM = dbService.getLLMById(chat.llmId());
     dbService.insertPrompt(prompt);
 
-    String generatedClass = "Error generating class.";
+    String generatedClass;
     var compile = false;
     try {
-      generatedClass = generateClassFromLLM(newLLM, prompt.message());
+      generatedClass = generateClassFromLLM(newLLM, chat.id(), prompt.message());
       LOGGER.info("Class generated successfully.");
       compile = true;
-    } catch (IOException | RuntimeException | InterruptedException e) {
+    } catch (IOException | InterruptedException e) {
       throw new RuntimeException(e.getMessage());
     }
 
-    var aiPrompt = new Prompt(0, generatedClass, AuthorType.LLM, chat.id(), compile);
+    var aiPrompt = new Prompt(0, generatedClass, AuthorType.AI, chat.id(), compile);
     dbService.insertPrompt(aiPrompt);
     var realPrompt = dbService.getPromptByPromptInfo(aiPrompt);
     res.send(realPrompt);
@@ -98,8 +83,8 @@ public class GeneratorService implements HttpService {
   @POST
   @javax.ws.rs.Path("/exec")
   @Operation(summary = "Execute a class", description = "Executes a java class and returns the output")
-  public void executeClass(int promtId, @Parameter(hidden = true) ServerResponse res) {
-    var prompt = dbService.getPromptById(promtId);
+  public void executeClass(int promptId, @Parameter(hidden = true) ServerResponse res) {
+    var prompt = dbService.getPromptById(promptId);
     if (!prompt.compile()) {
       ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, "Prompt not supposed to be compiled.");
       return;
@@ -115,20 +100,20 @@ public class GeneratorService implements HttpService {
     res.send(output);
   }
 
-  private String generateClassFromLLM(LLM llm, String requestText) throws IOException, InterruptedException {
+  private String generateClassFromLLM(LLM llm, int chatId, String requestText) throws IOException, InterruptedException {
     Objects.requireNonNull(llm);
     Objects.requireNonNull(requestText);
 
     if (llm != curLLM || model == null || assistant == null) {
-      updateModelSettings(llm);
+      updateModelSettings(llm, chatId);
       curLLM = llm;
     }
 
     String errorsText = null;
-    for (int attempt = 0; attempt < NB_ATTEMPTS; attempt++) {
-      LOGGER.info("Attemp n° {} to generate class ...", attempt);
+    for (int attempt = 1; attempt <= NB_ATTEMPTS; attempt++) {
+      LOGGER.info("Attempting to generate a class : {}/{}", attempt, NB_ATTEMPTS);
 
-      var answer = assistant.chat(llm.systemPrompt(), attempt == 0 ? requestText : errorsText);
+      var answer = assistant.chat(attempt == 1 ? requestText : errorsText);
       LOGGER.info("Assistant made a response.");
 
       String code = CompileService.extractCode(answer);
@@ -141,19 +126,19 @@ public class GeneratorService implements HttpService {
         return code;
       } else {
         LOGGER.error("Errors found in generated code.");
-        errorsText = SYSTEM_ERR_MESSAGE_2 + errors;
+        errorsText = SYSTEM_ERR_MESSAGE + errors;
       }
     }
     throw new RuntimeException(USER_ERR_MESSAGE + errorsText);
   }
 
   private interface Assistant {
-    @SystemMessage("{{answerInstructions}}")
-    String chat(@V("answerInstructions") String answerInstructions, @UserMessage String userMessage);
+    String chat(@UserMessage String userMessage);
   }
 
-  private void updateModelSettings(LLM llm) {
+  private void updateModelSettings(LLM llm, int chatId) {
     var chatMemory = MessageWindowChatMemory.withMaxMessages(MAX_MEMORY_PROMPTS);
+    updateMemoryWithPreviousPrompts(chatMemory, chatId);
     model = OllamaChatModel.builder()
             .baseUrl(llmConfig.baseUrl())
             .modelName(llm.model())
@@ -163,7 +148,26 @@ public class GeneratorService implements HttpService {
 
     assistant = AiServices.builder(Assistant.class)
             .chatLanguageModel(model)
+            .systemMessageProvider(_ -> llm.systemPrompt())
             .chatMemory(chatMemory)
             .build();
+  }
+
+  private void updateMemoryWithPreviousPrompts(ChatMemory chatMemory, int chatId) {
+    var dbService = new DbService();
+    var prevPrompts = dbService.getPromptsByChatId(chatId);
+    prevPrompts.stream()
+            .filter(prompt -> prompt.authorType() != AuthorType.SYSTEM)
+            .forEach(prompt -> chatMemory.add(new ChatMessage() {
+                @Override
+                public ChatMessageType type() {
+                  return ChatMessageType.valueOf(prompt.authorType().name());
+                }
+
+                @Override
+                public String text() {
+                  return prompt.message();
+                }
+              }));
   }
 }

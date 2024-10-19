@@ -17,7 +17,7 @@ const PromptMessage: Component<PromptProps> = (props) => {
             bgColor = "text-bg-primary";
             alignmentClass = "align-items-end";
             break;
-        case AuthorType.LLM:
+        case AuthorType.AI:
             bgColor = "text-bg-success";
             alignmentClass = "align-items-start";
             break;
@@ -32,7 +32,7 @@ const PromptMessage: Component<PromptProps> = (props) => {
     return (
         <div class={`d-flex flex-column ${alignmentClass}`}>
             <Switch>
-                <Match when={props.prompt.authorType === AuthorType.LLM}>
+                <Match when={props.prompt.authorType === AuthorType.AI}>
                     <pre class={classes}>
                       <code>{props.prompt.message}</code>
                     </pre>
