@@ -30,6 +30,6 @@ public record PromptMapper() implements DbMapper<Prompt> {
 
     @Override
     public List<Object> toIndexedParameters(Prompt prompt) {
-        return MapperUtils.recordToMap(prompt).values().stream().toList();
+        return MapperUtils.recordToList(prompt);
     }
 }

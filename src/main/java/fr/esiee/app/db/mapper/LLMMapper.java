@@ -31,6 +31,6 @@ public record LLMMapper() implements DbMapper<LLM> {
 
     @Override
     public List<Object> toIndexedParameters(LLM llm) {
-        return MapperUtils.recordToMap(llm).values().stream().toList();
+        return MapperUtils.recordToList(llm);
     }
 }

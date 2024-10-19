@@ -10,6 +10,7 @@ import java.util.Optional;
 
 /**
  * {@link java.util.ServiceLoader} provider implementation for LLM DB mapper.
+ * This class is used to provide the LLMMapper to the Helidon DB Client.
  */
 @Weight(100)
 public class LLMMapperProvider implements DbMapperProvider {
