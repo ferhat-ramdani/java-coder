@@ -1,8 +1,6 @@
 package fr.esiee.app.services;
 
 import org.apache.commons.lang3.SystemUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaFileObject;
@@ -11,13 +9,10 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
