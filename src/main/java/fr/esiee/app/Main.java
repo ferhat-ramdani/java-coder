@@ -4,6 +4,7 @@ package fr.esiee.app;
 import fr.esiee.app.config.LLMProviderConfig;
 import fr.esiee.app.config.mapper.LLMProviderConfigMapper;
 import fr.esiee.app.errors.ErrorUtils;
+import fr.esiee.app.exception.RestApiException;
 import fr.esiee.app.llmcheck.OllamaCheck;
 import fr.esiee.app.services.ApiService;
 import io.helidon.common.context.Contexts;
@@ -117,6 +118,8 @@ public class Main {
 
     routing.error(NotFoundException.class, (req, res, ex) -> {
       ErrorUtils.send(res, Status.BAD_REQUEST_400, ex.getMessage());
+    }).error(RestApiException.class, (req, res, ex) -> {
+      ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, ex.getMessage());
     });
 
     registerFrontEndRoutes(routing);
