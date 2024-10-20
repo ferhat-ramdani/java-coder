@@ -17,7 +17,7 @@ public class OllamaCheck {
   private static final Logger LOGGER = LoggerFactory.getLogger(OllamaCheck.class);
 
   private static final String LOCAL_PATH = SystemUtils.USER_HOME + "/.chatgptfordev";
-  private static final String LINUX_OLLAMA_PATH = LOCAL_PATH + "/bin";
+  private static final String LINUX_OLLAMA_PATH = LOCAL_PATH + "/bin/";
 
   private static final String OLLAMA_VERSION = "v0.3.13";
 
@@ -55,9 +55,13 @@ public class OllamaCheck {
   }
 
   private static void install() throws IOException, InterruptedException {
-    String url = LINUX_URL;
-    String file = LINUX_FILE;
-    if (SystemUtils.IS_OS_WINDOWS) {
+    String url = "";
+    String file = "";
+
+    if (SystemUtils.IS_OS_LINUX) {
+      url = LINUX_URL;
+      file = LINUX_FILE;
+    } else if (SystemUtils.IS_OS_WINDOWS) {
       url = WINDOWS_URL;
       file = WINDOWS_FILE;
     } else if (SystemUtils.IS_OS_MAC) {
@@ -82,8 +86,8 @@ public class OllamaCheck {
 
   private static void extractFile(Path file, Path dest) throws IOException, InterruptedException {
     LOGGER.info("Extracting file: {}", file.getFileName());
-    var cmd = "tar -xvzf " + file + " -C " + dest;
-
+    Files.createDirectories(dest);
+    var cmd = "tar -xzf " + file + " -C " + dest;
     if (SystemUtils.IS_OS_WINDOWS) {
       cmd = "powershell -command \"Expand-Archive -Path '" + file + "' -DestinationPath '" + dest + "' -Force\"";
     }
@@ -98,11 +102,10 @@ public class OllamaCheck {
 
   private static void start() throws IOException, InterruptedException {
     LOGGER.info("Starting Ollama.");
-    var cmd = SERVE_CMD + " &";
-    var type = CMDType.RUN;
-    if (SystemUtils.IS_OS_WINDOWS) {
-      cmd = WINDOWS_CMD_PREFIX + SERVE_CMD;
-      type = CMDType.RUN_NO_WAIT;
+    var cmd = WINDOWS_CMD_PREFIX + SERVE_CMD;
+    var type = CMDType.RUN_NO_WAIT;
+    if (SystemUtils.IS_OS_LINUX) {
+      cmd = LINUX_OLLAMA_PATH + SERVE_CMD;
     }
     executeCMD(cmd, type, false);
     LOGGER.info("Ollama started successfully.");
@@ -124,7 +127,13 @@ public class OllamaCheck {
 
     if (type == CMDType.RUN || type == CMDType.RUN_NO_WAIT) {
       var env = processBuilder.environment();
-      env.put("Path", env.get("Path") + ";" + (SystemUtils.IS_OS_LINUX ? LINUX_OLLAMA_PATH : LOCAL_PATH) + "/");
+
+      if (SystemUtils.IS_OS_WINDOWS) {
+        env.put("Path", env.get("Path") + ";" + LOCAL_PATH + "/");
+      } else {
+        env.put("PATH", env.get("PATH") + ":" + LINUX_OLLAMA_PATH);
+      }
+
       env.put("OLLAMA_MODELS", LOCAL_PATH + "/models");
     }
 
@@ -142,9 +151,9 @@ public class OllamaCheck {
   }
 
   private static boolean isLLMPresent(String model) throws IOException, InterruptedException {
-    var cmd = SHOW_CMD + " " + model;
-    if (SystemUtils.IS_OS_WINDOWS) {
-      cmd = WINDOWS_CMD_PREFIX + cmd;
+    var cmd = WINDOWS_CMD_PREFIX + SHOW_CMD + " " + model;
+    if (SystemUtils.IS_OS_LINUX) {
+      cmd = LINUX_OLLAMA_PATH + SHOW_CMD + " " + model;
     }
     return executeCMD(cmd, CMDType.RUN, false);
   }
@@ -152,9 +161,9 @@ public class OllamaCheck {
   private static void pullLLMS() throws IOException, InterruptedException {
     var llmList = DbService.getInstance().listLLMs();
     LOGGER.info("Waiting for LLMs to be pulled: to pull {} LLMs.", llmList.size());
-    var cmd = PULL_CMD;
-    if (SystemUtils.IS_OS_WINDOWS) {
-      cmd = WINDOWS_CMD_PREFIX + cmd;
+    var cmd = WINDOWS_CMD_PREFIX + PULL_CMD;
+    if (SystemUtils.IS_OS_LINUX) {
+      cmd = LINUX_OLLAMA_PATH + PULL_CMD;
     }
     for (int i = 0; i < llmList.size(); i++) {
       var llm = llmList.get(i);
