@@ -1,6 +1,8 @@
 package fr.esiee.app.llmcheck;
 
+import fr.esiee.app.config.LLMProviderConfig;
 import fr.esiee.app.services.DbService;
+import io.helidon.common.context.Contexts;
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +19,7 @@ public class OllamaCheck {
   private static final Logger LOGGER = LoggerFactory.getLogger(OllamaCheck.class);
 
   private static final String LOCAL_PATH = SystemUtils.USER_HOME + "/.chatgptfordev";
-  private static final String LINUX_OLLAMA_PATH = LOCAL_PATH + "/bin/";
+  private static final String LINUX_OLLAMA_PATH = LOCAL_PATH + "/bin";
 
   private static final String OLLAMA_VERSION = "v0.3.13";
 
@@ -36,14 +38,14 @@ public class OllamaCheck {
   private static final String SERVE_CMD = CMD_PREFIX + " serve";
   private static final String PULL_CMD = CMD_PREFIX + " pull";
 
-  public static void init() throws IOException, InterruptedException {
-    var cmd = "which " + CMD_PREFIX;
-    if (SystemUtils.IS_OS_WINDOWS) {
-      cmd = WINDOWS_CMD_PREFIX + "where " + CMD_PREFIX;
-    }
-    var isInstalled = executeCMD(cmd, CMDType.RUN, false);
+  private static final String UNIX_CHECK_CMD = "which " + CMD_PREFIX;
+  private static final String WINDOWS_CHECK_CMD = "where " + CMD_PREFIX;
 
-    if (!isInstalled) {
+
+  public static void init() throws IOException, InterruptedException {
+    var cmd = SystemUtils.IS_OS_WINDOWS ? WINDOWS_CHECK_CMD : UNIX_CHECK_CMD;
+
+    if (!executeCMD(cmd, CMDType.OTHER, false)) {
       LOGGER.info("Installing Ollama...");
       install();
       LOGGER.info("Ollama installed successfully.");
@@ -55,8 +57,7 @@ public class OllamaCheck {
   }
 
   private static void install() throws IOException, InterruptedException {
-    String url = "";
-    String file = "";
+    String url, file;
 
     if (SystemUtils.IS_OS_LINUX) {
       url = LINUX_URL;
@@ -102,12 +103,7 @@ public class OllamaCheck {
 
   private static void start() throws IOException, InterruptedException {
     LOGGER.info("Starting Ollama.");
-    var cmd = WINDOWS_CMD_PREFIX + SERVE_CMD;
-    var type = CMDType.RUN_NO_WAIT;
-    if (SystemUtils.IS_OS_LINUX) {
-      cmd = LINUX_OLLAMA_PATH + SERVE_CMD;
-    }
-    executeCMD(cmd, type, false);
+    executeCMD(SERVE_CMD, CMDType.RUN_OLLAMA, false);
     LOGGER.info("Ollama started successfully.");
   }
 
@@ -119,27 +115,36 @@ public class OllamaCheck {
   }
 
   private static boolean executeCMD(String cmd, CMDType type, boolean inheritIO) throws IOException, InterruptedException {
+    if(type == CMDType.RUN_OLLAMA) {
+      if (SystemUtils.IS_OS_WINDOWS) {
+        cmd = WINDOWS_CMD_PREFIX + cmd;
+      } else if (SystemUtils.IS_OS_LINUX) {
+        cmd = LINUX_OLLAMA_PATH + "/" + cmd;
+      }
+    }
+
     var processBuilder = new ProcessBuilder(cmd.split(" "));
 
     if (inheritIO) {
       processBuilder.inheritIO();
     }
 
-    if (type == CMDType.RUN || type == CMDType.RUN_NO_WAIT) {
-      var env = processBuilder.environment();
+    var env = processBuilder.environment();
 
-      if (SystemUtils.IS_OS_WINDOWS) {
-        env.put("Path", env.get("Path") + ";" + LOCAL_PATH + "/");
-      } else {
-        env.put("PATH", env.get("PATH") + ":" + LINUX_OLLAMA_PATH);
-      }
-
-      env.put("OLLAMA_MODELS", LOCAL_PATH + "/models");
+    if (SystemUtils.IS_OS_WINDOWS) {
+      env.put("Path", env.get("Path") + ";" + LOCAL_PATH + "/");
+    } else {
+      env.put("PATH", env.get("PATH") + ":" + LINUX_OLLAMA_PATH + "/");
     }
+
+    var url = Contexts.globalContext().get(LLMProviderConfig.class).orElse(LLMProviderConfig.defaultConfig()).UrlAndPort();
+
+    env.put("OLLAMA_MODELS", LOCAL_PATH + "/models");
+    env.put("OLLAMA_HOST", url);
 
     var process = processBuilder.start();
 
-    if (type == CMDType.RUN_NO_WAIT) {
+    if (type == CMDType.RUN_OLLAMA) {
       return true;
     }
     if (process.waitFor() == 0) {
@@ -151,25 +156,17 @@ public class OllamaCheck {
   }
 
   private static boolean isLLMPresent(String model) throws IOException, InterruptedException {
-    var cmd = WINDOWS_CMD_PREFIX + SHOW_CMD + " " + model;
-    if (SystemUtils.IS_OS_LINUX) {
-      cmd = LINUX_OLLAMA_PATH + SHOW_CMD + " " + model;
-    }
-    return executeCMD(cmd, CMDType.RUN, false);
+    return executeCMD(SHOW_CMD + " " + model, CMDType.RUN_OLLAMA, false);
   }
 
   private static void pullLLMS() throws IOException, InterruptedException {
-    var llmList = DbService.getInstance().listLLMs();
+    var llmList = Contexts.globalContext().get(DbService.class).orElse(DbService.getInstance()).listLLMs();
     LOGGER.info("Waiting for LLMs to be pulled: to pull {} LLMs.", llmList.size());
-    var cmd = WINDOWS_CMD_PREFIX + PULL_CMD;
-    if (SystemUtils.IS_OS_LINUX) {
-      cmd = LINUX_OLLAMA_PATH + PULL_CMD;
-    }
     for (int i = 0; i < llmList.size(); i++) {
       var llm = llmList.get(i);
       LOGGER.info("Checking if LLM is present: {} - {}/{}", llm.model(), i + 1, llmList.size());
       if (!isLLMPresent(llm.model())) {
-        executeCMD(cmd + " " + llm.model(), CMDType.RUN, true);
+        executeCMD(PULL_CMD + " " + llm.model(), CMDType.RUN_OLLAMA, true);
       } else {
         LOGGER.info("LLM {} is already present. Skipping...", llm.model());
       }
@@ -178,6 +175,6 @@ public class OllamaCheck {
   }
 
   private enum CMDType {
-    RUN, RUN_NO_WAIT, OTHER
+    RUN_OLLAMA, OTHER
   }
 }
