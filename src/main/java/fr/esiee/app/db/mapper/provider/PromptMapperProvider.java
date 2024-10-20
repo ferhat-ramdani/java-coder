@@ -10,6 +10,7 @@ import java.util.Optional;
 
 /**
  * {@link java.util.ServiceLoader} provider implementation for PromptMessage DB mapper.
+ * This class is used to provide the PromptMapper to the Helidon DB Client.
  */
 @Weight(100)
 public class PromptMapperProvider implements DbMapperProvider {

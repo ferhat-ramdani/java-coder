@@ -31,6 +31,6 @@ public record ChatMapper() implements DbMapper<Chat> {
 
     @Override
     public List<Object> toIndexedParameters(Chat chat) {
-        return MapperUtils.recordToMap(chat).values().stream().toList();
+        return MapperUtils.recordToList(chat);
     }
 }

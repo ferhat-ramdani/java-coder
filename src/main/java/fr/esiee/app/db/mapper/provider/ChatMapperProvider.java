@@ -10,6 +10,7 @@ import java.util.Optional;
 
 /**
  * {@link java.util.ServiceLoader} provider implementation for Chat.ts DB mapper.
+ * This class is used to provide the ChatMapper to the Helidon DB Client.
  */
 @Weight(100)
 public class ChatMapperProvider implements DbMapperProvider {

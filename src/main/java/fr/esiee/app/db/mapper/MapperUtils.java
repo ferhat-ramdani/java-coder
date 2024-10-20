@@ -2,6 +2,7 @@ package fr.esiee.app.db.mapper;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MapperUtils {
@@ -15,5 +16,9 @@ public class MapperUtils {
       }
     }
     return Map.copyOf(map);
+  }
+
+  static List<Object> recordToList(Record record) {
+    return recordToMap(record).values().stream().toList();
   }
 }
