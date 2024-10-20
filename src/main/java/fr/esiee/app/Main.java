@@ -46,7 +46,7 @@ public class Main {
     return Config.global().get("debug").asBoolean().orElse(false);
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws IOException, InterruptedException {
 
     LogConfig.configureRuntime();
 
@@ -80,7 +80,7 @@ public class Main {
     var llmConfig = config.get("provider").as(LLMProviderConfig.class).orElse(LLMProviderConfig.defaultConfig());
     Contexts.globalContext().register(llmConfig);
 
-    OllamaCheck.init();
+    OllamaCheck.initOllamaAndLLMs();
 
     var server = WebServer.builder()
             .mediaContext(it -> it

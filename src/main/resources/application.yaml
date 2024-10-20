@@ -12,8 +12,8 @@ server:
       format: "%h %l %u %t %r %s %b %{Referer}i"
 
 provider:
-  url: "localhost"
-  port: 11434
+  url: "127.0.0.1"
+  port: 14454
 
 db:
   source: jdbc

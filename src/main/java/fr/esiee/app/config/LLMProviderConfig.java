@@ -3,7 +3,7 @@ package fr.esiee.app.config;
 public record LLMProviderConfig(String url, int port) {
 
   public static LLMProviderConfig defaultConfig() {
-    return new LLMProviderConfig("http://localhost", 11434);
+    return new LLMProviderConfig("127.0.0.1", 14454);
   }
 
   public String baseUrl() {
@@ -12,6 +12,10 @@ public record LLMProviderConfig(String url, int port) {
       tmpUrl = "http://" + url;
     }
     return tmpUrl + ":" + port;
+  }
+
+  public String UrlAndPort() {
+    return url + ":" + port;
   }
 
 }
