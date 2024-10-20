@@ -103,7 +103,7 @@ public class OllamaCheck {
 
   private static void start() throws IOException, InterruptedException {
     LOGGER.info("Starting Ollama.");
-    executeCMD(SERVE_CMD, CMDType.RUN_OLLAMA, false);
+    executeCMD(SERVE_CMD, CMDType.RUN_OLLAM_NO_WAIT, false);
     LOGGER.info("Ollama started successfully.");
   }
 
@@ -115,7 +115,7 @@ public class OllamaCheck {
   }
 
   private static boolean executeCMD(String cmd, CMDType type, boolean inheritIO) throws IOException, InterruptedException {
-    if(type == CMDType.RUN_OLLAMA) {
+    if(type != CMDType.OTHER) {
       if (SystemUtils.IS_OS_WINDOWS) {
         cmd = WINDOWS_CMD_PREFIX + cmd;
       } else if (SystemUtils.IS_OS_LINUX) {
@@ -144,7 +144,7 @@ public class OllamaCheck {
 
     var process = processBuilder.start();
 
-    if (type == CMDType.RUN_OLLAMA) {
+    if (type == CMDType.RUN_OLLAM_NO_WAIT) {
       return true;
     }
     if (process.waitFor() == 0) {
@@ -175,6 +175,6 @@ public class OllamaCheck {
   }
 
   private enum CMDType {
-    RUN_OLLAMA, OTHER
+    RUN_OLLAMA, RUN_OLLAM_NO_WAIT, OTHER
   }
 }
