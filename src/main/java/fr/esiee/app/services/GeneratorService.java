@@ -66,7 +66,7 @@ public class GeneratorService implements HttpService {
     var newLLM = dbService.getLLMById(chat.llmId());
     dbService.insertPrompt(prompt);
 
-    ClassResponse generatedClass = null;
+    ClassResponse generatedClass;
     try {
       generatedClass = generateClassFromLLM(newLLM, chat.id(), prompt.message());
       LOGGER.info("Class generated successfully.");
