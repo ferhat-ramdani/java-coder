@@ -12,7 +12,7 @@ server:
       format: "%h %l %u %t %r %s %b %{Referer}i"
 
 provider:
-  url: "localhost"
+  url: "127.0.0.1"
   port: 11434
 
 db:

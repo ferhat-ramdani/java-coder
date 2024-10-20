@@ -45,7 +45,7 @@ public class Main {
     return Config.global().get("debug").asBoolean().orElse(false);
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws IOException, InterruptedException {
 
     LogConfig.configureRuntime();
 
