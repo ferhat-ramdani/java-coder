@@ -42,7 +42,7 @@ public class OllamaCheck {
   private static final String WINDOWS_CHECK_CMD = "where " + CMD_PREFIX;
 
 
-  public static void init() throws IOException, InterruptedException {
+  public static void initOllamaAndLLMs() throws IOException, InterruptedException {
     var cmd = SystemUtils.IS_OS_WINDOWS ? WINDOWS_CHECK_CMD : UNIX_CHECK_CMD;
 
     if (!executeCMD(cmd, CMDType.OTHER, false)) {

@@ -79,7 +79,7 @@ public class Main {
     var llmConfig = config.get("provider").as(LLMProviderConfig.class).orElse(LLMProviderConfig.defaultConfig());
     Contexts.globalContext().register(llmConfig);
 
-    OllamaCheck.init();
+    OllamaCheck.initOllamaAndLLMs();
 
     var server = WebServer.builder()
             .mediaContext(it -> it
