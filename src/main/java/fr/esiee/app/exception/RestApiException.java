@@ -12,4 +12,8 @@ public class RestApiException extends RuntimeException {
   public RestApiException() {
     super();
   }
+
+  public RestApiException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }
