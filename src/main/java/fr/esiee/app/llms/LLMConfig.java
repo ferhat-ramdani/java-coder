@@ -1,4 +1,4 @@
-package fr.esiee.app.utils.llms;
+package fr.esiee.app.llms;
 
 public record LLMConfig(String url, int port) {
 

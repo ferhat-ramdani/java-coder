@@ -1,5 +1,6 @@
 package fr.esiee.app.services;
 
+import fr.esiee.app.db.DbManager;
 import fr.esiee.app.db.entities.Chat;
 import io.helidon.http.BadRequestException;
 import io.helidon.http.Status;
@@ -34,10 +35,10 @@ import javax.ws.rs.*;
 @Path("/api/chat")
 public class ChatService implements HttpService {
 
-  private final DbService dbClient;
+  private final DbManager dbClient;
 
   public ChatService() {
-    this.dbClient = DbService.getInstance();
+    this.dbClient = DbManager.getInstance();
   }
 
   @Override

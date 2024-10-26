@@ -1,5 +1,6 @@
 package fr.esiee.app.services;
 
+import fr.esiee.app.db.DbManager;
 import fr.esiee.app.db.entities.Prompt;
 import io.helidon.cors.CrossOriginConfig;
 import io.helidon.http.NotFoundException;
@@ -36,10 +37,10 @@ import javax.ws.rs.*;
 @Path("/api/prompt/")
 public class PromptService implements HttpService {
 
-  private final DbService dbClient;
+  private final DbManager dbClient;
 
   public PromptService() {
-    this.dbClient = DbService.getInstance();
+    this.dbClient = DbManager.getInstance();
   }
 
   @Override

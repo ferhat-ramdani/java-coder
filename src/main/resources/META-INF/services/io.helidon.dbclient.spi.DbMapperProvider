@@ -14,6 +14,6 @@
 # limitations under the License.
 #
 
-fr.esiee.app.db.mapper.provider.ChatMapperProvider
-fr.esiee.app.db.mapper.provider.LLMMapperProvider
-fr.esiee.app.db.mapper.provider.PromptMapperProvider
+fr.esiee.app.db.providers.ChatMapperProvider
+fr.esiee.app.db.providers.LLMMapperProvider
+fr.esiee.app.db.providers.PromptMapperProvider

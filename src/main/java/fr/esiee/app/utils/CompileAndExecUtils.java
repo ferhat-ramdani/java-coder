@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class CompileService {
+public class CompileAndExecUtils {
 
   public enum Operation {
     COMPILE, EXECUTE

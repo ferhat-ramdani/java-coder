@@ -1,4 +1,4 @@
-package fr.esiee.app.utils.llms;
+package fr.esiee.app.llms;
 
 import fr.esiee.app.db.entities.LLM;
 

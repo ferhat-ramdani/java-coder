@@ -7,12 +7,14 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.UserMessage;
-import fr.esiee.app.errors.ErrorUtils;
-import fr.esiee.app.config.LLMProviderConfig;
+import fr.esiee.app.db.DbManager;
+import fr.esiee.app.utils.ErrorUtils;
+import fr.esiee.app.utils.CompileAndExecUtils;
+import fr.esiee.app.llms.LLMConfig;
 import fr.esiee.app.db.entities.AuthorType;
 import fr.esiee.app.db.entities.LLM;
 import fr.esiee.app.db.entities.Prompt;
-import fr.esiee.app.exception.RestApiException;
+import fr.esiee.app.utils.RestApiException;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
 import io.helidon.webserver.http.Handler;
@@ -36,8 +38,8 @@ public class GeneratorService implements HttpService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GeneratorService.class);
   private static final String SYSTEM_ERR_MESSAGE = "Here are the compilation errors, correct them.";
-  private final DbService dbService;
-  private final LLMProviderConfig llmConfig;
+  private final DbManager dbService;
+  private final LLMConfig llmConfig;
   private final int NB_ATTEMPTS = 3;
   private final int MAX_MEMORY_PROMPTS = 30;
 
@@ -46,8 +48,8 @@ public class GeneratorService implements HttpService {
   private Assistant assistant;
 
   public GeneratorService() {
-    this.dbService = Contexts.globalContext().get(DbService.class).orElse(DbService.getInstance());
-    this.llmConfig = Contexts.globalContext().get(LLMProviderConfig.class).orElse(LLMProviderConfig.defaultConfig());
+    this.dbService = Contexts.globalContext().get(DbManager.class).orElse(DbManager.getInstance());
+    this.llmConfig = Contexts.globalContext().get(LLMConfig.class).orElse(LLMConfig.defaultConfig());
   }
 
   private record ClassResponse(String code, boolean compile) {}
@@ -94,7 +96,7 @@ public class GeneratorService implements HttpService {
     String output;
     try {
       LOGGER.info("Executing class, promptId : {}", promptId);
-      output = CompileService.processText(prompt.message(), CompileService.Operation.EXECUTE);
+      output = CompileAndExecUtils.processText(prompt.message(), CompileAndExecUtils.Operation.EXECUTE);
     } catch (IOException | InterruptedException e) { // Catch is necessary because whe are in a BiConsumer lambda
       throw new RestApiException(e);
     }
@@ -118,10 +120,10 @@ public class GeneratorService implements HttpService {
       var answer = assistant.chat(attempt == 1 ? requestText : errorsText);
       LOGGER.info("Assistant made a response.");
 
-      code = CompileService.extractCode(answer);
+      code = CompileAndExecUtils.extractCode(answer);
       LOGGER.info("Code extracted from response.");
 
-      var errors = CompileService.processText(code, CompileService.Operation.COMPILE);
+      var errors = CompileAndExecUtils.processText(code, CompileAndExecUtils.Operation.COMPILE);
 
       if (errors.isEmpty()) {
         LOGGER.info("No errors found in generated code.");

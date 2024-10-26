@@ -1,4 +1,4 @@
-package fr.esiee.app.db.mappers.providers;
+package fr.esiee.app.db.providers;
 
 import fr.esiee.app.db.entities.LLM;
 import fr.esiee.app.db.mappers.LLMMapper;

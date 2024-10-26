@@ -1,6 +1,7 @@
 package fr.esiee.app.services;
 
-import fr.esiee.app.dto.LLMDTO;
+import fr.esiee.app.db.DbManager;
+import fr.esiee.app.llms.LLMDTO;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
 import io.helidon.webserver.http.*;
@@ -32,10 +33,10 @@ import javax.ws.rs.Path;
 @Path("/api/llm/")
 public class LLMService implements HttpService {
 
-  private final DbService dbService;
+  private final DbManager dbService;
 
   public LLMService() {
-    dbService = Contexts.globalContext().get(DbService.class).orElse(DbService.getInstance());
+    dbService = Contexts.globalContext().get(DbManager.class).orElse(DbManager.getInstance());
   }
 
   @Override

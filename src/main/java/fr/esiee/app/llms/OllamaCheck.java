@@ -1,6 +1,6 @@
-package fr.esiee.app.utils.llms;
+package fr.esiee.app.llms;
 
-import fr.esiee.app.db.DbService;
+import fr.esiee.app.db.DbManager;
 import io.helidon.common.context.Contexts;
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
@@ -159,7 +159,7 @@ public class OllamaCheck {
   }
 
   private static void pullLLMS() throws IOException, InterruptedException {
-    var llmList = Contexts.globalContext().get(DbService.class).orElse(DbService.getInstance()).listLLMs();
+    var llmList = Contexts.globalContext().get(DbManager.class).orElse(DbManager.getInstance()).listLLMs();
     LOGGER.info("Waiting for LLMs to be pulled: to pull {} LLMs.", llmList.size());
     for (int i = 0; i < llmList.size(); i++) {
       var llm = llmList.get(i);
