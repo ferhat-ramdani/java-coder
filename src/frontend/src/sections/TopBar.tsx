@@ -32,7 +32,7 @@ const TopBar: Component = () => {
                     <For each={llms()} fallback={<option>Loading...</option>}>
                         {item => (
                             <option value={item.id} selected={selectedLLM.accessor()?.id === item.id}
-                                    data-bs-toggle="tooltip" data-bs-placement="top" title={item.caracteristics}>
+                                    data-bs-toggle="tooltip" data-bs-placement="top" title={item.characteristics}>
                                 {item.name}
                             </option>
                         )}

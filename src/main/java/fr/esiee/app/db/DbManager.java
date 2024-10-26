@@ -58,7 +58,7 @@ public class DbManager {
               llm.get("name").asText(),
               llm.get("model").asText(),
               llm.get("system_prompt").asText(""),
-              llm.get("caracteristics").asText(""),
+              llm.get("characteristics").asText(""),
               llm.get("temp").asDouble(0),
               llm.get("seed").asInt(new SecureRandom().nextInt()));
     }
