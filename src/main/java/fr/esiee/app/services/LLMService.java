@@ -51,7 +51,7 @@ public class LLMService implements HttpService {
   @javax.ws.rs.Path("/")
   @Operation(summary = "get LLMs", description = "Get list of all LLMs")
   public void getListOfLLM(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
-    var llmsToSend = dbService.listLLMs().stream().map(e -> new LLMDTO(e.id(),e.name(),e.model(), e.caracteristics())).toList();
+    var llmsToSend = dbService.listLLMs().stream().map(e -> new LLMDTO(e.id(),e.name(),e.model(), e.characteristics())).toList();
     res.status(Status.OK_200).send(llmsToSend);
   }
 
