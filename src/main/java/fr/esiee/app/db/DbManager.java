@@ -10,11 +10,11 @@ import io.helidon.config.Config;
 import io.helidon.dbclient.DbClient;
 import io.helidon.dbclient.DbExecute;
 import io.helidon.http.NotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.BadRequestException;
 import java.io.IOException;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -22,23 +22,33 @@ import java.util.List;
 
 public class DbManager {
 
-  private static final Logger LOGGER = System.getLogger(DbManager.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(DbManager.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final DbClient dbClient;
 
-  public DbManager() throws IOException {
+  private DbManager() throws IOException {
     var config = Config.global().get("db");
     this.dbClient = Contexts.globalContext()
             .get(DbClient.class)
             .orElseGet(() -> DbClient.create(config));
+
+    Contexts.globalContext().register(dbClient);
 
     initSchema();
 
     if (getLLMCount() <= 0) {
       initData();
     }
-    Contexts.globalContext().register(this);
+  }
+
+  public static void initialize() throws IOException {
+    if(Contexts.globalContext().get(DbManager.class).isPresent()) {
+      LOGGER.info("DbManager already initialized");
+      return;
+    }
+    var dbmanger = new DbManager();
+    Contexts.globalContext().register(dbmanger);
   }
 
   private static void initLLMs(DbExecute exec) throws IOException {
@@ -56,14 +66,13 @@ public class DbManager {
 
   private void initSchema() {
     var transaction = dbClient.transaction();
-    var exec = dbClient.execute();
     try {
       transaction.namedDml("create-llm");
       transaction.namedDml("create-chat");
       transaction.namedDml("create-prompt");
       transaction.commit();
     } catch (Throwable t) {
-      LOGGER.log(Level.WARNING, "Could not create tables");
+      LOGGER.warn("Could not create tables");
       transaction.rollback();
       throw t;
     }
@@ -80,6 +89,7 @@ public class DbManager {
     }
   }
 
+  /* This method is not used, don't delete it, it may be useful in the future
   private void deleteData() {
     var tx = dbClient.transaction();
     try {
@@ -92,6 +102,7 @@ public class DbManager {
       throw t;
     }
   }
+   */
 
   private int getLLMCount() {
     return dbClient.execute()

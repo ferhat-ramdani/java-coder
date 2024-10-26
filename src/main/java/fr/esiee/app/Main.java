@@ -3,6 +3,7 @@ package fr.esiee.app;
 
 import fr.esiee.app.config.LLMConfig;
 import fr.esiee.app.config.mapper.LLMConfigMapper;
+import fr.esiee.app.db.DbManager;
 import fr.esiee.app.utils.ErrorUtils;
 import fr.esiee.app.exception.RestApiException;
 import fr.esiee.app.llms.OllamaCheck;
@@ -10,7 +11,6 @@ import fr.esiee.app.services.ApiRoutingService;
 import io.helidon.common.context.Contexts;
 import io.helidon.config.Config;
 import io.helidon.cors.CrossOriginConfig;
-import io.helidon.dbclient.DbClient;
 import io.helidon.http.NotFoundException;
 import io.helidon.http.Status;
 import io.helidon.http.media.jackson.JacksonSupport;
@@ -65,8 +65,7 @@ public class Main {
       LOGGER.warn("Or in the environment variables. By set `db_connection_username` and `db_connection_password` values.");
     }
 
-    var dbClient = DbClient.create(config.get("db"));
-    Contexts.globalContext().register(dbClient);
+    DbManager.initialize();
 
     var llmConfig = config.get("provider").as(LLMConfig.class).orElse(LLMConfig.defaultConfig());
     Contexts.globalContext().register(llmConfig);
