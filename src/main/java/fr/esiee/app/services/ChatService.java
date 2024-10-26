@@ -2,37 +2,28 @@ package fr.esiee.app.services;
 
 import fr.esiee.app.db.DbManager;
 import fr.esiee.app.db.entities.Chat;
+import fr.esiee.app.exception.RestApiException;
+import fr.esiee.app.utils.ErrorUtils;
 import io.helidon.common.context.Contexts;
-import io.helidon.http.BadRequestException;
 import io.helidon.http.Status;
 import io.helidon.webserver.http.Handler;
 import io.helidon.webserver.http.HttpRules;
 import io.helidon.webserver.http.HttpService;
 import io.helidon.webserver.http.ServerRequest;
 import io.helidon.webserver.http.ServerResponse;
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import javax.ws.rs.*;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
 import java.util.NoSuchElementException;
 
-@OpenAPIDefinition(
-        info = @Info(
-                title = "GPT for dev API services",
-                description = "Services for manipulating chats, prompts and llms"
-        ),
-        servers = {
-                @Server(
-                        description = "localhost",
-                        url = "http://localhost:8080")
-        }
-)
 @Tag(name = "Chat", description = "endpoints to manipulate chats")
 @Path("/api/chat")
 public class ChatService implements HttpService {
@@ -60,7 +51,7 @@ public class ChatService implements HttpService {
           @Parameter(hidden = true) ServerResponse response
   ) {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
-            .orElseThrow(() -> new BadRequestException("Chat ID is required"));
+            .orElseThrow(() -> new RestApiException("Chat ID is required"));
     var chat = dbClient.getChatById(chatId);
     response.send(chat);
   }
@@ -81,7 +72,7 @@ public class ChatService implements HttpService {
   public void insertChat(Chat chat, @Parameter(hidden = true) ServerResponse response) {
     long insertedRows = dbClient.insertChat(chat);
     if (insertedRows <= 0) {
-      response.status(Status.BAD_REQUEST_400).send("Failed to insert chat");
+      ErrorUtils.send(response, Status.BAD_REQUEST_400, "Failed to insert chat");
       return;
     }
     var latestChat = dbClient.getLatestChat(chat);
@@ -94,7 +85,7 @@ public class ChatService implements HttpService {
   public void updateChat(Chat chat, @Parameter(hidden = true) ServerResponse response) {
     long updatedRows = dbClient.updateChat(chat);
     if (updatedRows <= 0) {
-      response.status(Status.BAD_REQUEST_400).send("Failed to update chat");
+      ErrorUtils.send(response, Status.BAD_REQUEST_400, "Failed to update chat");
       return;
     }
     response.status(Status.OK_200).send("Updated " + updatedRows + " rows");
@@ -108,7 +99,7 @@ public class ChatService implements HttpService {
           @Parameter(hidden = true) ServerResponse response
   ) {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
-            .orElseThrow(() -> new BadRequestException("Chat ID is required"));
+            .orElseThrow(() -> new RestApiException("Chat ID is required"));
     var count = dbClient.deleteChatById(chatId);
     response.status(Status.OK_200).send("Deleted " + count + " rows");
   }
