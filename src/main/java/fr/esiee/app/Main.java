@@ -1,12 +1,12 @@
 package fr.esiee.app;
 
 
-import fr.esiee.app.config.LLMProviderConfig;
-import fr.esiee.app.config.mapper.LLMProviderConfigMapper;
-import fr.esiee.app.errors.ErrorUtils;
-import fr.esiee.app.exception.RestApiException;
-import fr.esiee.app.llmcheck.OllamaCheck;
-import fr.esiee.app.services.ApiService;
+import fr.esiee.app.llms.LLMConfig;
+import fr.esiee.app.llms.LLMConfigMapper;
+import fr.esiee.app.utils.ErrorUtils;
+import fr.esiee.app.utils.RestApiException;
+import fr.esiee.app.llms.OllamaCheck;
+import fr.esiee.app.services.ApiRoutingService;
 import io.helidon.common.context.Contexts;
 import io.helidon.config.Config;
 import io.helidon.cors.CrossOriginConfig;
@@ -25,22 +25,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-/**
- * The application main class.
- */
 public class Main {
 
   private static final StaticContentService FRONT_STATIC_PATH =
           StaticContentService.builder("/static").welcomeFileName("index.html").build();
-
-  private static final String BDD_DEFAULT_USER = "gptfordev";
-  private static final String BDD_DEFAULT_PASSWORD = "gptfordev";
-
+  private static final String DB_DEFAULT_USER = "gptfordev";
+  private static final String DB_DEFAULT_PASSWORD = "gptfordev";
   private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
-
-
-  private Main() {
-  }
 
   public static boolean isDebugMode() {
     return Config.global().get("debug").asBoolean().orElse(false);
@@ -51,24 +42,24 @@ public class Main {
     LogConfig.configureRuntime();
 
     var config = Config.builder()
-            .addMapper(LLMProviderConfig.class, new LLMProviderConfigMapper())
+            .addMapper(LLMConfig.class, new LLMConfigMapper())
             .build();
     Config.global(config);
 
-    var bddUser = config.get("db.connection.username").asString().orElseThrow(() -> new RuntimeException("Database username is not set."));
-    var bddPassword = config.get("db.connection.password").asString().orElseThrow(() -> new RuntimeException("Database password is not set."));
+    var dbUser = config.get("db.connection.username").asString().orElseThrow(() -> new RuntimeException("Database username is not set."));
+    var dbPassword = config.get("db.connection.password").asString().orElseThrow(() -> new RuntimeException("Database password is not set."));
 
-    if (bddUser.isBlank() || bddUser.isEmpty()) {
+    if (dbUser.isBlank() || dbUser.isEmpty()) {
       LOGGER.error("Database username is not set.");
       System.exit(1);
     }
 
-    if (bddPassword.isBlank() || bddPassword.isEmpty()) {
+    if (dbPassword.isBlank() || dbPassword.isEmpty()) {
       LOGGER.error("Database password is not set.");
       System.exit(1);
     }
 
-    if (bddUser.equals(BDD_DEFAULT_USER) || bddPassword.equals(BDD_DEFAULT_PASSWORD)) {
+    if (dbUser.equals(DB_DEFAULT_USER) || dbPassword.equals(DB_DEFAULT_PASSWORD)) {
       LOGGER.warn("You are using the default database user or password.");
       LOGGER.warn("To change it, you can set the values in the `application.yaml` file.");
       LOGGER.warn("Or in the environment variables. By set `db_connection_username` and `db_connection_password` values.");
@@ -77,7 +68,7 @@ public class Main {
     var dbClient = DbClient.create(config.get("db"));
     Contexts.globalContext().register(dbClient);
 
-    var llmConfig = config.get("provider").as(LLMProviderConfig.class).orElse(LLMProviderConfig.defaultConfig());
+    var llmConfig = config.get("provider").as(LLMConfig.class).orElse(LLMConfig.defaultConfig());
     Contexts.globalContext().register(llmConfig);
 
     OllamaCheck.initOllamaAndLLMs();
@@ -97,9 +88,6 @@ public class Main {
 
   }
 
-  /**
-   * Updates HTTP Routing.
-   */
   static void routing(HttpRouting.Builder routing) {
 
     if (isDebugMode()) {
@@ -110,16 +98,15 @@ public class Main {
                       .build())
               .addCrossOrigin(CrossOriginConfig.create())
               .build();
-      routing.register("/api", corsSupport, new ApiService());
+      routing.register("/api", corsSupport, new ApiRoutingService());
     } else {
-      routing.register("/api", new ApiService());
+      routing.register("/api", new ApiRoutingService());
     }
 
-
-    routing.error(NotFoundException.class, (req, res, ex) -> {
-      ErrorUtils.send(res, Status.BAD_REQUEST_400, ex.getMessage());
-    }).error(RestApiException.class, (req, res, ex) -> {
-      ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, ex.getMessage());
+    routing.error(NotFoundException.class, (_, res, exception) -> {
+      ErrorUtils.send(res, Status.BAD_REQUEST_400, exception.getMessage());
+    }).error(RestApiException.class, (_, res, exception) -> {
+      ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, exception.getMessage());
     });
 
     registerFrontEndRoutes(routing);

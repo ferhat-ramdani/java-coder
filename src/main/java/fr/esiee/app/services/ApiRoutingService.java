@@ -1,7 +1,7 @@
 package fr.esiee.app.services;
 
 import fr.esiee.app.Main;
-import fr.esiee.app.errors.ErrorUtils;
+import fr.esiee.app.utils.ErrorUtils;
 import io.helidon.common.context.Contexts;
 
 import io.helidon.http.Status;
@@ -9,7 +9,7 @@ import io.helidon.webserver.WebServer;
 import io.helidon.webserver.http.HttpRules;
 import io.helidon.webserver.http.HttpService;
 
-public class ApiService implements HttpService {
+public class ApiRoutingService implements HttpService {
 
   @Override
   public void routing(HttpRules httpRules) {

@@ -1,13 +1,10 @@
-package fr.esiee.app.db.mapper;
+package fr.esiee.app.db.mappers;
 
 import fr.esiee.app.db.entities.AuthorType;
 import fr.esiee.app.db.entities.Prompt;
-import io.helidon.dbclient.DbColumn;
 import io.helidon.dbclient.DbMapper;
 import io.helidon.dbclient.DbRow;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 

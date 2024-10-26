@@ -1,4 +1,4 @@
-package fr.esiee.app.services;
+package fr.esiee.app.db;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,14 +20,14 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 
-public class DbService {
+public class DbManager {
 
-  private static final Logger LOGGER = System.getLogger(DbService.class.getName());
+  private static final Logger LOGGER = System.getLogger(DbManager.class.getName());
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static DbService instance;
+  private static DbManager instance;
   private final DbClient dbClient;
 
-  public DbService() {
+  public DbManager() {
     Config config = Config.global().get("db");
     this.dbClient = Contexts.globalContext()
             .get(DbClient.class)
@@ -44,7 +44,7 @@ public class DbService {
 
   private static void initLLMs(DbExecute exec) {
     try {
-      JsonNode llms = OBJECT_MAPPER.readTree(DbService.class.getResourceAsStream("/llms.json"));
+      JsonNode llms = OBJECT_MAPPER.readTree(DbManager.class.getResourceAsStream("/llms.json"));
       for (JsonNode llm : llms) {
         exec.namedInsert("insert-llm",
                 llm.get("name").asText(),
@@ -99,9 +99,9 @@ public class DbService {
     }
   }
 
-  public static synchronized DbService getInstance() {
+  public static synchronized DbManager getInstance() {
     if (instance == null) {
-      instance = new DbService();
+      instance = new DbManager();
       Contexts.globalContext().register(instance);
     }
     return instance;

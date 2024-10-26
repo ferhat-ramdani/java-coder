@@ -1,15 +1,10 @@
-package fr.esiee.app.db.mapper;
+package fr.esiee.app.db.mappers;
 
 import fr.esiee.app.db.entities.Chat;
-import io.helidon.common.mapper.Mapper;
-import io.helidon.dbclient.DbColumn;
 import io.helidon.dbclient.DbMapper;
 import io.helidon.dbclient.DbRow;
 
-import java.lang.reflect.InvocationTargetException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 

@@ -1,9 +1,9 @@
-package fr.esiee.app.config;
+package fr.esiee.app.llms;
 
-public record LLMProviderConfig(String url, int port) {
+public record LLMConfig(String url, int port) {
 
-  public static LLMProviderConfig defaultConfig() {
-    return new LLMProviderConfig("127.0.0.1", 14454);
+  public static LLMConfig defaultConfig() {
+    return new LLMConfig("127.0.0.1", 14454);
   }
 
   public String baseUrl() {
@@ -14,7 +14,7 @@ public record LLMProviderConfig(String url, int port) {
     return tmpUrl + ":" + port;
   }
 
-  public String UrlAndPort() {
+  public String urlAndPort() {
     return url + ":" + port;
   }
 
