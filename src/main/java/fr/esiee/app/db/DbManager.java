@@ -9,10 +9,10 @@ import io.helidon.common.context.Contexts;
 import io.helidon.config.Config;
 import io.helidon.dbclient.DbClient;
 import io.helidon.dbclient.DbExecute;
-import io.helidon.dbclient.DbTransaction;
 import io.helidon.http.NotFoundException;
 
-import javax.ws.rs.*;
+import javax.ws.rs.BadRequestException;
+import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.security.SecureRandom;
@@ -24,11 +24,11 @@ public class DbManager {
 
   private static final Logger LOGGER = System.getLogger(DbManager.class.getName());
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static DbManager instance;
+
   private final DbClient dbClient;
 
-  public DbManager() {
-    Config config = Config.global().get("db");
+  public DbManager() throws IOException {
+    var config = Config.global().get("db");
     this.dbClient = Contexts.globalContext()
             .get(DbClient.class)
             .orElseGet(() -> DbClient.create(config));
@@ -38,45 +38,39 @@ public class DbManager {
     if (getLLMCount() <= 0) {
       initData();
     }
-    instance = this;
-    Contexts.globalContext().register(instance);
+    Contexts.globalContext().register(this);
   }
 
-  private static void initLLMs(DbExecute exec) {
-    try {
-      JsonNode llms = OBJECT_MAPPER.readTree(DbManager.class.getResourceAsStream("/llms.json"));
-      for (JsonNode llm : llms) {
-        exec.namedInsert("insert-llm",
-                llm.get("name").asText(),
-                llm.get("model").asText(),
-                llm.get("system_prompt").asText(""),
-                llm.get("caracteristics").asText(""),
-                llm.get("temp").asDouble(0),
-                llm.get("seed").asInt(new SecureRandom().nextInt()));
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+  private static void initLLMs(DbExecute exec) throws IOException {
+    var llms = OBJECT_MAPPER.readTree(DbManager.class.getResourceAsStream("/llms.json"));
+    for (JsonNode llm : llms) {
+      exec.namedInsert("insert-llm",
+              llm.get("name").asText(),
+              llm.get("model").asText(),
+              llm.get("system_prompt").asText(""),
+              llm.get("caracteristics").asText(""),
+              llm.get("temp").asDouble(0),
+              llm.get("seed").asInt(new SecureRandom().nextInt()));
     }
   }
 
   private void initSchema() {
-    DbExecute exec = dbClient.execute();
+    var transaction = dbClient.transaction();
+    var exec = dbClient.execute();
     try {
-      exec.namedDml("create-llm");
-      exec.namedDml("create-chat");
-      exec.namedDml("create-prompt");
-    } catch (Exception ex1) {
-      LOGGER.log(Level.WARNING, "Could not create tables", ex1);
-      try {
-        deleteData();
-      } catch (Exception ex2) {
-        LOGGER.log(Level.WARNING, "Could not delete tables", ex2);
-      }
+      transaction.namedDml("create-llm");
+      transaction.namedDml("create-chat");
+      transaction.namedDml("create-prompt");
+      transaction.commit();
+    } catch (Throwable t) {
+      LOGGER.log(Level.WARNING, "Could not create tables");
+      transaction.rollback();
+      throw t;
     }
   }
 
-  private void initData() {
-    DbTransaction tx = dbClient.transaction();
+  private void initData() throws IOException {
+    var tx = dbClient.transaction();
     try {
       initLLMs(tx);
       tx.commit();
@@ -87,7 +81,7 @@ public class DbManager {
   }
 
   private void deleteData() {
-    DbTransaction tx = dbClient.transaction();
+    var tx = dbClient.transaction();
     try {
       tx.namedDelete("delete-all-prompts");
       tx.namedDelete("delete-all-llms");
@@ -97,14 +91,6 @@ public class DbManager {
       tx.rollback();
       throw t;
     }
-  }
-
-  public static synchronized DbManager getInstance() {
-    if (instance == null) {
-      instance = new DbManager();
-      Contexts.globalContext().register(instance);
-    }
-    return instance;
   }
 
   private int getLLMCount() {
@@ -144,13 +130,22 @@ public class DbManager {
       throw new IllegalArgumentException("Prompt " + prompt.id() + " already exists");
     }
 
-    var updatedRows = dbClient.execute().createNamedInsert("insert-prompt")
-            .addParam(prompt.message())
-            .addParam(prompt.authorType().name())
-            .addParam(prompt.chatId())
-            .addParam(prompt.compile())
-            .execute();
+    var transaction = dbClient.transaction();
 
+    long updatedRows;
+    try {
+      updatedRows = transaction.createNamedInsert("insert-prompt")
+              .addParam(prompt.message())
+              .addParam(prompt.authorType().name())
+              .addParam(prompt.chatId())
+              .addParam(prompt.compile())
+              .execute();
+
+      transaction.commit();
+    } catch (Throwable t) {
+      transaction.rollback();
+      throw t;
+    }
     if (updatedRows <= 0) {
       throw new BadRequestException("Failed to insert prompt");
     }
@@ -159,10 +154,17 @@ public class DbManager {
   }
 
   private void updateChatLastActivity(int chatId) {
-    dbClient.execute().createNamedUpdate("update-chat-last-activity")
-            .addParam("id", chatId)
-            .addParam("lastActivity", Timestamp.from(Instant.now()))
-            .execute();
+    var transaction = dbClient.transaction();
+    try {
+      transaction.createNamedUpdate("update-chat-last-activity")
+              .addParam("id", chatId)
+              .addParam("lastActivity", Timestamp.from(Instant.now()))
+              .execute();
+      transaction.commit();
+    } catch (Throwable t) {
+      transaction.rollback();
+      throw t;
+    }
   }
 
   public long updatePrompt(Prompt prompt) {
@@ -172,13 +174,34 @@ public class DbManager {
     if (!promptExists(prompt.id())) {
       throw new NotFoundException("Prompt " + prompt.id() + " not found");
     }
-    return dbClient.execute().createNamedUpdate("update-prompt-by-id").namedParam(prompt).execute();
+
+    var transaction = dbClient.transaction();
+    long updatedRow;
+    try {
+      updatedRow = transaction.createNamedUpdate("update-prompt-by-id").namedParam(prompt).execute();
+      transaction.commit();
+    } catch (Throwable t) {
+      transaction.rollback();
+      throw t;
+    }
+    return updatedRow;
   }
 
   public long deletePromptById(int promptId) {
-    var count = dbClient.execute().createNamedDelete("delete-prompt-by-id")
-            .addParam("id", promptId)
-            .execute();
+    var transaction = dbClient.transaction();
+
+    long count;
+    try {
+      count = transaction.createNamedDelete("delete-prompt-by-id")
+              .addParam("id", promptId)
+              .execute();
+
+      transaction.commit();
+    } catch (Throwable t) {
+      transaction.rollback();
+      throw t;
+    }
+
     if (count == 0) {
       throw new NotFoundException("Prompt " + promptId + " not found");
     }
@@ -198,11 +221,21 @@ public class DbManager {
     if (chat.id() < 0 || chat.llmId() < 0) {
       throw new IllegalArgumentException("id or llmId is negative");
     }
-    return dbClient.execute()
-            .createNamedInsert("insert-chat")
-            .addParam(chat.title())
-            .addParam(chat.lastActivity())
-            .addParam(chat.llmId()).execute();
+    var transaction = dbClient.transaction();
+
+    long updatedRow;
+    try {
+      updatedRow = transaction.createNamedInsert("insert-chat")
+              .addParam(chat.title())
+              .addParam(chat.lastActivity())
+              .addParam(chat.llmId()).execute();
+      transaction.commit();
+    } catch (Throwable t) {
+      transaction.rollback();
+      throw t;
+    }
+
+    return updatedRow;
   }
 
   public Chat getLatestChat(Chat chat) {
@@ -260,14 +293,34 @@ public class DbManager {
     if (!chatExists(chat.id())) {
       throw new NotFoundException("Chat " + chat.id() + " not found");
     }
-    return dbClient.execute().createNamedUpdate("update-chat-by-id")
-            .namedParam(chat).execute();
+
+    var transaction = dbClient.transaction();
+    long updatedRow;
+    try {
+      updatedRow =  transaction.createNamedUpdate("update-chat-by-id")
+              .namedParam(chat).execute();
+      transaction.commit();
+    } catch (Throwable t) {
+      transaction.rollback();
+      throw t;
+    }
+    return updatedRow;
   }
 
   public long deleteChatById(int chatId) {
-    var count = dbClient.execute().createNamedDelete("delete-chat-by-id")
-            .addParam("id", chatId)
-            .execute();
+    var transaction = dbClient.transaction();
+
+    long count;
+    try {
+      count = transaction.createNamedDelete("delete-chat-by-id")
+              .addParam("id", chatId)
+              .execute();
+      transaction.commit();
+    } catch (Throwable t) {
+      transaction.rollback();
+      throw t;
+    }
+
     if (count == 0) {
       throw new NotFoundException("Chat.ts " + chatId + " not found");
     }

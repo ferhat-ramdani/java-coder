@@ -2,6 +2,7 @@ package fr.esiee.app.services;
 
 import fr.esiee.app.db.DbManager;
 import fr.esiee.app.db.entities.Prompt;
+import io.helidon.common.context.Contexts;
 import io.helidon.cors.CrossOriginConfig;
 import io.helidon.http.NotFoundException;
 import io.helidon.http.Status;
@@ -21,6 +22,7 @@ import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.ws.rs.*;
+import java.util.NoSuchElementException;
 
 @OpenAPIDefinition(
         info = @Info(
@@ -40,7 +42,7 @@ public class PromptService implements HttpService {
   private final DbManager dbClient;
 
   public PromptService() {
-    this.dbClient = DbManager.getInstance();
+    this.dbClient = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found."));
   }
 
   @Override

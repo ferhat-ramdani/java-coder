@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.NoSuchElementException;
 
 public class OllamaCheck {
 
@@ -167,7 +168,7 @@ public class OllamaCheck {
   }
 
   private static void pullLLMS() throws IOException, InterruptedException {
-    var llmList = Contexts.globalContext().get(DbManager.class).orElse(DbManager.getInstance()).listLLMs();
+    var llmList = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found.")).listLLMs();
     LOGGER.info("Waiting for LLMs to be pulled: to pull {} LLMs.", llmList.size());
     for (int i = 0; i < llmList.size(); i++) {
       var llm = llmList.get(i);

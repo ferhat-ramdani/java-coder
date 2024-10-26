@@ -2,6 +2,7 @@ package fr.esiee.app.services;
 
 import fr.esiee.app.db.DbManager;
 import fr.esiee.app.db.entities.Chat;
+import io.helidon.common.context.Contexts;
 import io.helidon.http.BadRequestException;
 import io.helidon.http.Status;
 import io.helidon.webserver.http.Handler;
@@ -19,6 +20,7 @@ import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.ws.rs.*;
+import java.util.NoSuchElementException;
 
 @OpenAPIDefinition(
         info = @Info(
@@ -38,7 +40,7 @@ public class ChatService implements HttpService {
   private final DbManager dbClient;
 
   public ChatService() {
-    this.dbClient = DbManager.getInstance();
+    this.dbClient = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found."));
   }
 
   @Override

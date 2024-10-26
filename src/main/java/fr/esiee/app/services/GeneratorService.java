@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import java.io.IOException;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 @Tag(name = "Generator", description = "endpoints to use generator")
@@ -48,7 +49,7 @@ public class GeneratorService implements HttpService {
   private Assistant assistant;
 
   public GeneratorService() {
-    this.dbService = Contexts.globalContext().get(DbManager.class).orElse(DbManager.getInstance());
+    this.dbService = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found."));
     this.llmConfig = Contexts.globalContext().get(LLMConfig.class).orElse(LLMConfig.defaultConfig());
   }
 

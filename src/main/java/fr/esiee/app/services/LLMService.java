@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import java.util.NoSuchElementException;
 
 @OpenAPIDefinition(
         info = @Info(
@@ -36,7 +37,7 @@ public class LLMService implements HttpService {
   private final DbManager dbService;
 
   public LLMService() {
-    dbService = Contexts.globalContext().get(DbManager.class).orElse(DbManager.getInstance());
+    dbService = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found."));
   }
 
   @Override
