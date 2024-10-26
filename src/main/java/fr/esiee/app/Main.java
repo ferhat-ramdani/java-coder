@@ -1,10 +1,10 @@
 package fr.esiee.app;
 
 
-import fr.esiee.app.llms.LLMConfig;
-import fr.esiee.app.llms.LLMConfigMapper;
+import fr.esiee.app.config.LLMConfig;
+import fr.esiee.app.config.mapper.LLMConfigMapper;
 import fr.esiee.app.utils.ErrorUtils;
-import fr.esiee.app.utils.RestApiException;
+import fr.esiee.app.exception.RestApiException;
 import fr.esiee.app.llms.OllamaCheck;
 import fr.esiee.app.services.ApiRoutingService;
 import io.helidon.common.context.Contexts;

@@ -1,5 +1,6 @@
-package fr.esiee.app.llms;
+package fr.esiee.app.config.mapper;
 
+import fr.esiee.app.config.LLMConfig;
 import io.helidon.config.Config;
 
 import java.util.function.Function;

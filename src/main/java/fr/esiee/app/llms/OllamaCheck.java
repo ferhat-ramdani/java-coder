@@ -1,5 +1,6 @@
 package fr.esiee.app.llms;
 
+import fr.esiee.app.config.LLMConfig;
 import fr.esiee.app.db.DbManager;
 import io.helidon.common.context.Contexts;
 import org.apache.commons.lang3.SystemUtils;

@@ -1,4 +1,4 @@
-package fr.esiee.app.utils;
+package fr.esiee.app.exception;
 
 public class RestApiException extends RuntimeException {
   public RestApiException(String message) {
