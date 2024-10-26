@@ -9,10 +9,10 @@ import java.time.LocalDateTime;
 
 public class ErrorUtils {
 
-  private record Error(@JsonIgnore Status status, String message, LocalDateTime timestamp) { }
+  private record Error(String message, String timestamp, int statusCode, String statusMessage) { }
 
   public static void send(ServerResponse res, Status status, String message) {
-    var err = new Error(status, message, LocalDateTime.now());
+    var err = new Error(message, LocalDateTime.now().toString(), status.code(), status.reasonPhrase());
     res.status(status).send(err);
   }
 
