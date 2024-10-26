@@ -1,4 +1,4 @@
-package fr.esiee.app.db.mapper;
+package fr.esiee.app.utils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MapperUtils {
-  static Map<String, Object> recordToMap(Record record) {
+  public static Map<String, Object> recordToMap(Record record) {
     var map = new HashMap<String, Object>();
     for (var field : record.getClass().getRecordComponents()) {
       try {
@@ -18,7 +18,7 @@ public class MapperUtils {
     return Map.copyOf(map);
   }
 
-  static List<Object> recordToList(Record record) {
+  public static List<Object> recordToList(Record record) {
     return recordToMap(record).values().stream().toList();
   }
 }

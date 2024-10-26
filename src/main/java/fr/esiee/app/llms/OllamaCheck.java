@@ -1,7 +1,6 @@
-package fr.esiee.app.llmcheck;
+package fr.esiee.app.utils.llms;
 
-import fr.esiee.app.config.LLMProviderConfig;
-import fr.esiee.app.services.DbService;
+import fr.esiee.app.db.DbService;
 import io.helidon.common.context.Contexts;
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
@@ -137,7 +136,7 @@ public class OllamaCheck {
       env.put("PATH", env.get("PATH") + ":" + LINUX_OLLAMA_PATH + "/");
     }
 
-    var url = Contexts.globalContext().get(LLMProviderConfig.class).orElse(LLMProviderConfig.defaultConfig()).UrlAndPort();
+    var url = Contexts.globalContext().get(LLMConfig.class).orElse(LLMConfig.defaultConfig()).urlAndPort();
 
     env.put("OLLAMA_MODELS", LOCAL_PATH + "/models");
     env.put("OLLAMA_HOST", url);

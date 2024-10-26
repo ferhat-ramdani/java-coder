@@ -1,7 +1,7 @@
-package fr.esiee.app.db.mapper.provider;
+package fr.esiee.app.db.mappers.providers;
 
 import fr.esiee.app.db.entities.Chat;
-import fr.esiee.app.db.mapper.ChatMapper;
+import fr.esiee.app.db.mappers.ChatMapper;
 import io.helidon.common.Weight;
 import io.helidon.dbclient.DbMapper;
 import io.helidon.dbclient.spi.DbMapperProvider;
@@ -14,13 +14,11 @@ import java.util.Optional;
  */
 @Weight(100)
 public class ChatMapperProvider implements DbMapperProvider {
-    private static final ChatMapper MAPPER = new ChatMapper();
-
     @SuppressWarnings("unchecked")
     @Override
     public <T> Optional<DbMapper<T>> mapper(Class<T> type) {
         if (type.equals(Chat.class)) {
-            return Optional.of((DbMapper<T>) MAPPER);
+            return Optional.of((DbMapper<T>) new ChatMapper());
         }
         return Optional.empty();
     }

@@ -1,4 +1,4 @@
-package fr.esiee.app.services;
+package fr.esiee.app.db;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

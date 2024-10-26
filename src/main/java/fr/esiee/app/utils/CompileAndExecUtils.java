@@ -1,4 +1,4 @@
-package fr.esiee.app.services;
+package fr.esiee.app.utils;
 
 import org.apache.commons.lang3.SystemUtils;
 
@@ -16,9 +16,9 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-class CompileService {
+public class CompileService {
 
-  enum Operation {
+  public enum Operation {
     COMPILE, EXECUTE
   }
 

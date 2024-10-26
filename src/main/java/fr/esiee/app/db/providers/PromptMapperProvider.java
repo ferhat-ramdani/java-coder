@@ -1,7 +1,7 @@
-package fr.esiee.app.db.mapper.provider;
+package fr.esiee.app.db.mappers.providers;
 
 import fr.esiee.app.db.entities.Prompt;
-import fr.esiee.app.db.mapper.PromptMapper;
+import fr.esiee.app.db.mappers.PromptMapper;
 import io.helidon.common.Weight;
 import io.helidon.dbclient.DbMapper;
 import io.helidon.dbclient.spi.DbMapperProvider;
@@ -14,13 +14,11 @@ import java.util.Optional;
  */
 @Weight(100)
 public class PromptMapperProvider implements DbMapperProvider {
-    private static final PromptMapper MAPPER = new PromptMapper();
-
     @SuppressWarnings("unchecked")
     @Override
     public <T> Optional<DbMapper<T>> mapper(Class<T> type) {
         if (type.equals(Prompt.class)) {
-            return Optional.of((DbMapper<T>) MAPPER);
+            return Optional.of((DbMapper<T>) new PromptMapper());
         }
         return Optional.empty();
     }
