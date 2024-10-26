@@ -14,9 +14,15 @@ import io.helidon.webserver.http.ServerResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -46,6 +52,7 @@ public class ChatService implements HttpService {
   @GET
   @javax.ws.rs.Path("/{id}")
   @Operation(summary = "Get chat by ID", description = "Retrieves a chat by its ID")
+  @ApiResponse(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Chat.class)), responseCode = "200", description = "Successful operation")
   public void getChatById(
           @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the chat to retrieve", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest request,
           @Parameter(hidden = true) ServerResponse response
@@ -53,23 +60,26 @@ public class ChatService implements HttpService {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new RestApiException("Chat ID is required"));
     var chat = dbClient.getChatById(chatId);
-    response.send(chat);
+    response.status(Status.OK_200).send(chat);
   }
 
   @GET
   @javax.ws.rs.Path("/")
   @Operation(summary = "List all chats", description = "Retrieves a list of all chats")
+  @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = Chat.class)), mediaType = "application/json"), responseCode = "200", description = "Successful operation")
   public void listChats(
           @Parameter(hidden = true) ServerRequest request,
           @Parameter(hidden = true) ServerResponse response
   ) {
-    response.send(dbClient.listChats());
+    response.status(Status.OK_200).send(dbClient.listChats());
   }
 
   @POST
-  @javax.ws.rs.Path("")
+  @javax.ws.rs.Path("/")
   @Operation(summary = "Insert a chat", description = "Inserts a chat into the database")
-  public void insertChat(Chat chat, @Parameter(hidden = true) ServerResponse response) {
+  @Consumes("application/json")
+  @ApiResponse(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Chat.class)), responseCode = "201", description = "Chat inserted successfully")
+  public void insertChat(@RequestBody(required = true, content = @Content(schema = @Schema(implementation = Chat.class))) Chat chat, @Parameter(hidden = true) ServerResponse response) {
     long insertedRows = dbClient.insertChat(chat);
     if (insertedRows <= 0) {
       ErrorUtils.send(response, Status.BAD_REQUEST_400, "Failed to insert chat");
@@ -82,7 +92,9 @@ public class ChatService implements HttpService {
   @PUT
   @javax.ws.rs.Path("/")
   @Operation(summary = "Update a chat", description = "Updates a chat in the database")
-  public void updateChat(Chat chat, @Parameter(hidden = true) ServerResponse response) {
+  @Consumes("application/json")
+  @ApiResponse(content = @Content(mediaType = "text/plain"), responseCode = "200", description = "Successful operation")
+  public void updateChat(@RequestBody(required = true, content = @Content(schema = @Schema(implementation = Chat.class))) Chat chat, @Parameter(hidden = true) ServerResponse response) {
     long updatedRows = dbClient.updateChat(chat);
     if (updatedRows <= 0) {
       ErrorUtils.send(response, Status.BAD_REQUEST_400, "Failed to update chat");
@@ -94,6 +106,7 @@ public class ChatService implements HttpService {
   @DELETE
   @javax.ws.rs.Path("/{id}")
   @Operation(summary = "Delete a chat by ID", description = "Deletes a chat by its ID")
+  @ApiResponse(content = @Content(mediaType = "text/plain"), responseCode = "200", description = "Successful operation")
   public void deleteChatById(
           @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the chat to delete", schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest request,
           @Parameter(hidden = true) ServerResponse response
