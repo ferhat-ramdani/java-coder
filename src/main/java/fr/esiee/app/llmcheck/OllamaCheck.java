@@ -45,7 +45,8 @@ public class OllamaCheck {
   public static void initOllamaAndLLMs() throws IOException, InterruptedException {
     var cmd = SystemUtils.IS_OS_WINDOWS ? WINDOWS_CHECK_CMD : UNIX_CHECK_CMD;
 
-    if (!executeCMD(cmd, CMDType.OTHER, false)) {
+//    if (!executeCMD(cmd, CMDType.OTHER, false)) {
+    if(!IsOllamaInstalled()){
       LOGGER.info("Installing Ollama...");
       install();
       LOGGER.info("Ollama installed successfully.");
@@ -54,6 +55,12 @@ public class OllamaCheck {
     }
     start();
     pullLLMS();
+  }
+
+  private static boolean IsOllamaInstalled(){
+    var strPath = SystemUtils.IS_OS_WINDOWS ? LOCAL_PATH + "/" + CMD_PREFIX + ".exe" : LINUX_OLLAMA_PATH+"/" + CMD_PREFIX;
+    var path = Paths.get(strPath);
+    return Files.exists(path) && Files.isRegularFile(path) && Files.isExecutable(path);
   }
 
   private static void install() throws IOException, InterruptedException {
