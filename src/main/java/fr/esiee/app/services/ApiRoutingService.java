@@ -8,7 +8,20 @@ import io.helidon.http.Status;
 import io.helidon.webserver.WebServer;
 import io.helidon.webserver.http.HttpRules;
 import io.helidon.webserver.http.HttpService;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.servers.Server;
 
+@OpenAPIDefinition(
+        info = @Info(
+                title = "GPT for dev API",
+                description = "Services for manipulating chats, prompts and llms"),
+        servers = {
+                @Server(
+                        description = "localhost",
+                        url = "http://localhost:8080")
+        }
+)
 public class ApiRoutingService implements HttpService {
 
   @Override
