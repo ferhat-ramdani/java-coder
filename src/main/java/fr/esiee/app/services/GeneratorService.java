@@ -36,6 +36,7 @@ import javax.ws.rs.Path;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
 @Tag(name = "Generator", description = "endpoints to use generator")
 @Path("/api/gen")
@@ -79,7 +80,7 @@ public class GeneratorService implements HttpService {
     try {
       generatedClass = generateClassFromLLM(newLLM, chat.id(), prompt.message());
       LOGGER.info("Class generated successfully.");
-    } catch (IOException | InterruptedException e) { // Catch is necessary because whe are in a BiConsumer lambda
+    } catch (IOException | InterruptedException | ExecutionException e) { // Catch is necessary because whe are in a BiConsumer lambda
       throw new RestApiException(e);
     }
 
@@ -106,13 +107,14 @@ public class GeneratorService implements HttpService {
     try {
       LOGGER.info("Executing class, promptId : {}", promptId);
       output = CompileAndExecUtils.processText(prompt.message(), CompileAndExecUtils.Operation.EXECUTE);
-    } catch (IOException | InterruptedException e) { // Catch is necessary because whe are in a BiConsumer lambda
+    } catch (IOException | InterruptedException | ExecutionException e) { // Catch is necessary because whe are in a BiConsumer lambda
       throw new RestApiException(e);
     }
     res.status(Status.OK_200).send(output);
   }
 
-  private ClassResponse generateClassFromLLM(LLM llm, int chatId, String requestText) throws IOException, InterruptedException {
+  private ClassResponse generateClassFromLLM(LLM llm, int chatId, String requestText)
+          throws IOException, InterruptedException, ExecutionException {
     Objects.requireNonNull(llm);
     Objects.requireNonNull(requestText);
 
