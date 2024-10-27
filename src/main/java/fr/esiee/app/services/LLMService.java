@@ -1,36 +1,29 @@
 package fr.esiee.app.services;
 
 import fr.esiee.app.db.DbManager;
+import fr.esiee.app.exception.RestApiException;
 import fr.esiee.app.llms.LLMDTO;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
-import io.helidon.webserver.http.*;
-import io.helidon.http.BadRequestException;
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.helidon.webserver.http.HttpRules;
+import io.helidon.webserver.http.HttpService;
+import io.helidon.webserver.http.ServerRequest;
+import io.helidon.webserver.http.ServerResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.servers.Server;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import java.util.NoSuchElementException;
 
-@OpenAPIDefinition(
-        info = @Info(
-                title = "GPT for dev API services",
-                description = "Services for manipulating chats, prompts and llms"
-        ),
-        servers = {
-                @Server(
-                        description = "localhost",
-                        url = "http://localhost:8080")
-        }
-)
-@Tag(name = "LLM", description = "endpoints to use llm")
+@Tag(name = "LLM", description = "Endpoints to get llm's informations.")
+@ApiResponse(content = @Content(mediaType = "application/json", schema = @Schema(implementation = LLMDTO.class)), responseCode = "200", description = "Successful operation")
 @Path("/api/llm/")
 public class LLMService implements HttpService {
 
@@ -50,8 +43,9 @@ public class LLMService implements HttpService {
   @GET
   @javax.ws.rs.Path("/")
   @Operation(summary = "get LLMs", description = "Get list of all LLMs")
+  @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = LLMDTO.class))))
   public void getListOfLLM(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
-    var llmsToSend = dbService.listLLMs().stream().map(e -> new LLMDTO(e.id(),e.name(),e.model(), e.characteristics())).toList();
+    var llmsToSend = dbService.listLLMs().stream().map(LLMDTO::copyOf).toList();
     res.status(Status.OK_200).send(llmsToSend);
   }
 
@@ -71,7 +65,7 @@ public class LLMService implements HttpService {
           @Parameter(hidden = true) ServerResponse res
   ) {
     int llmId = req.path().pathParameters().first("id").map(Integer::parseInt)
-            .orElseThrow(() -> new BadRequestException("LLM id is required"));
+            .orElseThrow(() -> new RestApiException("LLM id is required"));
     var llm = dbService.getLLMById(llmId);
     res.status(Status.OK_200).send(LLMDTO.copyOf(llm));
   }
