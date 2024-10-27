@@ -19,7 +19,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.ws.rs.Consumes;
@@ -50,7 +49,7 @@ public class ChatService implements HttpService {
   }
 
   @GET
-  @javax.ws.rs.Path("/{id}")
+  @Path("/{id}")
   @Operation(summary = "Get chat by ID", description = "Retrieves a chat by its ID")
   @ApiResponse(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Chat.class)), responseCode = "200", description = "Successful operation")
   public void getChatById(
@@ -64,7 +63,7 @@ public class ChatService implements HttpService {
   }
 
   @GET
-  @javax.ws.rs.Path("/")
+  @Path("/")
   @Operation(summary = "List all chats", description = "Retrieves a list of all chats")
   @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = Chat.class)), mediaType = "application/json"), responseCode = "200", description = "Successful operation")
   public void listChats(
@@ -75,7 +74,7 @@ public class ChatService implements HttpService {
   }
 
   @POST
-  @javax.ws.rs.Path("/")
+  @Path("/")
   @Operation(summary = "Insert a chat", description = "Inserts a chat into the database")
   @Consumes("application/json")
   @ApiResponse(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Chat.class)), responseCode = "201", description = "Chat inserted successfully")
@@ -90,7 +89,7 @@ public class ChatService implements HttpService {
   }
 
   @PUT
-  @javax.ws.rs.Path("/")
+  @Path("/")
   @Operation(summary = "Update a chat", description = "Updates a chat in the database")
   @Consumes("application/json")
   @ApiResponse(content = @Content(mediaType = "text/plain"), responseCode = "200", description = "Successful operation")
@@ -104,7 +103,7 @@ public class ChatService implements HttpService {
   }
 
   @DELETE
-  @javax.ws.rs.Path("/{id}")
+  @Path("/{id}")
   @Operation(summary = "Delete a chat by ID", description = "Deletes a chat by its ID")
   @ApiResponse(content = @Content(mediaType = "text/plain"), responseCode = "200", description = "Successful operation")
   public void deleteChatById(
