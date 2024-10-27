@@ -43,7 +43,7 @@
         <node.version>v22.8.0</node.version>
         <npm.version>10.8.2</npm.version>
 
-        <exec.maven.plugin.version>3.5.0</exec.maven.plugin.version>
+        <exec.maven.plugin.version>3.4.1</exec.maven.plugin.version>
     </properties>
 
     <dependencies>
@@ -223,12 +223,16 @@
                         <goals>
                             <goal>java</goal>
                         </goals>
+                        <id>all</id>
+                        <configuration>
+                            <arguments>
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>${mainClass}</argument>
+                            </arguments>
+                        </configuration>
                     </execution>
                 </executions>
-                <configuration>
-                    <mainClass>${mainClass}</mainClass>
-                    <executable>${java.home}/bin/java</executable>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
