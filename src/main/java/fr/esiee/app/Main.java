@@ -1,6 +1,5 @@
 package fr.esiee.app;
 
-
 import fr.esiee.app.config.LLMConfig;
 import fr.esiee.app.config.mapper.LLMConfigMapper;
 import fr.esiee.app.db.DbManager;
@@ -29,8 +28,7 @@ public class Main {
 
   private static final StaticContentService FRONT_STATIC_PATH =
           StaticContentService.builder("/static").welcomeFileName("index.html").build();
-  private static final String DB_DEFAULT_USER = "gptfordev";
-  private static final String DB_DEFAULT_PASSWORD = "gptfordev";
+
   private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
   public static boolean isDebugMode() {
@@ -44,26 +42,8 @@ public class Main {
     var config = Config.builder()
             .addMapper(LLMConfig.class, new LLMConfigMapper())
             .build();
+
     Config.global(config);
-
-    var dbUser = config.get("db.connection.username").asString().orElseThrow(() -> new RuntimeException("Database username is not set."));
-    var dbPassword = config.get("db.connection.password").asString().orElseThrow(() -> new RuntimeException("Database password is not set."));
-
-    if (dbUser.isBlank() || dbUser.isEmpty()) {
-      LOGGER.error("Database username is not set.");
-      System.exit(1);
-    }
-
-    if (dbPassword.isBlank() || dbPassword.isEmpty()) {
-      LOGGER.error("Database password is not set.");
-      System.exit(1);
-    }
-
-    if (dbUser.equals(DB_DEFAULT_USER) || dbPassword.equals(DB_DEFAULT_PASSWORD)) {
-      LOGGER.warn("You are using the default database user or password.");
-      LOGGER.warn("To change it, you can set the values in the `application.yaml` file.");
-      LOGGER.warn("Or in the environment variables. By set `db_connection_username` and `db_connection_password` values.");
-    }
 
     DbManager.initialize();
 
@@ -83,14 +63,13 @@ public class Main {
 
     Contexts.globalContext().register(server);
 
-    LOGGER.info("WEB server is up! http://localhost:{}", server.port());
-
+    LOGGER.info("WEB server is up! {}://{}:{}", server.hasTls() ? "https" : "http",server.prototype().host(), server.prototype().port());
   }
 
   static void routing(HttpRouting.Builder routing) {
 
     if (isDebugMode()) {
-      CorsSupport corsSupport = CorsSupport.builder()
+      var corsSupport = CorsSupport.builder()
               .addCrossOrigin(CrossOriginConfig.builder()
                       .allowOrigins("*")
                       .allowMethods("*")
@@ -102,11 +81,7 @@ public class Main {
       routing.register("/api", new ApiRoutingService());
     }
 
-    routing.error(NotFoundException.class, (_, res, exception) -> {
-      ErrorUtils.send(res, Status.BAD_REQUEST_400, exception.getMessage());
-    }).error(RestApiException.class, (_, res, exception) -> {
-      ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, exception.getMessage());
-    });
+    routing.error(NotFoundException.class, (_, res, exception) -> ErrorUtils.send(res, Status.BAD_REQUEST_400, exception.getMessage())).error(RestApiException.class, (_, res, exception) -> ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, exception.getMessage()));
 
     registerFrontEndRoutes(routing);
   }

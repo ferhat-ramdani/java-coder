@@ -27,6 +27,9 @@ public class DbManager {
 
   private final DbClient dbClient;
 
+  private static final String DB_DEFAULT_USER = "gptfordev";
+  private static final String DB_DEFAULT_PASSWORD = "gptfordev";
+
   private DbManager() throws IOException {
     var config = Config.global().get("db");
     this.dbClient = Contexts.globalContext()
@@ -47,8 +50,29 @@ public class DbManager {
       LOGGER.info("DbManager already initialized");
       return;
     }
-    var dbmanger = new DbManager();
-    Contexts.globalContext().register(dbmanger);
+
+    var config = Config.global();
+    var dbUser = config.get("db.connection.username").asString().orElseThrow(() -> new RuntimeException("Database username is not set."));
+    var dbPassword = config.get("db.connection.password").asString().orElseThrow(() -> new RuntimeException("Database password is not set."));
+
+    if (dbUser.isBlank() || dbUser.isEmpty()) {
+      LOGGER.error("Database username is not set.");
+      System.exit(1);
+    }
+
+    if (dbPassword.isBlank() || dbPassword.isEmpty()) {
+      LOGGER.error("Database password is not set.");
+      System.exit(1);
+    }
+
+    if (dbUser.equals(DB_DEFAULT_USER) || dbPassword.equals(DB_DEFAULT_PASSWORD)) {
+      LOGGER.warn("You are using the default database user or password.");
+      LOGGER.warn("To change it, you can set the values in the `application.yaml` file.");
+      LOGGER.warn("Or in the environment variables. By set `db_connection_username` and `db_connection_password` values.");
+    }
+
+    var dbManager = new DbManager();
+    Contexts.globalContext().register(dbManager);
   }
 
   private static void initLLMs(DbExecute exec) throws IOException {
