@@ -5,7 +5,7 @@ import fr.esiee.app.config.mapper.LLMConfigMapper;
 import fr.esiee.app.db.DbManager;
 import fr.esiee.app.utils.ErrorUtils;
 import fr.esiee.app.exception.RestApiException;
-import fr.esiee.app.llms.OllamaCheck;
+import fr.esiee.app.llms.OllamaSetupManager;
 import fr.esiee.app.services.ApiRoutingService;
 import io.helidon.common.context.Contexts;
 import io.helidon.config.Config;
@@ -50,7 +50,7 @@ public class Main {
     var llmConfig = config.get("provider").as(LLMConfig.class).orElse(LLMConfig.defaultConfig());
     Contexts.globalContext().register(llmConfig);
 
-    OllamaCheck.initOllamaAndLLMs();
+    OllamaSetupManager.setupOllamaAndLLMs();
 
     var server = WebServer.builder()
             .mediaContext(it -> it

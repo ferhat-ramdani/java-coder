@@ -15,9 +15,9 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.NoSuchElementException;
 
-public class OllamaCheck {
+public class OllamaSetupManager {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(OllamaCheck.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(OllamaSetupManager.class);
 
   private static final String LOCAL_PATH = SystemUtils.USER_HOME + "/.chatgptfordev";
   private static final String LINUX_OLLAMA_PATH = LOCAL_PATH + "/bin";
@@ -39,32 +39,31 @@ public class OllamaCheck {
   private static final String SERVE_CMD = CMD_PREFIX + " serve";
   private static final String PULL_CMD = CMD_PREFIX + " pull";
 
-  private static final String UNIX_CHECK_CMD = "which " + CMD_PREFIX;
-  private static final String WINDOWS_CHECK_CMD = "where " + CMD_PREFIX;
+//  private static final String UNIX_CHECK_CMD = "which " + CMD_PREFIX;
+//  private static final String WINDOWS_CHECK_CMD = "where " + CMD_PREFIX;
 
 
-  public static void initOllamaAndLLMs() throws IOException, InterruptedException {
-    var cmd = SystemUtils.IS_OS_WINDOWS ? WINDOWS_CHECK_CMD : UNIX_CHECK_CMD;
-
+  public static void setupOllamaAndLLMs() throws IOException, InterruptedException {
+//    var cmd = SystemUtils.IS_OS_WINDOWS ? WINDOWS_CHECK_CMD : UNIX_CHECK_CMD;
 //    if (!executeCMD(cmd, CMDType.OTHER, false)) {
     if(!IsOllamaInstalled()){
       LOGGER.info("Installing Ollama...");
-      install();
+      installOllama();
       LOGGER.info("Ollama installed successfully.");
     } else {
       LOGGER.info("Ollama is already installed.");
     }
-    start();
+    startOllama();
     pullLLMS();
   }
 
-  private static boolean IsOllamaInstalled(){
+  private static boolean IsOllamaInstalled() {
     var strPath = SystemUtils.IS_OS_WINDOWS ? LOCAL_PATH + "/" + CMD_PREFIX + ".exe" : LINUX_OLLAMA_PATH+"/" + CMD_PREFIX;
     var path = Paths.get(strPath);
     return Files.exists(path) && Files.isRegularFile(path) && Files.isExecutable(path);
   }
 
-  private static void install() throws IOException, InterruptedException {
+  private static void installOllama() throws IOException, InterruptedException {
     String url, file;
 
     if (SystemUtils.IS_OS_LINUX) {
@@ -81,20 +80,20 @@ public class OllamaCheck {
     }
 
     var tempPath = createTempPath();
-    downloadFile(url, tempPath.resolve(file));
-    extractFile(tempPath.resolve(file), Paths.get(LOCAL_PATH));
+    downloadOllama(url, tempPath.resolve(file));
+    extractOllama(tempPath.resolve(file), Paths.get(LOCAL_PATH));
   }
 
-  private static void downloadFile(String url, Path destination) throws IOException {
+  private static void downloadOllama(String url, Path destination) throws IOException {
     LOGGER.info("Downloading Ollama from: {}", url);
     try (var in = URI.create(url).toURL().openStream()) {
       Files.copy(in, destination, StandardCopyOption.REPLACE_EXISTING);
     }
-    LOGGER.info("File downloaded: {}", destination.getFileName());
+    LOGGER.info("Ollama downloaded: {}", destination.getFileName());
   }
 
-  private static void extractFile(Path file, Path dest) throws IOException, InterruptedException {
-    LOGGER.info("Extracting file: {}", file.getFileName());
+  private static void extractOllama(Path file, Path dest) throws IOException, InterruptedException {
+    LOGGER.info("Extracting file : {}", file.getFileName());
     Files.createDirectories(dest);
     var cmd = "tar -xzf " + file + " -C " + dest;
     if (SystemUtils.IS_OS_WINDOWS) {
@@ -109,7 +108,7 @@ public class OllamaCheck {
     }
   }
 
-  private static void start() throws IOException, InterruptedException {
+  private static void startOllama() throws IOException, InterruptedException {
     LOGGER.info("Starting Ollama.");
     executeCMD(SERVE_CMD, CMDType.RUN_OLLAM_NO_WAIT, false);
     LOGGER.info("Ollama started successfully.");
@@ -138,14 +137,13 @@ public class OllamaCheck {
     }
 
     var env = processBuilder.environment();
+    var url = Contexts.globalContext().get(LLMConfig.class).orElse(LLMConfig.defaultConfig()).urlAndPort();
 
     if (SystemUtils.IS_OS_WINDOWS) {
       env.put("Path", env.get("Path") + ";" + LOCAL_PATH + "/");
     } else {
       env.put("PATH", env.get("PATH") + ":" + LINUX_OLLAMA_PATH + "/");
     }
-
-    var url = Contexts.globalContext().get(LLMConfig.class).orElse(LLMConfig.defaultConfig()).urlAndPort();
 
     env.put("OLLAMA_MODELS", LOCAL_PATH + "/models");
     env.put("OLLAMA_HOST", url);
@@ -168,7 +166,10 @@ public class OllamaCheck {
   }
 
   private static void pullLLMS() throws IOException, InterruptedException {
-    var llmList = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found.")).listLLMs();
+    var llmList = Contexts.globalContext()
+            .get(DbManager.class)
+            .orElseThrow(() -> new NoSuchElementException("DbManager not found."))
+            .listLLMs();
     LOGGER.info("Waiting for LLMs to be pulled: to pull {} LLMs.", llmList.size());
     for (int i = 0; i < llmList.size(); i++) {
       var llm = llmList.get(i);
