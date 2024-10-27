@@ -38,16 +38,16 @@ public class DbManager {
 
     Contexts.globalContext().register(dbClient);
 
-    initSchema();
+    setupSchema();
 
     if (getLLMCount() <= 0) {
-      initData();
+      setupData();
     }
   }
 
   public static void initialize() throws IOException {
     if(Contexts.globalContext().get(DbManager.class).isPresent()) {
-      LOGGER.info("DbManager already initialized");
+      LOGGER.info("DbManager already setupialized");
       return;
     }
 
@@ -75,7 +75,7 @@ public class DbManager {
     Contexts.globalContext().register(dbManager);
   }
 
-  private static void initLLMs(DbExecute exec) throws IOException {
+  private static void setupLLMs(DbExecute exec) throws IOException {
     var llms = OBJECT_MAPPER.readTree(DbManager.class.getResourceAsStream("/llms.json"));
     for (JsonNode llm : llms) {
       exec.namedInsert("insert-llm",
@@ -88,7 +88,7 @@ public class DbManager {
     }
   }
 
-  private void initSchema() {
+  private void setupSchema() {
     var transaction = dbClient.transaction();
     try {
       transaction.namedDml("create-llm");
@@ -102,10 +102,10 @@ public class DbManager {
     }
   }
 
-  private void initData() throws IOException {
+  private void setupData() throws IOException {
     var tx = dbClient.transaction();
     try {
-      initLLMs(tx);
+      setupLLMs(tx);
       tx.commit();
     } catch (Throwable t) {
       tx.rollback();
