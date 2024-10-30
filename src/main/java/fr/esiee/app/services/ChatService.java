@@ -44,11 +44,12 @@ public class ChatService implements HttpService {
   @Override
   public void routing(HttpRules httpRules) {
     httpRules.get("/", this::listChats)
+            .get("/test_progressive", this::testProgressive)
             .get("/{id}", this::getChatById)
             .post("/", Handler.create(Chat.class, this::insertChat))
             .put("/", Handler.create(Chat.class, this::updateChat))
-            .delete("/{id}", this::deleteChatById)
-            .get("/test_progressive", this::testProgressive);
+            .delete("/{id}", this::deleteChatById);
+
   }
 
   @GET
