@@ -1,6 +1,7 @@
 import Config from '../Config';
 import { Prompt } from "../interfaces/Prompt";
 import {Utils} from "./Utils";
+import {onCleanup} from "solid-js";
 
 class PromptService {
 
@@ -51,6 +52,16 @@ class PromptService {
         });
 
         await Utils.showErrorToast(response, "Error during prompt deletion.");
+    }
+
+    async testProgressive() {
+        const eventSource = new EventSource(`${this.apiUrl}/test_progressive`);
+        eventSource.onmessage = (event) => {
+            console.log(event.data);
+        };
+
+        onCleanup(() => eventSource.close());
+
     }
 }
 

@@ -6,11 +6,13 @@ import fr.esiee.app.exception.RestApiException;
 import fr.esiee.app.utils.ErrorUtils;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
+import io.helidon.http.sse.SseEvent;
 import io.helidon.webserver.http.Handler;
 import io.helidon.webserver.http.HttpRules;
 import io.helidon.webserver.http.HttpService;
 import io.helidon.webserver.http.ServerRequest;
 import io.helidon.webserver.http.ServerResponse;
+import io.helidon.webserver.sse.SseSink;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -45,7 +47,8 @@ public class ChatService implements HttpService {
             .get("/{id}", this::getChatById)
             .post("/", Handler.create(Chat.class, this::insertChat))
             .put("/", Handler.create(Chat.class, this::updateChat))
-            .delete("/{id}", this::deleteChatById);
+            .delete("/{id}", this::deleteChatById)
+            .get("/test_progressive", this::testProgressive);
   }
 
   @GET
@@ -114,5 +117,18 @@ public class ChatService implements HttpService {
             .orElseThrow(() -> new RestApiException("Chat ID is required"));
     var count = dbClient.deleteChatById(chatId);
     response.status(Status.OK_200).send("Deleted " + count + " rows");
+  }
+
+  public void testProgressive(ServerRequest request, ServerResponse response) {
+    try (SseSink sseSink = response.sink(SseSink.TYPE)) {
+      for (var i = 0; i < 10; i++) {
+        sseSink.emit(SseEvent.create("word " + i));
+        Thread.sleep(1000);
+      }
+      sseSink.emit(SseEvent.create("hello"))
+              .emit(SseEvent.create("world"));
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
   }
 }
