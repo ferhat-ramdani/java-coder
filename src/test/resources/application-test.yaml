@@ -1,0 +1,85 @@
+debug: true
+
+openapi:
+  web-context: /openapi
+  static-file: src/main/resources/swagger-ui/openapi.yaml
+
+server:
+  port: 8079
+  host: 127.0.0.1
+  features:
+    access-log:
+      format: "%h %l %u %t %r %s %b %{Referer}i"
+
+provider:
+  url: "127.0.0.1"
+  port: 14464
+
+db:
+  source: jdbc
+  connection:
+    url: "jdbc:h2:mem:testdb"
+    username: sa
+    password:
+    poolName: h2
+    initializationFailTimeout: -1
+    connectionTimeout: 2000
+
+  statements:
+    # Table creation
+    create-llm: "CREATE TABLE IF NOT EXISTS llm( id INTEGER NOT NULL PRIMARY KEY auto_increment, name VARCHAR(64) NOT NULL, model VARCHAR(128) NOT NULL, system_prompt VARCHAR NOT NULL, characteristics VARCHAR NOT NULL, temp DOUBLE NOT NULL, seed INTEGER NOT NULL)"
+    create-chat: "CREATE TABLE IF NOT EXISTS Chat( id INTEGER NOT NULL PRIMARY KEY auto_increment, title VARCHAR(128) NOT NULL, last_activity TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, llm_id INTEGER NOT NULL REFERENCES llm (id) ON DELETE CASCADE ON UPDATE CASCADE)"
+    create-prompt: "CREATE TABLE IF NOT EXISTS Prompt( id INTEGER NOT NULL PRIMARY KEY auto_increment, message VARCHAR(1000000000) NOT NULL, author_type VARCHAR(10) NOT NULL CHECK (author_type IN ('SYSTEM', 'USER', 'AI')), chat_id INTEGER NOT NULL REFERENCES Chat (id) ON DELETE CASCADE ON UPDATE CASCADE, compile BOOL NOT NULL DEFAULT FALSE )"
+
+    # Insert statements
+    insert-llm: "INSERT INTO llm(name, model, system_prompt, characteristics, temp, seed) VALUES(?, ?, ?, ?, ?, ?)"
+    insert-chat: "INSERT INTO Chat(title, last_activity, llm_id) VALUES(?, ?, ?)"
+    insert-prompt: "INSERT INTO Prompt(message, author_type, chat_id, compile) VALUES(?, ?, ?, ?)"
+
+    # Select all entries
+    select-all-llms: "SELECT id, name, model, system_prompt, characteristics, temp, seed FROM llm"
+    select-all-chats: "SELECT id, title, last_activity, llm_id FROM Chat ORDER BY last_activity DESC"
+    select-all-prompts: "SELECT id, message, author_type, chat_id, compile FROM Prompt"
+
+    # Select entries by id
+    select-llm-by-id: "SELECT id, name, model, system_prompt, characteristics, temp, seed FROM llm WHERE id = :id"
+    select-chat-by-id: "SELECT id, title, last_activity, llm_id FROM Chat WHERE id = :id"
+    select-chat-by-params: "SELECT id, title, last_activity, llm_id FROM Chat WHERE title = :title AND last_activity = :last_activity AND llm_id = :llm_id ORDER BY id DESC LIMIT 1"
+    select-prompt-by-id: "SELECT id, message, author_type, chat_id, compile FROM Prompt WHERE id = :id"
+
+    # Retrieve llm and Chat from Prompt (through foreign keys)
+    retrieve-llm-from-prompt: "SELECT llm.id, llm.name, llm.model, llm.system_prompt, llm.characteristics, llm.temp, llm.seed FROM llm JOIN Prompt ON llm.id = Prompt.llm_id WHERE Prompt.id = :promptId"
+    retrieve-chat-from-prompt: "SELECT Chat.id, Chat.title, Chat.last_activity, Chat.llm_id FROM Chat JOIN Prompt ON Chat.id = Prompt.chat_id WHERE Prompt.id = :promptId"
+
+    # Update statements
+    update-llm-by-id: "UPDATE llm SET name = :name, model = :model, system_prompt = systemPrompt, characteristics = :characteristics, temp = :temp, seed = :seed WHERE id = :id"
+    update-chat-by-id: "UPDATE Chat SET title = :title, last_activity = :lastActivity, llm_id = :llmId WHERE id = :id"
+    update-prompt-by-id: "UPDATE Prompt SET message = :message, author_type = :authorType, chat_id = :chatId, compile = :compile WHERE id = :id"
+
+    # Delete statements (single entry)
+    delete-llm-by-id: "DELETE FROM llm WHERE id = :id"
+    delete-chat-by-id: "DELETE FROM Chat WHERE id = :id"
+    delete-prompt-by-id: "DELETE FROM Prompt WHERE id = :id"
+
+    # Delete all entries
+    delete-all-llms: "DELETE FROM llm"
+    delete-all-chats: "DELETE FROM Chat"
+    delete-all-prompts: "DELETE FROM Prompt"
+
+    # Get prompts by chat id
+    select-prompts-by-chat-id: "SELECT id, message, author_type, chat_id, compile FROM Prompt WHERE chat_id = :chatId ORDER BY id ASC"
+
+    # Update last_activity of Chat
+    update-chat-last-activity: "UPDATE Chat SET last_activity = :lastActivity WHERE id = :id"
+
+    # Get the first prompt of a chat
+    select-first-prompt-by-chat-id: "SELECT id, message, author_type, chat_id, compile FROM Prompt WHERE chat_id = :chatId ORDER BY id ASC LIMIT 1"
+
+    # Get the latest inserted chat id
+    get-latest-chat-id: "SELECT id FROM Chat WHERE title = ? AND last_activity = ? AND llm_id = ? ORDER BY id DESC LIMIT 1"
+
+    # Get the latest inserted prompt id
+    get-prompt-by-prompt-info: "SELECT * FROM Prompt WHERE message = :message AND author_type = :authorType AND chat_id = :chatId AND compile = :compile ORDER BY id DESC LIMIT 1"
+
+    # Get the first LLM
+    get-first-llm: "SELECT * FROM llm ORDER BY id ASC LIMIT 1"

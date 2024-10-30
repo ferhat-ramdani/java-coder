@@ -10,6 +10,7 @@ import io.helidon.config.Config;
 import io.helidon.dbclient.DbClient;
 import io.helidon.dbclient.DbExecute;
 import io.helidon.http.NotFoundException;
+import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,11 @@ public class DbManager {
 
   private static final String DB_DEFAULT_USER = "gptfordev";
   private static final String DB_DEFAULT_PASSWORD = "gptfordev";
+
+  @TestOnly
+  DbManager(DbClient dbClient) {
+    this.dbClient = dbClient;
+  }
 
   private DbManager() throws IOException {
     var config = Config.global().get("db");
@@ -88,7 +94,7 @@ public class DbManager {
     }
   }
 
-  private void setupSchema() {
+  void setupSchema() {
     var transaction = dbClient.transaction();
     try {
       transaction.namedDml("create-llm");
@@ -113,27 +119,6 @@ public class DbManager {
     }
   }
 
-  /* This method is not used, don't delete it, it may be useful in the future
-  private void deleteData() {
-    var tx = dbClient.transaction();
-    try {
-      tx.namedDelete("delete-all-prompts");
-      tx.namedDelete("delete-all-llms");
-      tx.namedDelete("delete-all-chats");
-      tx.commit();
-    } catch (Throwable t) {
-      tx.rollback();
-      throw t;
-    }
-  }
-   */
-
-  private int getLLMCount() {
-    return dbClient.execute()
-            .namedQuery("select-all-llms")
-            .map(e -> e.as(LLM.class))
-            .toList().size();
-  }
 
   public List<Chat> listChats() {
     return dbClient.execute()
@@ -155,6 +140,27 @@ public class DbManager {
             .execute()
             .orElseThrow(() -> new NotFoundException("Prompt " + promptId + " not found"))
             .as(Prompt.class);
+  }
+
+  /* This method is not used, don't delete it, it may be useful in the future
+  private void deleteData() {
+    var tx = dbClient.transaction();
+    try {
+      tx.namedDelete("delete-all-prompts");
+      tx.namedDelete("delete-all-llms");
+      tx.namedDelete("delete-all-chats");
+      tx.commit();
+    } catch (Throwable t) {
+      tx.rollback();
+      throw t;
+    }
+  }
+   */
+  private int getLLMCount() {
+    return dbClient.execute()
+            .namedQuery("select-all-llms")
+            .map(e -> e.as(LLM.class))
+            .toList().size();
   }
 
   public long insertPrompt(Prompt prompt) {
