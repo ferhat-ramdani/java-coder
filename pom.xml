@@ -210,6 +210,14 @@
             <version>${helidon.version}</version>
         </dependency>
         <!-- end of openAPI ui dependencies -->
+
+        <!-- testing flux for streaming ai responses-->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-reactor</artifactId>
+            <version>0.35.0</version>
+        </dependency>
+        <!-- end of testing flux for streaming ai responses-->
     </dependencies>
 
     <build>

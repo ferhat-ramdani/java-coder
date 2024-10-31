@@ -44,7 +44,7 @@ public class ChatService implements HttpService {
   @Override
   public void routing(HttpRules httpRules) {
     httpRules.get("/", this::listChats)
-            .get("/test_progressive", this::testProgressive)
+
             .get("/{id}", this::getChatById)
             .post("/", Handler.create(Chat.class, this::insertChat))
             .put("/", Handler.create(Chat.class, this::updateChat))
@@ -118,18 +118,5 @@ public class ChatService implements HttpService {
             .orElseThrow(() -> new RestApiException("Chat ID is required"));
     var count = dbClient.deleteChatById(chatId);
     response.status(Status.OK_200).send("Deleted " + count + " rows");
-  }
-
-  public void testProgressive(ServerRequest request, ServerResponse response) {
-    try (SseSink sseSink = response.sink(SseSink.TYPE)) {
-      for (var i = 0; i < 10; i++) {
-        sseSink.emit(SseEvent.create("word " + i));
-        Thread.sleep(1000);
-      }
-      sseSink.emit(SseEvent.create("hello"))
-              .emit(SseEvent.create("world"));
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
   }
 }

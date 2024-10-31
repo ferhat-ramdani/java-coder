@@ -17,7 +17,7 @@ class PromptService {
     }
 
     async getPromptById(id: number): Promise<Prompt> {
-        const response = await fetch(`${this.apiUrl}/${id}`);
+        const response = await fetch(`${this.apiUrl}/byid/${id}`);
         if (!response.ok) {
             throw new Error(`Error during GET query : ${response.statusText}`);
         }
@@ -55,13 +55,16 @@ class PromptService {
     }
 
     async testProgressive() {
-        const eventSource = new EventSource(`${this.apiUrl}/test_progressive`);
+        const eventSource = new EventSource(`${this.apiUrl}/test/test_progressive`);
         eventSource.onmessage = (event) => {
-            console.log(event.data);
+            if (event.data === "done") {
+                eventSource.close();
+            } else {
+                console.log(event.data);
+            }
         };
 
         onCleanup(() => eventSource.close());
-
     }
 }
 

@@ -5,7 +5,9 @@ import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.ollama.OllamaChatModel;
+import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
 import fr.esiee.app.db.DbManager;
 import fr.esiee.app.utils.ErrorUtils;
@@ -50,7 +52,8 @@ public class GeneratorService implements HttpService {
   private final int MAX_MEMORY_PROMPTS = 30;
 
   private LLM curLLM;
-  private OllamaChatModel model;
+//  private OllamaChatModel model;
+  private OllamaStreamingChatModel model;
   private Assistant assistant;
 
   public GeneratorService() {
@@ -128,10 +131,15 @@ public class GeneratorService implements HttpService {
     for (int attempt = 1; attempt <= NB_ATTEMPTS; attempt++) {
       LOGGER.info("Attempting to generate a class : {}/{}", attempt, NB_ATTEMPTS);
 
-      var answer = assistant.chat(attempt == 1 ? requestText : errorsText);
+      var stream = assistant.chat(attempt == 1 ? requestText : errorsText);
+      var aiAnswer = new AiAnswer();
+      stream.onNext(System.out::println)
+              .onComplete(res -> aiAnswer.setAnswer(res.content().text()))
+              .onError(Throwable::printStackTrace)
+              .start();
       LOGGER.info("Assistant made a response.");
 
-      code = CompileAndExecUtils.extractCode(answer);
+      code = CompileAndExecUtils.extractCode(aiAnswer.getAnswer());
       LOGGER.info("Code extracted from response.");
 
       var errors = CompileAndExecUtils.processText(code, CompileAndExecUtils.Operation.COMPILE);
@@ -148,13 +156,26 @@ public class GeneratorService implements HttpService {
   }
 
   private interface Assistant {
-    String chat(@UserMessage String userMessage);
+    TokenStream chat(@UserMessage String userMessage);
+  }
+
+  // Added this class to manipulate the response of llm when the stream is completed
+  private static class AiAnswer {
+    private String answer = "";
+    String getAnswer() {
+      return answer;
+    }
+    void setAnswer(String answer) {
+      Objects.requireNonNull(answer);
+      this.answer = answer;
+    }
   }
 
   private void updateModelSettings(LLM llm, int chatId) {
     var chatMemory = MessageWindowChatMemory.withMaxMessages(MAX_MEMORY_PROMPTS);
     updateMemoryWithPreviousPrompts(chatMemory, chatId);
-    model = OllamaChatModel.builder()
+//    model = OllamaChatModel.builder()
+    model = OllamaStreamingChatModel.builder()
             .baseUrl(llmConfig.baseUrl())
             .modelName(llm.model())
             .temperature(llm.temp())
@@ -162,7 +183,8 @@ public class GeneratorService implements HttpService {
             .build();
 
     assistant = AiServices.builder(Assistant.class)
-            .chatLanguageModel(model)
+//            .chatLanguageModel(model)
+            .streamingChatLanguageModel(model)
             .systemMessageProvider(_ -> llm.systemPrompt())
             .chatMemory(chatMemory)
             .build();

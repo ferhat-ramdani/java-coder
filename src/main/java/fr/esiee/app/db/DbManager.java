@@ -88,6 +88,13 @@ public class DbManager {
     }
   }
 
+  /**
+   * Sets up the database schema by creating necessary tables.
+   * This method uses a transaction to execute the DDL statements for creating the tables.
+   * If any error occurs during the execution, the transaction is rolled back.
+   *
+   * @throws Throwable if an error occurs while creating the tables
+   */
   private void setupSchema() {
     var transaction = dbClient.transaction();
     try {
