@@ -8,6 +8,7 @@ import fr.esiee.app.db.entities.Prompt;
 import io.helidon.common.context.Contexts;
 import io.helidon.config.Config;
 import io.helidon.dbclient.DbClient;
+import io.helidon.dbclient.DbClientException;
 import io.helidon.dbclient.DbExecute;
 import io.helidon.http.NotFoundException;
 import org.jetbrains.annotations.TestOnly;
@@ -101,19 +102,19 @@ public class DbManager {
       transaction.namedDml("create-chat");
       transaction.namedDml("create-prompt");
       transaction.commit();
-    } catch (Throwable t) {
+    } catch (DbClientException t) {
       LOGGER.warn("Could not create tables");
       transaction.rollback();
       throw t;
     }
   }
 
-  private void setupData() throws IOException {
+  void setupData() throws IOException {
     var tx = dbClient.transaction();
     try {
       setupLLMs(tx);
       tx.commit();
-    } catch (Throwable t) {
+    } catch (DbClientException t) {
       tx.rollback();
       throw t;
     }
@@ -150,7 +151,7 @@ public class DbManager {
       tx.namedDelete("delete-all-llms");
       tx.namedDelete("delete-all-chats");
       tx.commit();
-    } catch (Throwable t) {
+    } catch (DbClientException t) {
       tx.rollback();
       throw t;
     }
@@ -183,7 +184,7 @@ public class DbManager {
               .execute();
 
       transaction.commit();
-    } catch (Throwable t) {
+    } catch (DbClientException t) {
       transaction.rollback();
       throw t;
     }
@@ -202,7 +203,7 @@ public class DbManager {
               .addParam("lastActivity", Timestamp.from(Instant.now()))
               .execute();
       transaction.commit();
-    } catch (Throwable t) {
+    } catch (DbClientException t) {
       transaction.rollback();
       throw t;
     }
@@ -221,7 +222,7 @@ public class DbManager {
     try {
       updatedRow = transaction.createNamedUpdate("update-prompt-by-id").namedParam(prompt).execute();
       transaction.commit();
-    } catch (Throwable t) {
+    } catch (DbClientException t) {
       transaction.rollback();
       throw t;
     }
@@ -238,7 +239,7 @@ public class DbManager {
               .execute();
 
       transaction.commit();
-    } catch (Throwable t) {
+    } catch (DbClientException t) {
       transaction.rollback();
       throw t;
     }
@@ -271,7 +272,7 @@ public class DbManager {
               .addParam(chat.lastActivity())
               .addParam(chat.llmId()).execute();
       transaction.commit();
-    } catch (Throwable t) {
+    } catch (DbClientException t) {
       transaction.rollback();
       throw t;
     }
@@ -341,7 +342,7 @@ public class DbManager {
       updatedRow =  transaction.createNamedUpdate("update-chat-by-id")
               .namedParam(chat).execute();
       transaction.commit();
-    } catch (Throwable t) {
+    } catch (DbClientException t) {
       transaction.rollback();
       throw t;
     }
@@ -357,7 +358,7 @@ public class DbManager {
               .addParam("id", chatId)
               .execute();
       transaction.commit();
-    } catch (Throwable t) {
+    } catch (DbClientException t) {
       transaction.rollback();
       throw t;
     }
