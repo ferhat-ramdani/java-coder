@@ -11,13 +11,13 @@ public record LLMMapper() implements DbMapper<LLM> {
     @Override
     public LLM read(DbRow row) {
         return new LLM(
-                row.column("id").getInt(),
-                row.column("name").getString(),
-                row.column("model").getString(),
-                row.column("system_prompt").getString(),
-                row.column("characteristics").getString(),
-                row.column("temp").getDouble(),
-                row.column("seed").getInt()
+                row.column("ID").getInt(),
+                row.column("NAME").getString(),
+                row.column("MODEL").getString(),
+                row.column("SYSTEM_PROMPT").getString(),
+                row.column("CHARACTERISTICS").getString(),
+                row.column("TEMP").getDouble(),
+                row.column("SEED").getInt()
         );
     }
 

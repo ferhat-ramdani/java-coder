@@ -18,7 +18,7 @@ provider:
 db:
   source: jdbc
   connection:
-    url: "jdbc:h2:./data/db;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE"
+    url: "jdbc:h2:~/.chatgptfordev/database/db"
     username: "gptfordev" #Default value, to change, add an environment variable `db_connection_username` or change here.
     password: "gptfordev" #Default value, to change, add an environment variable `db_connection_password` or change here.
     poolName: h2
@@ -37,15 +37,15 @@ db:
     insert-prompt: "INSERT INTO Prompt(message, author_type, chat_id, compile) VALUES(?, ?, ?, ?)"
 
     # Select all entries
-    select-all-llms: "SELECT id, name, model, system_prompt, characteristics, temp, seed FROM llm"
-    select-all-chats: "SELECT id, title, last_activity, llm_id FROM Chat ORDER BY last_activity DESC"
-    select-all-prompts: "SELECT id, message, author_type, chat_id, compile FROM Prompt"
+    select-all-llms: "SELECT * FROM llm"
+    select-all-chats: "SELECT * FROM Chat ORDER BY last_activity DESC"
+    select-all-prompts: "SELECT * FROM Prompt"
 
     # Select entries by id
-    select-llm-by-id: "SELECT id, name, model, system_prompt, characteristics, temp, seed FROM llm WHERE id = :id"
-    select-chat-by-id: "SELECT id, title, last_activity, llm_id FROM Chat WHERE id = :id"
-    select-chat-by-params: "SELECT id, title, last_activity, llm_id FROM Chat WHERE title = :title AND last_activity = :last_activity AND llm_id = :llm_id ORDER BY id DESC LIMIT 1"
-    select-prompt-by-id: "SELECT id, message, author_type, chat_id, compile FROM Prompt WHERE id = :id"
+    select-llm-by-id: "SELECT * FROM llm WHERE id = :id"
+    select-chat-by-id: "SELECT * FROM Chat WHERE id = :id"
+    select-chat-by-params: "SELECT * FROM Chat WHERE title = :title AND last_activity = :last_activity AND llm_id = :llm_id ORDER BY id DESC LIMIT 1"
+    select-prompt-by-id: "SELECT * FROM Prompt WHERE id = :id"
 
     # Retrieve llm and Chat from Prompt (through foreign keys)
     retrieve-llm-from-prompt: "SELECT llm.id, llm.name, llm.model, llm.system_prompt, llm.characteristics, llm.temp, llm.seed FROM llm JOIN Prompt ON llm.id = Prompt.llm_id WHERE Prompt.id = :promptId"
@@ -67,13 +67,13 @@ db:
     delete-all-prompts: "DELETE FROM Prompt"
 
     # Get prompts by chat id
-    select-prompts-by-chat-id: "SELECT id, message, author_type, chat_id, compile FROM Prompt WHERE chat_id = :chatId ORDER BY id ASC"
+    select-prompts-by-chat-id: "SELECT * FROM Prompt WHERE chat_id = :chatId ORDER BY id ASC"
 
     # Update last_activity of Chat
     update-chat-last-activity: "UPDATE Chat SET last_activity = :lastActivity WHERE id = :id"
 
     # Get the first prompt of a chat
-    select-first-prompt-by-chat-id: "SELECT id, message, author_type, chat_id, compile FROM Prompt WHERE chat_id = :chatId ORDER BY id ASC LIMIT 1"
+    select-first-prompt-by-chat-id: "SELECT * FROM Prompt WHERE chat_id = :chatId ORDER BY id ASC LIMIT 1"
 
     # Get the latest inserted chat id
     get-latest-chat-id: "SELECT id FROM Chat WHERE title = ? AND last_activity = ? AND llm_id = ? ORDER BY id DESC LIMIT 1"
