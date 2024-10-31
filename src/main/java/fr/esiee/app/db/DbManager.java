@@ -52,6 +52,11 @@ public class DbManager {
     }
   }
 
+  /**
+   * Initializes the DbManager instance.
+   *
+   * @throws IOException if an I/O error occurs during initialization.
+   */
   public static void initialize() throws IOException {
     if(Contexts.globalContext().get(DbManager.class).isPresent()) {
       LOGGER.info("DbManager already setupialized");
@@ -64,12 +69,10 @@ public class DbManager {
 
     if (dbUser.isBlank() || dbUser.isEmpty()) {
       LOGGER.error("Database username is not set.");
-      System.exit(1);
     }
 
     if (dbPassword.isBlank() || dbPassword.isEmpty()) {
       LOGGER.error("Database password is not set.");
-      System.exit(1);
     }
 
     if (dbUser.equals(DB_DEFAULT_USER) || dbPassword.equals(DB_DEFAULT_PASSWORD)) {
@@ -82,6 +85,12 @@ public class DbManager {
     Contexts.globalContext().register(dbManager);
   }
 
+/**
+   * Inserts LLM data into the database.
+   *
+   * @param exec the DbExecute instance used to execute the insert statements
+   * @throws IOException if an I/O error occurs while reading the LLM data
+   */
   private static void setupLLMs(DbExecute exec) throws IOException {
     var llms = OBJECT_MAPPER.readTree(DbManager.class.getResourceAsStream("/llms.json"));
     for (JsonNode llm : llms) {
@@ -95,6 +104,13 @@ public class DbManager {
     }
   }
 
+  /**
+   * Sets up the database schema by creating the necessary tables.
+   * This method uses a transaction to ensure that all tables are created
+   * successfully. If any table creation fails, the transaction is rolled back.
+   *
+   * @throws DbClientException if there is an error during the table creation process.
+   */
   void setupSchema() {
     var transaction = dbClient.transaction();
     try {
@@ -109,6 +125,12 @@ public class DbManager {
     }
   }
 
+  /**
+   * Sets up the initial data in the database.
+   * This method inserts LLM data into the database using a transaction.
+   *
+   * @throws IOException if an I/O error occurs while reading the LLM data.
+   */
   void setupData() throws IOException {
     var tx = dbClient.transaction();
     try {
@@ -120,13 +142,22 @@ public class DbManager {
     }
   }
 
-
+  /**
+   * Retrieves a list of all chats from the database.
+   *
+   * @return a list of Chat objects representing all chats in the database.
+   */
   public List<Chat> listChats() {
     return dbClient.execute()
             .namedQuery("select-all-chats")
             .map(e -> e.as(Chat.class)).toList();
   }
 
+  /**
+   * Retrieves a list of all prompts from the database.
+   *
+   * @return a list of Prompt objects representing all prompts in the database.
+   */
   public List<Prompt> listPrompts() {
     return dbClient.execute()
             .namedQuery("select-all-prompts")
@@ -134,6 +165,11 @@ public class DbManager {
             .toList();
   }
 
+  /**
+   * Retrieves a prompts from the databas by id.
+   *
+   * @return a Prompt object representing the prompt in the database.
+   */
   public Prompt getPromptById(int promptId) {
     return dbClient.execute()
             .createNamedGet("select-prompt-by-id")
@@ -157,6 +193,13 @@ public class DbManager {
     }
   }
    */
+
+
+  /**
+   * Retrieves the count of all LLMs in the database.
+   *
+   * @return the number of LLMs in the database.
+   */
   private int getLLMCount() {
     return dbClient.execute()
             .namedQuery("select-all-llms")
@@ -164,6 +207,15 @@ public class DbManager {
             .toList().size();
   }
 
+  /**
+   * Inserts a new prompt into the database.
+   *
+   * @param prompt the Prompt object to be inserted
+   * @return the number of rows updated
+   * @throws IllegalArgumentException if the prompt id or chatId is negative, or if the prompt already exists
+   * @throws DbClientException if there is an error during the database operation
+   * @throws BadRequestException if the prompt insertion fails
+   */
   public long insertPrompt(Prompt prompt) {
     if (prompt.id() < 0 || prompt.chatId() < 0) {
       throw new IllegalArgumentException("id, llmId, or chatId is negative");
@@ -195,7 +247,13 @@ public class DbManager {
     return updatedRows;
   }
 
-  private void updateChatLastActivity(int chatId) {
+  /**
+   * Updates the last activity timestamp of a chat.
+   *
+   * @param chatId the ID of the chat to update
+   * @throws DbClientException if there is an error during the database operation
+   */
+  void updateChatLastActivity(int chatId) {
     var transaction = dbClient.transaction();
     try {
       transaction.createNamedUpdate("update-chat-last-activity")
@@ -209,6 +267,15 @@ public class DbManager {
     }
   }
 
+  /**
+   * Updates an existing prompt in the database.
+   *
+   * @param prompt the Prompt object containing updated information
+   * @return the number of rows updated
+   * @throws IllegalArgumentException if the prompt id or chatId is negative
+   * @throws NotFoundException if the prompt does not exist
+   * @throws DbClientException if there is an error during the database operation
+   */
   public long updatePrompt(Prompt prompt) {
     if (prompt.id() < 0 || prompt.chatId() < 0) {
       throw new IllegalArgumentException("id, llmId, or chatId is negative");
@@ -220,7 +287,13 @@ public class DbManager {
     var transaction = dbClient.transaction();
     long updatedRow;
     try {
-      updatedRow = transaction.createNamedUpdate("update-prompt-by-id").namedParam(prompt).execute();
+      updatedRow = transaction.createNamedUpdate("update-prompt-by-id")
+              .addParam("message", prompt.message())
+              .addParam("authorType", prompt.authorType().name())
+              .addParam("chatId", prompt.chatId())
+              .addParam("compile", prompt.compile())
+              .addParam("id", prompt.id())
+              .execute();
       transaction.commit();
     } catch (DbClientException t) {
       transaction.rollback();

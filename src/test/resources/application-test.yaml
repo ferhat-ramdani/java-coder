@@ -1,15 +1,6 @@
-debug: true
-
-openapi:
-  web-context: /openapi
-  static-file: src/main/resources/swagger-ui/openapi.yaml
-
 server:
   port: 8079
   host: 127.0.0.1
-  features:
-    access-log:
-      format: "%h %l %u %t %r %s %b %{Referer}i"
 
 provider:
   url: "127.0.0.1"
