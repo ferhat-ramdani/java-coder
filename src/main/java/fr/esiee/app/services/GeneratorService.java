@@ -1,12 +1,14 @@
 package fr.esiee.app.services;
 
+import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.service.AiServices;
-import dev.langchain4j.service.UserMessage;
 import fr.esiee.app.db.DbManager;
 import fr.esiee.app.utils.ErrorUtils;
 import fr.esiee.app.utils.CompileAndExecUtils;
@@ -148,7 +150,7 @@ public class GeneratorService implements HttpService {
   }
 
   private interface Assistant {
-    String chat(@UserMessage String userMessage);
+    String chat(@dev.langchain4j.service.UserMessage String userMessage);
   }
 
   private void updateModelSettings(LLM llm, int chatId) {
@@ -172,16 +174,15 @@ public class GeneratorService implements HttpService {
     var prevPrompts = dbService.getPromptsByChatId(chatId);
     prevPrompts.stream()
             .filter(prompt -> prompt.authorType() != AuthorType.SYSTEM)
-            .forEach(prompt -> chatMemory.add(new ChatMessage() {
-                @Override
-                public ChatMessageType type() {
-                  return ChatMessageType.valueOf(prompt.authorType().name());
-                }
-
-                @Override
-                public String text() {
-                  return prompt.message();
-                }
-              }));
+            .forEach(prompt -> {
+              ChatMessageType type = ChatMessageType.valueOf(prompt.authorType().name());
+              if (type == ChatMessageType.USER) {
+                chatMemory.add(new UserMessage(prompt.message()));
+              } else if (type == ChatMessageType.AI) {
+                chatMemory.add(new AiMessage(prompt.message()));
+              } else if (type == ChatMessageType.SYSTEM) {
+                chatMemory.add(new SystemMessage(prompt.message()));
+              }
+            });
   }
 }
