@@ -68,6 +68,11 @@
             <version>${helidon.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.helidon.media</groupId>
+            <artifactId>helidon-media-jackson</artifactId>
+            <version>3.2.10</version>
+        </dependency>
+        <dependency>
             <groupId>io.helidon.dbclient</groupId>
             <artifactId>helidon-dbclient-hikari</artifactId>
             <version>${helidon.version}</version>

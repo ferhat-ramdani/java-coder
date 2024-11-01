@@ -1,4 +1,4 @@
-import {Component, createSignal, Resource, Setter} from "solid-js";
+import {Accessor, Component, createSignal, Resource, Setter} from "solid-js";
 import promptService from "../services/PromptService";
 import {createPrompt, Prompt} from "../interfaces/Prompt";
 import {Chat} from "../interfaces/Chat";
@@ -7,6 +7,66 @@ import {useAppContext} from "../Context";
 import {AuthorType} from "../interfaces/AuthorType";
 import generatorService from "../services/GeneratorService";
 import {Utils} from "../services/Utils";
+import {LLMResponse} from "../interfaces/LLMResponse";
+
+type PromptAccessorSetter = { accessor: Accessor<Prompt[]>; setter: Setter<Prompt[]> };
+type ChatIdAccessorSetter = { accessor: Accessor<number | null>; setter: Setter<number | null> };
+
+function processLLMResponseStatus(llmResponse: LLMResponse, eventSource: EventSource): any {
+    let content = "";
+    let author = AuthorType.SYSTEM;
+
+    switch (llmResponse.status) {
+        case "DONE":
+            author = AuthorType.AI;
+            eventSource.close();
+            content = llmResponse.code!.code;
+            break;
+        case "ERROR":
+        case "TIMEOUT":
+            eventSource.close();
+            content = llmResponse.content!;
+            break;
+        case "GENERATING":
+            content = llmResponse.content!;
+            break;
+    }
+
+    return { content, author };
+}
+
+function handleSystemAuthorType(curChatPrompts: PromptAccessorSetter, systemPrompt: Prompt, content: string, indexOfPrompt: number): number {
+    let newIndex = indexOfPrompt;
+    if(indexOfPrompt >= 0) {
+        let prompt = curChatPrompts.accessor()[indexOfPrompt];
+        prompt = { ...prompt, message: content };
+        curChatPrompts.setter(prev => prev.map((p, i) => i === indexOfPrompt ? prompt : p));
+    } else {
+        newIndex = curChatPrompts.accessor().length;
+        curChatPrompts.setter(prev => [...prev, { ...systemPrompt, message: content }]);
+    }
+    return newIndex;
+}
+
+function handleLLMResponse(
+    llmResponse: LLMResponse,
+    eventSource: EventSource,
+    curChatPrompts: PromptAccessorSetter,
+    systemPrompt: Prompt,
+    curChatId: ChatIdAccessorSetter,
+    indexOfPrompt: number = -1
+): number {
+    const { content, author } = processLLMResponseStatus(llmResponse, eventSource);
+
+    if (author === AuthorType.SYSTEM) {
+        return handleSystemAuthorType(curChatPrompts, systemPrompt, content, indexOfPrompt);
+    } else {
+        curChatPrompts.setter(prev => prev.filter((_, i) => i !== indexOfPrompt));
+        const llmPrompt = createPrompt(content, author, curChatId.accessor()!, llmResponse.code?.compiled);
+        curChatPrompts.setter(prev => [...prev, llmPrompt]);
+    }
+    return indexOfPrompt;
+}
 
 const TextInput: Component = () => {
     const [{curChatId, selectedLLM, curChatPrompts, chats}] = useAppContext();
@@ -18,36 +78,29 @@ const TextInput: Component = () => {
         setMessage("");
         try {
             const newPrompt: Prompt = createPrompt(messageToSend, AuthorType.USER, curChatId.accessor()!);
-            await insertNewPrompt(newPrompt);
-
-            const llmPromt = await generatorService.generateResponseFromLLM(newPrompt);
-            await insertNewPrompt(llmPromt);
-
-            // Faire la progression.
+            insertNewPrompt(newPrompt);
+            await generatorService.generateResponseFromLLM(newPrompt, (llmResponse: LLMResponse, eventSource: EventSource, systemPrompt: Prompt, IndexOfPrompt: number) => {
+                return handleLLMResponse(llmResponse, eventSource, curChatPrompts, systemPrompt, curChatId, IndexOfPrompt);
+            });
         } catch (error) {
             console.error("Error fetching llm response:", error);
         }
     }
 
     const handleSend = async () => {
-        if (!message().trim()) {
-            return;
+    if (!message().trim()) return;
+
+    if (!curChatId.accessor() && !selectedLLM.accessor()) {
+        Utils.showToast("Error", "Please select an LLM Model", "danger", "bi-exclamation-triangle");
+    } else {
+        setSendDisabled(true);
+        if (!curChatId.accessor() && selectedLLM.accessor()) {
+            await createNewChat(message());
         }
-        if (!curChatId.accessor()) {
-            if(!selectedLLM.accessor()) {
-                Utils.showToast("Error", "Please select an LLM Model", "danger", "bi-exclamation-triangle");
-            } else {
-                setSendDisabled(true);
-                await createNewChat(message());
-                await fetchLLMResponse();
-                setSendDisabled(false);
-            }
-        } else if(selectedLLM.accessor()) {
-            setSendDisabled(true);
-            await fetchLLMResponse();
-            setSendDisabled(false);
-        }
-    };
+        await fetchLLMResponse();
+        setSendDisabled(false);
+    }
+};
 
     const createNewChat = async (title = "") => {
         if(selectedLLM.accessor()) {
@@ -55,7 +108,6 @@ const TextInput: Component = () => {
             try {
                 const createdChat = await chatService.createChat(newChat);
                 curChatId.setter(createdChat.id);
-                // chats.mutator(prev => [...(prev!), createdChat]);
                 chats.refetcher();
             } catch (error) {
                 console.error("Error creating chat:", error);
