@@ -1,3 +1,5 @@
+import {Prompt} from "./Prompt";
+
 export interface SourceCode {
     code: string;
     compiled: boolean;
@@ -6,7 +8,7 @@ export interface SourceCode {
 export interface LLMResponse {
     status: LLMResponseStatus;
     content: string | null;
-    code: SourceCode | null;
+    prompt: Prompt | null;
 }
 
 export enum LLMResponseStatus {

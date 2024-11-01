@@ -15,12 +15,12 @@ type ChatIdAccessorSetter = { accessor: Accessor<number | null>; setter: Setter<
 function processLLMResponseStatus(llmResponse: LLMResponse, eventSource: EventSource): any {
     let content = "";
     let author = AuthorType.SYSTEM;
+    let prompt = llmResponse.prompt;
 
     switch (llmResponse.status) {
         case "DONE":
             author = AuthorType.AI;
             eventSource.close();
-            content = llmResponse.code!.code;
             break;
         case "ERROR":
         case "TIMEOUT":
@@ -32,7 +32,7 @@ function processLLMResponseStatus(llmResponse: LLMResponse, eventSource: EventSo
             break;
     }
 
-    return { content, author };
+    return { content, author, prompt };
 }
 
 function handleSystemAuthorType(curChatPrompts: PromptAccessorSetter, systemPrompt: Prompt, content: string, indexOfPrompt: number): number {
@@ -56,14 +56,13 @@ function handleLLMResponse(
     curChatId: ChatIdAccessorSetter,
     indexOfPrompt: number = -1
 ): number {
-    const { content, author } = processLLMResponseStatus(llmResponse, eventSource);
+    const { content, author, prompt } = processLLMResponseStatus(llmResponse, eventSource);
 
     if (author === AuthorType.SYSTEM) {
         return handleSystemAuthorType(curChatPrompts, systemPrompt, content, indexOfPrompt);
     } else {
         curChatPrompts.setter(prev => prev.filter((_, i) => i !== indexOfPrompt));
-        const llmPrompt = createPrompt(content, author, curChatId.accessor()!, llmResponse.code?.compiled);
-        curChatPrompts.setter(prev => [...prev, llmPrompt]);
+        curChatPrompts.setter(prev => [...prev, prompt]);
     }
     return indexOfPrompt;
 }
@@ -88,19 +87,19 @@ const TextInput: Component = () => {
     }
 
     const handleSend = async () => {
-    if (!message().trim()) return;
+        if (!message().trim()) return;
 
-    if (!curChatId.accessor() && !selectedLLM.accessor()) {
-        Utils.showToast("Error", "Please select an LLM Model", "danger", "bi-exclamation-triangle");
-    } else {
-        setSendDisabled(true);
-        if (!curChatId.accessor() && selectedLLM.accessor()) {
-            await createNewChat(message());
+        if (!curChatId.accessor() && !selectedLLM.accessor()) {
+            Utils.showToast("Error", "Please select an LLM Model", "danger", "bi-exclamation-triangle");
+        } else {
+            setSendDisabled(true);
+            if (!curChatId.accessor() && selectedLLM.accessor()) {
+                await createNewChat(message());
+            }
+            await fetchLLMResponse();
+            setSendDisabled(false);
         }
-        await fetchLLMResponse();
-        setSendDisabled(false);
-    }
-};
+    };
 
     const createNewChat = async (title = "") => {
         if(selectedLLM.accessor()) {

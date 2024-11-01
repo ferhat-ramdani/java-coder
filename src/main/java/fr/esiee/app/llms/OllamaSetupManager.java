@@ -153,11 +153,12 @@ public class OllamaSetupManager {
     if (type == CMDType.RUN_OLLAM_NO_WAIT) {
       return true;
     }
-    if (process.waitFor() == 0) {
+    var returnCode = process.waitFor();
+    if (returnCode == 0) {
       LOGGER.info("Command executed successfully: {}", cmd);
       return true;
     }
-    LOGGER.error("Error executing command: {}", cmd);
+    LOGGER.error("Error executing command: {}, return code was {}", cmd, returnCode);
     return false;
   }
 

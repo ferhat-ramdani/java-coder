@@ -160,7 +160,10 @@ public class DbManager {
             .createNamedGet("select-prompt-by-id")
             .addParam("id", promptId)
             .execute()
-            .orElseThrow(() -> new NotFoundException("Prompt " + promptId + " not found"))
+            .orElseThrow(() -> {
+              LOGGER.error("Prompt {} not found", promptId);
+              return new NotFoundException("Prompt " + promptId + " not found");
+            })
             .as(Prompt.class);
   }
 

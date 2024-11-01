@@ -59,22 +59,18 @@ public class GeneratorService implements HttpService {
   }
 
   private record SourceCode(String code, boolean compiled) {}
-  private record LLMResponse(LLMResponseStatus status, String content, SourceCode code) {
+  private record LLMResponse(LLMResponseStatus status, String content, Prompt prompt) {
     public static LLMResponse generating(String content) {
       return new LLMResponse(LLMResponseStatus.GENERATING, content, null);
     }
     public static LLMResponse error(String content) {
       return new LLMResponse(LLMResponseStatus.ERROR, content, null);
     }
-    public static LLMResponse timeout(String content) {
-      return new LLMResponse(LLMResponseStatus.TIMEOUT, content, null);
-    }
-    public static LLMResponse done(SourceCode code) {
-      return new LLMResponse(LLMResponseStatus.DONE, null, code);
+    public static LLMResponse done(Prompt prompt) {
+      return new LLMResponse(LLMResponseStatus.DONE, null, prompt);
     }
   }
-  private enum LLMResponseStatus { GENERATING, ERROR, TIMEOUT, DONE }
-//  private record LLM
+  private enum LLMResponseStatus { GENERATING, ERROR, DONE }
 
   public GeneratorService() {
     this.dbService = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found."));
@@ -119,18 +115,16 @@ public class GeneratorService implements HttpService {
       try {
         generatedCode = generateClassFromLLM(newLLM, chat.id(), pendingPrompt.message(), sseSink);
         LOGGER.info("Class generated successfully.");
-      } catch (IOException | InterruptedException | ExecutionException e) { // Catch is necessary because whe are in a BiConsumer lambda
+      } catch (IOException | InterruptedException | ExecutionException e) {
+        ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, "Error while generating class.");
         throw new RestApiException(e);
       }
 
-      // There generatedCode is never null, the generateClassFromLLM method throws an exception
+      // The generatedCode is never null, the generateClassFromLLM method throws an exception
       var aiPrompt = new Prompt(0, generatedCode.code, AuthorType.AI, chat.id(), generatedCode.compiled);
       dbService.insertPrompt(aiPrompt);
-//      var clientPrompt = dbService.getPromptByPromptInfo(aiPrompt);
-//      res.status(Status.OK_200).send(clientPrompt);
-//      LOGGER.info("message of prompt is : {}", clientPrompt.message());
-//      sseSink.emit(SseEvent.create("starts here : " + clientPrompt.message()));
-      sseSink.emit(SseEvent.create(LLMResponse.done(generatedCode)));
+      var registeredPrompt = dbService.getPromptByPromptInfo(aiPrompt);
+      sseSink.emit(SseEvent.create(LLMResponse.done(registeredPrompt)));
       pendingPrompt = null;
     }
 
@@ -147,7 +141,6 @@ public class GeneratorService implements HttpService {
       ErrorUtils.send(res, Status.NOT_ACCEPTABLE_406, "Prompt not supposed to be compiled.");
       return;
     }
-
     String output;
     try {
       LOGGER.info("Executing class, promptId : {}", promptId);
@@ -174,7 +167,7 @@ public class GeneratorService implements HttpService {
       LOGGER.info("Attempting to generate a class : {}/{}", attempt, NB_ATTEMPTS);
       sseSink.emit(SseEvent.create(LLMResponse.generating("Attempting to generate a class : " + attempt + "/" + NB_ATTEMPTS)));
 
-      var answer = assistant.chat(attempt == 1 ? requestText : errorsText);
+      String answer = assistant.chat(attempt == 1 ? requestText : errorsText);
 
       code = CompileAndExecUtils.extractCode(answer);
       LOGGER.info("Code extracted from response.");
