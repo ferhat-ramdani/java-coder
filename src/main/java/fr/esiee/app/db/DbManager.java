@@ -136,7 +136,7 @@ public class DbManager {
     try {
       setupLLMs(tx);
       tx.commit();
-    } catch (DbClientException t) {
+    } catch (DbClientException | IOException t) {
       tx.rollback();
       throw t;
     }
@@ -302,9 +302,16 @@ public class DbManager {
     return updatedRow;
   }
 
+  /**
+   * Deletes a prompt from the database by its ID.
+   *
+   * @param promptId the ID of the prompt to be deleted
+   * @return the number of rows affected by the delete operation
+   * @throws NotFoundException if the prompt with the specified ID is not found
+   * @throws DbClientException if there is an error during the database operation
+   */
   public long deletePromptById(int promptId) {
     var transaction = dbClient.transaction();
-
     long count;
     try {
       count = transaction.createNamedDelete("delete-prompt-by-id")
@@ -323,6 +330,12 @@ public class DbManager {
     return count;
   }
 
+  /**
+   * Retrieves a list of prompts associated with a specific chat ID.
+   *
+   * @param promptId the ID of the chat for which to retrieve prompts
+   * @return a list of Prompt objects associated with the specified chat ID
+   */
   public List<Prompt> getPromptsByChatId(int promptId) {
     return dbClient.execute()
             .createNamedQuery("select-prompts-by-chat-id")
@@ -332,6 +345,14 @@ public class DbManager {
             .toList();
   }
 
+  /**
+   * Inserts a new chat into the database.
+   *
+   * @param chat the Chat object to be inserted
+   * @return the number of rows updated
+   * @throws IllegalArgumentException if the chat id or llmId is negative
+   * @throws DbClientException if there is an error during the database operation
+   */
   public long insertChat(Chat chat) {
     if (chat.id() < 0 || chat.llmId() < 0) {
       throw new IllegalArgumentException("id or llmId is negative");
@@ -353,7 +374,14 @@ public class DbManager {
     return updatedRow;
   }
 
-  public Chat getLatestChat(Chat chat) {
+  /**
+   * Retrieves a chat from the database based on the provided chat parameters.
+   *
+   * @param chat the Chat object containing the parameters to search for
+   * @return the Chat object matching the provided parameters
+   * @throws NotFoundException if no chat matching the provided parameters is found
+   */
+  public Chat getChatByParams(Chat chat) {
     return dbClient.execute()
             .createNamedGet("select-chat-by-params")
             .addParam("title", chat.title())
@@ -364,6 +392,13 @@ public class DbManager {
             .as(Chat.class);
   }
 
+  /**
+   * Retrieves a prompt from the database based on the provided prompt information.
+   *
+   * @param prompt the Prompt object containing the parameters to search for
+   * @return the Prompt object matching the provided parameters
+   * @throws NotFoundException if no prompt matching the provided parameters is found
+   */
   public Prompt getPromptByPromptInfo(Prompt prompt) {
     return dbClient.execute()
             .createNamedGet("get-prompt-by-prompt-info")
@@ -376,6 +411,12 @@ public class DbManager {
             .as(Prompt.class);
   }
 
+  /**
+   * Checks if a chat with the specified ID exists in the database.
+   *
+   * @param chatId the ID of the chat to check for existence
+   * @return true if the chat exists, false otherwise
+   */
   public boolean chatExists(int chatId) {
     return dbClient.execute()
             .createNamedGet("select-chat-by-id")
@@ -384,6 +425,12 @@ public class DbManager {
             .isPresent();
   }
 
+  /**
+   * Checks if a prompt with the specified ID exists in the database.
+   *
+   * @param promptId the ID of the prompt to check for existence
+   * @return true if the prompt exists, false otherwise
+   */
   public boolean promptExists(int promptId) {
     return dbClient.execute()
             .createNamedGet("select-prompt-by-id")
@@ -392,6 +439,13 @@ public class DbManager {
             .isPresent();
   }
 
+  /**
+   * Retrieves a chat from the database by its ID.
+   *
+   * @param chatId the ID of the chat to retrieve
+   * @return the Chat object corresponding to the specified ID
+   * @throws NotFoundException if the chat with the specified ID is not found
+   */
   public Chat getChatById(int chatId) {
     return dbClient.execute()
             .createNamedGet("select-chat-by-id")
@@ -401,6 +455,15 @@ public class DbManager {
             .as(Chat.class);
   }
 
+  /**
+   * Updates an existing chat in the database.
+   *
+   * @param chat the Chat object containing updated information
+   * @return the number of rows updated
+   * @throws IllegalArgumentException if the chat id or llmId is negative
+   * @throws NotFoundException if the chat does not exist
+   * @throws DbClientException if there is an error during the database operation
+   */
   public long updateChat(Chat chat) {
     if (chat.id() < 0 || chat.llmId() < 0) {
       throw new IllegalArgumentException("id or llmId is negative");
@@ -422,6 +485,14 @@ public class DbManager {
     return updatedRow;
   }
 
+  /**
+   * Deletes a chat from the database by its ID.
+   *
+   * @param chatId the ID of the chat to be deleted
+   * @return the number of rows affected by the delete operation
+   * @throws NotFoundException if the chat with the specified ID is not found
+   * @throws DbClientException if there is an error during the database operation
+   */
   public long deleteChatById(int chatId) {
     var transaction = dbClient.transaction();
 
@@ -442,6 +513,11 @@ public class DbManager {
     return count;
   }
 
+  /**
+   * Retrieves a list of all LLMs from the database.
+   *
+   * @return a list of LLM objects representing all LLMs in the database.
+   */
   public List<LLM> listLLMs() {
     return dbClient.execute()
             .namedQuery("select-all-llms")
@@ -449,6 +525,12 @@ public class DbManager {
             .toList();
   }
 
+  /**
+   * Retrieves the first LLM from the database.
+   *
+   * @return the first LLM object found in the database
+   * @throws NotFoundException if no LLM is found in the database
+   */
   public LLM getFirstLLM() {
     return dbClient.execute()
             .createNamedGet("get-first-llm")
@@ -457,6 +539,13 @@ public class DbManager {
             .as(LLM.class);
   }
 
+  /**
+   * Retrieves an LLM from the database by its ID.
+   *
+   * @param llmId the ID of the LLM to retrieve
+   * @return the LLM object corresponding to the specified ID
+   * @throws NotFoundException if the LLM with the specified ID is not found
+   */
   public LLM getLLMById(int llmId) {
     return dbClient.execute()
             .createNamedGet("select-llm-by-id")
@@ -466,6 +555,13 @@ public class DbManager {
             .as(LLM.class);
   }
 
+  /**
+   * Retrieves the first prompt associated with a specific chat ID.
+   *
+   * @param chatId the ID of the chat for which to retrieve the first prompt
+   * @return the first Prompt object associated with the specified chat ID
+   * @throws NotFoundException if no prompt is found for the specified chat ID
+   */
   public Prompt getFirstPromptByChatId(int chatId) {
     return dbClient.execute()
             .createNamedQuery("select-first-prompt-by-chat-id")

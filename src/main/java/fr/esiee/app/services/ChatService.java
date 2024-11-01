@@ -84,7 +84,7 @@ public class ChatService implements HttpService {
       ErrorUtils.send(response, Status.BAD_REQUEST_400, "Failed to insert chat");
       return;
     }
-    var latestChat = dbClient.getLatestChat(chat);
+    var latestChat = dbClient.getChatByParams(chat);
     response.status(Status.CREATED_201).send(latestChat);
   }
 
