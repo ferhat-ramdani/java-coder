@@ -35,7 +35,8 @@ public class CompileAndExecUtils {
     Objects.requireNonNull(code);
     var classNameOpt = extractClassName(code);
     if (classNameOpt.isEmpty()) {
-      throw new IllegalStateException("no class name could be extracted");
+      return "No class name could be extracted";
+//      throw new IllegalStateException("no class name could be extracted");
     }
 
     var className = classNameOpt.get();

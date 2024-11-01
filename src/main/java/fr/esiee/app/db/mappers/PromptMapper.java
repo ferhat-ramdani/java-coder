@@ -12,11 +12,11 @@ public record PromptMapper() implements DbMapper<Prompt> {
     @Override
     public Prompt read(DbRow row) {
         return new Prompt(
-                row.column("id").getInt(),
-                row.column("message").getString(),
-                AuthorType.valueOf(row.column("author_type").getString()),
-                row.column("chat_id").getInt(),
-                row.column("compile").get(Boolean.class)
+                row.column("ID").getInt(),
+                row.column("MESSAGE").getString(),
+                AuthorType.valueOf(row.column("AUTHOR_TYPE").getString()),
+                row.column("CHAT_ID").getInt(),
+                row.column("COMPILE").get(Boolean.class)
         );
     }
 

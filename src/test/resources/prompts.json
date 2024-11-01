@@ -1,0 +1,128 @@
+[
+  {
+    "id": 1,
+    "message": "draw a goat",
+    "authorType": "USER",
+    "chatId": 1,
+    "compile": false
+  },
+  {
+    "id": 2,
+    "message": "\npublic class Goat {\n\n    public static void main(String[] args) {\n        System.out.println(\"   ^__^\");\n        System.out.println(\"  (oo)\\\\_______\");\n        System.out.println(\"    (__)\\\\       )\\/\");\n        System.out.println(\"          ||----w |\");\n        System.out.println(\"          ||     ||\");\n    }\n}\n",
+    "authorType": "AI",
+    "chatId": 1,
+    "compile": false
+  },
+  {
+    "id": 3,
+    "message": "remove \\/",
+    "authorType": "USER",
+    "chatId": 1,
+    "compile": false
+  },
+  {
+    "id": 4,
+    "message": "\npublic class Goat {\n\n    public static void main(String[] args) {\n        System.out.println(\"   ^__^\");\n        System.out.println(\"  (oo)\\\\_______\");\n        System.out.println(\"    (__)\\\\       )\");\n        System.out.println(\"          ||----w |\");\n        System.out.println(\"          ||     ||\");\n    }\n}\n",
+    "authorType": "AI",
+    "chatId": 1,
+    "compile": true
+  },
+  {
+    "id": 5,
+    "message": "Make it to say meuh",
+    "authorType": "USER",
+    "chatId": 1,
+    "compile": false
+  },
+  {
+    "id": 6,
+    "message": "\npublic class Goat {\n\n    public static void main(String[] args) {\n        System.out.println(\"   ^__^\");\n        System.out.println(\"  (oo)\\\\_______\");\n        System.out.println(\"    (__)\\\\       )\");\n        System.out.println(\"          ||----w |\");\n        System.out.println(\"          ||     ||\");\n        System.out.println(\"Meuh!\");\n    }\n}\n",
+    "authorType": "AI",
+    "chatId": 1,
+    "compile": true
+  },
+  {
+    "id": 7,
+    "message": "make a webclient who made a request to http://localhost:8080/api/chat",
+    "authorType": "USER",
+    "chatId": 2,
+    "compile": false
+  },
+  {
+    "id": 8,
+    "message": "\nimport org.springframework.web.client.WebClient;\nimport org.springframework.web.client.WebClientBuilder;\n\npublic class WebClientExample {\n\n    public static void main(String[] args) {\n        // Create a new WebClient instance\n        WebClient webClient = WebClient.builder()\n                .baseUrl(\"http://localhost:8080/api/\")\n                .build();\n\n        // Make a GET request to the specified URL\n        webClient.get()\n                .uri(\"/chat\")\n                .retrieve()\n                .bodyToMono(String.class)\n                .block()\n                .ifPresent(System.out::println);\n\n    }\n}\n",
+    "authorType": "AI",
+    "chatId": 2,
+    "compile": false
+  },
+  {
+    "id": 9,
+    "message": "its not compile",
+    "authorType": "USER",
+    "chatId": 2,
+    "compile": false
+  },
+  {
+    "id": 10,
+    "message": "\nimport java.io.IOException;\nimport java.net.URI;\nimport java.net.http.HttpClient;\nimport java.net.http.HttpRequest;\nimport java.net.http.HttpResponse;\n\npublic class WebClientExample {\n\n    public static void main(String[] args) {\n        // Create a new HttpClient instance\n        HttpClient client = HttpClient.newHttpClient();\n\n        try {\n            HttpRequest request = HttpRequest.newBuilder()\n                    .uri(URI.create(\"http://localhost:8080/api/chat\"))\n                    .build();\n\n            HttpResponse\u003CString\u003E response = client.send(request, HttpResponse.BodyHandlers.ofString());\n\n            System.out.println(response.body());\n        } catch (IOException | InterruptedException e) {\n            System.out.println(e.getMessage());\n        }\n    }\n}\n",
+    "authorType": "AI",
+    "chatId": 2,
+    "compile": true
+  },
+  {
+    "id": 11,
+    "message": "draw a cay",
+    "authorType": "USER",
+    "chatId": 3,
+    "compile": false
+  },
+  {
+    "id": 12,
+    "message": "\npublic class Cay {\n\n    public static void main(String[] args) {\n        System.out.println(\"   .--.\");\n        System.out.println(\"  / ` _ ` \\\\\");\n        System.out.println(\" (   )   )\");\n        System.out.println(\"  `-._,_;-'\");\n    }\n}\n",
+    "authorType": "AI",
+    "chatId": 3,
+    "compile": true
+  },
+  {
+    "id": 13,
+    "message": "a cat sorry",
+    "authorType": "USER",
+    "chatId": 3,
+    "compile": false
+  },
+  {
+    "id": 14,
+    "message": "\npublic class Cat {\n\n    public static void main(String[] args) {\n        System.out.println(\"   .--.\");\n        System.out.println(\"  / ` _ ` \\\\\");\n        System.out.println(\" (   )   )\");\n        System.out.println(\"  `-._,_;-'\");\n        System.out.println(\"   .--.\");\n        System.out.println(\"  / ` _ ` \\\\\");\n        System.out.println(\" (   )   )\");\n        System.out.println(\"  `-._,_;-'\");\n    }\n}\n",
+    "authorType": "AI",
+    "chatId": 3,
+    "compile": true
+  },
+  {
+    "id": 15,
+    "message": "draw the cat",
+    "authorType": "USER",
+    "chatId": 3,
+    "compile": false
+  },
+  {
+    "id": 16,
+    "message": "\npublic class Cat {\n\n    public static void main(String[] args) {\n        System.out.println(\"   .--.\");\n        System.out.println(\"  / ` _ ` \\\\\");\n        System.out.println(\" (   )   )\");\n        System.out.println(\"  `-._,_;-'\");\n    }\n}\n",
+    "authorType": "AI",
+    "chatId": 3,
+    "compile": true
+  },
+  {
+    "id": 17,
+    "message": "its not a cat",
+    "authorType": "USER",
+    "chatId": 3,
+    "compile": false
+  },
+  {
+    "id": 18,
+    "message": "\npublic class Cay {\n\n    public static void main(String[] args) {\n        System.out.println(\"   .--.\");\n        System.out.println(\"  / ` _ ` \\\\\");\n        System.out.println(\" (   )   )\");\n        System.out.println(\"  `-._,_;-'\");\n    }\n}\n",
+    "authorType": "AI",
+    "chatId": 3,
+    "compile": true
+  }
+]

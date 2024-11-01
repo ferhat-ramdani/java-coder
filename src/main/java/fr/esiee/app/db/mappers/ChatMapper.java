@@ -12,10 +12,10 @@ public record ChatMapper() implements DbMapper<Chat> {
     @Override
     public Chat read(DbRow row) {
         return new Chat(
-                row.column("id").getInt(),
-                row.column("title").getString(),
-                row.column("last_activity").get(Timestamp.class),
-                row.column("llm_id").getInt()
+                row.column("ID").getInt(),
+                row.column("TITLE").getString(),
+                row.column("LAST_ACTIVITY").get(Timestamp.class),
+                row.column("LLM_ID").getInt()
         );
     }
 

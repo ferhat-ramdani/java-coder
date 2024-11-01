@@ -4,7 +4,8 @@ Content-Type: application/json
 {
   "message": "Create a c123lass representing a basic entity.",
   "authorType": "SYSTEM",
-  "chatId": 1
+  "chatId": 1,
+  "compile": false
 }
 
 ### Get all prompts
@@ -16,11 +17,11 @@ PUT http://localhost:8080/api/prompt
 Content-Type: application/json
 
 {
-  "id": 29,
+  "id": 19,
   "message": "Create a class representing a basic entity.",
-  "authorType": "LLM",
+  "authorType": "AI",
   "chatId": 1,
-  "llmId": 1
+    "compile": true
 }
 
 ### Delete a prompt

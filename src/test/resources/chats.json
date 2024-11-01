@@ -1,0 +1,20 @@
+[
+  {
+    "id": 3,
+    "title": "draw a cay",
+    "lastActivity": 1730405235416,
+    "llmId": 2
+  },
+  {
+    "id": 2,
+    "title": "make a webclient who made a request to http://localhost:8080/api/chat",
+    "lastActivity": 1730405167640,
+    "llmId": 1
+  },
+  {
+    "id": 1,
+    "title": "draw a goat",
+    "lastActivity": 1730404954901,
+    "llmId": 2
+  }
+]

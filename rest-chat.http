@@ -16,7 +16,7 @@ PUT http://localhost:8080/api/chat
 Content-Type: application/json
 
 {
-  "id": "0",
+  "id": "1",
   "title": "title24",
   "lastActivity": "1704283240000",
   "llmId": "1"
