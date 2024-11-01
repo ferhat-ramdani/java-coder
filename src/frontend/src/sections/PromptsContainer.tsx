@@ -4,11 +4,6 @@ import PromptService from "../services/PromptService";
 import {useAppContext} from "../Context";
 
 const PromptsContainer: Component = () => {
-    // onMount(() => {
-    //     console.log("starting progressive test");
-    //     PromptService.testProgressive();
-    //     console.log("starting progressive finished");
-    // });
 
     const [{curChatPrompts}] = useAppContext();
 

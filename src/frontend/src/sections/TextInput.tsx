@@ -10,7 +10,6 @@ import {Utils} from "../services/Utils";
 import {LLMResponse} from "../interfaces/LLMResponse";
 
 type PromptAccessorSetter = { accessor: Accessor<Prompt[]>; setter: Setter<Prompt[]> };
-type ChatIdAccessorSetter = { accessor: Accessor<number | null>; setter: Setter<number | null> };
 
 function processLLMResponseStatus(llmResponse: LLMResponse, eventSource: EventSource): any {
     let content = "";
@@ -53,7 +52,6 @@ function handleLLMResponse(
     eventSource: EventSource,
     curChatPrompts: PromptAccessorSetter,
     systemPrompt: Prompt,
-    curChatId: ChatIdAccessorSetter,
     indexOfPrompt: number = -1
 ): number {
     const { content, author, prompt } = processLLMResponseStatus(llmResponse, eventSource);
@@ -79,7 +77,7 @@ const TextInput: Component = () => {
             const newPrompt: Prompt = createPrompt(messageToSend, AuthorType.USER, curChatId.accessor()!);
             insertNewPrompt(newPrompt);
             await generatorService.generateResponseFromLLM(newPrompt, (llmResponse: LLMResponse, eventSource: EventSource, systemPrompt: Prompt, IndexOfPrompt: number) => {
-                return handleLLMResponse(llmResponse, eventSource, curChatPrompts, systemPrompt, curChatId, IndexOfPrompt);
+                return handleLLMResponse(llmResponse, eventSource, curChatPrompts, systemPrompt, IndexOfPrompt);
             });
         } catch (error) {
             console.error("Error fetching llm response:", error);

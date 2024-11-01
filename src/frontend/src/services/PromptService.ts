@@ -53,19 +53,6 @@ class PromptService {
 
         await Utils.showErrorToast(response, "Error during prompt deletion.");
     }
-
-    async testProgressive() {
-        const eventSource = new EventSource(`${this.apiUrl}/test/test_progressive`);
-        eventSource.onmessage = (event) => {
-            if (event.data === "done") {
-                eventSource.close();
-            } else {
-                console.log(event.data);
-            }
-        };
-
-        onCleanup(() => eventSource.close());
-    }
 }
 
 const promptService = new PromptService();
