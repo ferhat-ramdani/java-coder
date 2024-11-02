@@ -112,7 +112,6 @@ public class GeneratorService implements HttpService {
       if(pendingPrompt == null) {
         LOGGER.error("Front is trying to stream a response, but no prompt is pending.");
         sseSink.emit(SseEvent.create(LLMResponse.finish()));
-        sseSink.close();
         return;
       }
       var chat = dbService.getChatById(pendingPrompt.chatId());
@@ -131,7 +130,6 @@ public class GeneratorService implements HttpService {
         LOGGER.error("Error occurred while generating and streaming response to front :", e);
         sseSink.emit(SseEvent.create(LLMResponse.error(registerErrorPrompt("Error while generating class.", chat.id()))));
       } finally {
-        sseSink.close();
         pendingPrompt = null;
       }
     }
