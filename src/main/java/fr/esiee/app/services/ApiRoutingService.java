@@ -12,6 +12,11 @@ import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.servers.Server;
 
+/**
+ * This class defines the API routing service for the application.
+ * It sets up the routing rules for various API endpoints and handles
+ * the OpenAPI definition for the service.
+ */
 @OpenAPIDefinition(
         info = @Info(
                 title = "GPT for dev API",
@@ -24,6 +29,12 @@ import io.swagger.v3.oas.annotations.servers.Server;
 )
 public class ApiRoutingService implements HttpService {
 
+
+  /**
+   * Configures the routing rules for the API endpoints.
+   *
+   * @param httpRules the HTTP rules to configure
+   */
   @Override
   public void routing(HttpRules httpRules) {
     httpRules.register("/llm", new LLMService())
