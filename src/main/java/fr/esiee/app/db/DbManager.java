@@ -22,6 +22,9 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * Manages the database operations for the application.
+ */
 public class DbManager {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DbManager.class);
@@ -32,11 +35,23 @@ public class DbManager {
   private static final String DB_DEFAULT_USER = "gptfordev";
   private static final String DB_DEFAULT_PASSWORD = "gptfordev";
 
+  /**
+   * Only used for testing purposes.
+   *
+   * Creates a new DbManager instance with the specified DbClient.
+   *
+   * @param dbClient the DbClient instance to use for database operations
+   */
   @TestOnly
   DbManager(DbClient dbClient) {
     this.dbClient = dbClient;
   }
 
+  /**
+   * Creates a new DbManager instance.
+   *
+   * @throws IOException if an I/O error occurs during initialization
+   */
   private DbManager() throws IOException {
     var config = Config.global().get("db");
     this.dbClient = Contexts.globalContext()
