@@ -33,6 +33,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -63,14 +64,17 @@ public class GeneratorService implements HttpService {
     public static LLMResponse generating(String content) {
       return new LLMResponse(LLMResponseStatus.GENERATING, content, null);
     }
-    public static LLMResponse error(String content) {
-      return new LLMResponse(LLMResponseStatus.ERROR, content, null);
+    public static LLMResponse error(Prompt prompt) {
+      return new LLMResponse(LLMResponseStatus.ERROR, null, prompt);
     }
     public static LLMResponse done(Prompt prompt) {
-      return new LLMResponse(LLMResponseStatus.DONE, null, prompt);
+      return new LLMResponse(LLMResponseStatus.SUCCESS, null, prompt);
+    }
+    public static LLMResponse finish() {
+      return new LLMResponse(LLMResponseStatus.FINISH, null, null);
     }
   }
-  private enum LLMResponseStatus { GENERATING, ERROR, DONE }
+  private enum LLMResponseStatus { GENERATING, ERROR, SUCCESS, FINISH }
 
   public GeneratorService() {
     this.dbService = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found."));
@@ -94,6 +98,7 @@ public class GeneratorService implements HttpService {
     Objects.requireNonNull(prompt);
     Objects.requireNonNull(res);
     if(pendingPrompt != null) {
+      LOGGER.error("Front is trying to send a prompt, but a prompt is already being processed.");
       ErrorUtils.send(res, Status.NOT_ACCEPTABLE_406, "A prompt is already being processed.");
       return;
     }
@@ -102,11 +107,13 @@ public class GeneratorService implements HttpService {
   }
 
   public void streamLLMResponse(ServerRequest req, ServerResponse res) {
-    if(pendingPrompt == null) {
-      ErrorUtils.send(res, Status.NOT_ACCEPTABLE_406, "No prompt to process.");
-      return;
-    }
     try (var sseSink = res.sink(SseSink.TYPE)) {
+      if(pendingPrompt == null) {
+        LOGGER.error("Front is trying to stream a response, but no prompt is pending.");
+        sseSink.emit(SseEvent.create(LLMResponse.finish()));
+        sseSink.close();
+        return;
+      }
       var chat = dbService.getChatById(pendingPrompt.chatId());
       var newLLM = dbService.getLLMById(chat.llmId());
       dbService.insertPrompt(pendingPrompt);
@@ -115,19 +122,18 @@ public class GeneratorService implements HttpService {
       try {
         generatedCode = generateClassFromLLM(newLLM, chat.id(), pendingPrompt.message(), sseSink);
         LOGGER.info("Class generated successfully.");
+        var aiPrompt = new Prompt(0, generatedCode.code, AuthorType.AI, chat.id(), generatedCode.compiled);
+        dbService.insertPrompt(aiPrompt);
+        var registeredPrompt = dbService.getPromptByPromptInfo(aiPrompt);
+        sseSink.emit(SseEvent.create(LLMResponse.done(registeredPrompt)));
       } catch (IOException | InterruptedException | ExecutionException e) {
-        ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, "Error while generating class.");
-        throw new RestApiException(e);
+        LOGGER.error("Error occurred while generating and streaming response to front :", e);
+        sseSink.emit(SseEvent.create(LLMResponse.error(registerErrorPrompt("Error while generating class.", chat.id()))));
+      } finally {
+        sseSink.close();
+        pendingPrompt = null;
       }
-
-      // The generatedCode is never null, the generateClassFromLLM method throws an exception
-      var aiPrompt = new Prompt(0, generatedCode.code, AuthorType.AI, chat.id(), generatedCode.compiled);
-      dbService.insertPrompt(aiPrompt);
-      var registeredPrompt = dbService.getPromptByPromptInfo(aiPrompt);
-      sseSink.emit(SseEvent.create(LLMResponse.done(registeredPrompt)));
-      pendingPrompt = null;
     }
-
   }
 
   @POST
@@ -138,6 +144,7 @@ public class GeneratorService implements HttpService {
   public void executeClass(int promptId, @Parameter(hidden = true) ServerResponse res) {
     var prompt = dbService.getPromptById(promptId);
     if (!prompt.compile()) {
+      LOGGER.error("Front is trying to execute a class that does not compile");
       ErrorUtils.send(res, Status.NOT_ACCEPTABLE_406, "Prompt not supposed to be compiled.");
       return;
     }
@@ -151,8 +158,14 @@ public class GeneratorService implements HttpService {
     res.status(Status.OK_200).send(output);
   }
 
+  private Prompt registerErrorPrompt(String errorMessage, int chatId) {
+    var prompt = new Prompt(0, errorMessage, AuthorType.SYSTEM, chatId, false);
+    dbService.insertPrompt(prompt);
+    return dbService.getPromptByPromptInfo(prompt);
+  }
+
   private SourceCode generateClassFromLLM(LLM llm, int chatId, String requestText, SseSink sseSink)
-          throws IOException, InterruptedException, ExecutionException {
+          throws IOException, ExecutionException, InterruptedException {
     Objects.requireNonNull(llm);
     Objects.requireNonNull(requestText);
 
@@ -164,10 +177,15 @@ public class GeneratorService implements HttpService {
     String errorsText = null;
     String code = null;
     for (int attempt = 1; attempt <= NB_ATTEMPTS; attempt++) {
-      LOGGER.info("Attempting to generate a class : {}/{}", attempt, NB_ATTEMPTS);
-      sseSink.emit(SseEvent.create(LLMResponse.generating("Attempting to generate a class : " + attempt + "/" + NB_ATTEMPTS)));
+      LOGGER.info("Attempting to generate class (attempt {}/{}).", attempt, NB_ATTEMPTS);
+      sseSink.emit(SseEvent.create(LLMResponse.generating("Attempting to generate class (attempt " + attempt + "/" + NB_ATTEMPTS + ").")));
 
-      String answer = assistant.chat(attempt == 1 ? requestText : errorsText);
+      String answer;
+      try{
+        answer = assistant.chat(attempt == 1 ? requestText : errorsText);
+      } catch (RuntimeException e) {
+        throw new IOException("Error while asking assistant to generate response.", e.getCause());
+      }
 
       code = CompileAndExecUtils.extractCode(answer);
       LOGGER.info("Code extracted from response.");
@@ -180,8 +198,8 @@ public class GeneratorService implements HttpService {
         sseSink.emit(SseEvent.create(LLMResponse.generating("No errors found in generated code.")));
         return new SourceCode(code, true);
       } else {
-        LOGGER.error("Errors found in generated code.");
-        sseSink.emit(SseEvent.create(LLMResponse.error("Errors found in generated code.")));
+        LOGGER.info("Errors found in generated code:\n{}", errors);
+        sseSink.emit(SseEvent.create(LLMResponse.generating("Errors found in generated code.")));
         errorsText = SYSTEM_ERR_MESSAGE + errors;
       }
     }
@@ -196,6 +214,7 @@ public class GeneratorService implements HttpService {
             .modelName(llm.model())
             .temperature(llm.temp())
             .seed(llm.seed())
+//            .timeout(Duration.ofSeconds(2))
             .build();
 
     assistant = AiServices.builder(Assistant.class)
@@ -208,7 +227,7 @@ public class GeneratorService implements HttpService {
   private void updateMemoryWithPreviousPrompts(ChatMemory chatMemory, int chatId) {
     var prevPrompts = dbService.getPromptsByChatId(chatId);
     prevPrompts.stream()
-            .filter(prompt -> prompt.authorType() != AuthorType.SYSTEM)
+//            .filter(prompt -> prompt.authorType() != AuthorType.SYSTEM)
             .forEach(prompt -> chatMemory.add(new ChatMessage() {
                 @Override
                 public ChatMessageType type() {

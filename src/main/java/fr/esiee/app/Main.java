@@ -81,7 +81,14 @@ public class Main {
       routing.register("/api", new ApiRoutingService());
     }
 
-    routing.error(NotFoundException.class, (_, res, exception) -> ErrorUtils.send(res, Status.BAD_REQUEST_400, exception.getMessage())).error(RestApiException.class, (_, res, exception) -> ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, exception.getMessage()));
+    routing.error(NotFoundException.class, (_, res, exception) -> {
+                      ErrorUtils.send(res, Status.BAD_REQUEST_400, exception.getMessage());
+                      LOGGER.error("A NotFoundException occurred: ", exception);
+                    })
+            .error(RestApiException.class, (_, res, exception) -> {
+                      ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, exception.getMessage());
+                      LOGGER.error("A RestApiException occurred: ", exception);
+                    });
 
     registerFrontEndRoutes(routing);
   }

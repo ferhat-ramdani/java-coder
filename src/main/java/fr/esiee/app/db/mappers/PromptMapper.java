@@ -7,10 +7,15 @@ import io.helidon.dbclient.DbRow;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+
+import static fr.esiee.app.db.mappers.MapperUtils.recordToList;
+import static fr.esiee.app.db.mappers.MapperUtils.recordToMap;
 
 public record PromptMapper() implements DbMapper<Prompt> {
     @Override
     public Prompt read(DbRow row) {
+        Objects.requireNonNull(row);
         return new Prompt(
                 row.column("id").getInt(),
                 row.column("message").getString(),
@@ -22,11 +27,13 @@ public record PromptMapper() implements DbMapper<Prompt> {
 
     @Override
     public Map<String, Object> toNamedParameters(Prompt prompt) {
-        return MapperUtils.recordToMap(prompt);
+        Objects.requireNonNull(prompt);
+        return recordToMap(prompt);
     }
 
     @Override
     public List<Object> toIndexedParameters(Prompt prompt) {
-        return MapperUtils.recordToList(prompt);
+        Objects.requireNonNull(prompt);
+        return recordToList(prompt);
     }
 }

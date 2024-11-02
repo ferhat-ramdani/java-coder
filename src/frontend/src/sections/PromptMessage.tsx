@@ -44,7 +44,12 @@ const PromptMessage: Component<PromptProps> = (props) => {
                         <button class="btn btn-primary mt-2" onClick={e => execute(props.prompt.id)}><i class="bi bi-power"></i></button>
                     </Show>
                 </Match>
-                <Match when={props.prompt.authorType === AuthorType.USER || props.prompt.authorType === AuthorType.SYSTEM}>
+                <Match when={props.prompt.authorType === AuthorType.USER}>
+                    <div class={classes}>
+                        <p class="m-0">{props.prompt.message}</p>
+                    </div>
+                </Match>
+                <Match when={props.prompt.authorType === AuthorType.SYSTEM}>
                     <div class={classes}>
                         <p class="m-0">{props.prompt.message}</p>
                     </div>

@@ -1,4 +1,4 @@
-import {Accessor, Component, createSignal, Resource, Setter} from "solid-js";
+import {Accessor, Component, createSignal, Setter} from "solid-js";
 import promptService from "../services/PromptService";
 import {createPrompt, Prompt} from "../interfaces/Prompt";
 import {Chat} from "../interfaces/Chat";
@@ -7,21 +7,22 @@ import {useAppContext} from "../Context";
 import {AuthorType} from "../interfaces/AuthorType";
 import generatorService from "../services/GeneratorService";
 import {Utils} from "../services/Utils";
-import {LLMResponse} from "../interfaces/LLMResponse";
+import {LLMResponse, LLMResponseStatus} from "../interfaces/LLMResponse";
 
 type PromptAccessorSetter = { accessor: Accessor<Prompt[]>; setter: Setter<Prompt[]> };
 
 function processLLMResponseStatus(llmResponse: LLMResponse, eventSource: EventSource): any {
     let content = "";
-    let author = AuthorType.SYSTEM;
     let prompt = llmResponse.prompt;
 
     switch (llmResponse.status) {
-        case "DONE":
-            author = AuthorType.AI;
+        case "SUCCESS":
             eventSource.close();
             break;
         case "ERROR":
+            console.log("I got an error from the server");
+            eventSource.close();
+            break;
         case "TIMEOUT":
             eventSource.close();
             content = llmResponse.content!;
@@ -29,9 +30,15 @@ function processLLMResponseStatus(llmResponse: LLMResponse, eventSource: EventSo
         case "GENERATING":
             content = llmResponse.content!;
             break;
+        case "FINISH" :
+            console.log("FINISH Signal received");
+            content = "Closing communication with server";
+            prompt = null;
+            eventSource.close();
+            break;
     }
 
-    return { content, author, prompt };
+    return { status: llmResponse.status, content, prompt };
 }
 
 function handleSystemAuthorType(curChatPrompts: PromptAccessorSetter, systemPrompt: Prompt, content: string, indexOfPrompt: number): number {
@@ -54,11 +61,16 @@ function handleLLMResponse(
     systemPrompt: Prompt,
     indexOfPrompt: number = -1
 ): number {
-    const { content, author, prompt } = processLLMResponseStatus(llmResponse, eventSource);
+    const { status, content, prompt } = processLLMResponseStatus(llmResponse, eventSource);
 
-    if (author === AuthorType.SYSTEM) {
+    console.log("received prompt from server :");
+    console.log(prompt);
+
+    if (status === LLMResponseStatus.GENERATING.toString()) {
+        console.log("status was generating");
         return handleSystemAuthorType(curChatPrompts, systemPrompt, content, indexOfPrompt);
-    } else {
+    } else if(status === LLMResponseStatus.SUCCESS.toString() || status === LLMResponseStatus.ERROR.toString()) {
+        console.log("status was success or error");
         curChatPrompts.setter(prev => prev.filter((_, i) => i !== indexOfPrompt));
         curChatPrompts.setter(prev => [...prev, prompt]);
     }

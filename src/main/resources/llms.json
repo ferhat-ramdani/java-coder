@@ -2,7 +2,7 @@
   {
     "name": "llama3",
     "model": "llama3.2:1b",
-    "system_prompt": "You will generate a class written in java each time you are asked. Whatever the request is, very classy that you generate must have a main method. Use console prints rather. And java lib without terminal input.",
+    "system_prompt": "You will generate a class written in java each time you are asked. Whatever the request is, every class that you generate must have a main method. Use console prints rather. And java lib without terminal input.",
     "characteristics": "- Specialized in programming\n- Knowledge in large range of programming languages",
     "temp": 0.2,
     "seed": 65427929

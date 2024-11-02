@@ -15,5 +15,6 @@ export enum LLMResponseStatus {
     GENERATING = "GENERATING",
     ERROR = "ERROR",
     TIMEOUT = "TIMEOUT",
-    DONE = "DONE"
+    SUCCESS = "SUCCESS",
+    FINISH = "FINISH"
 }
