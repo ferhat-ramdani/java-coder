@@ -66,7 +66,7 @@ public class Main {
     LOGGER.info("WEB server is up! {}://{}:{}", server.hasTls() ? "https" : "http",server.prototype().host(), server.prototype().port());
   }
 
-  static void routing(HttpRouting.Builder routing) {
+  public static void routing(HttpRouting.Builder routing) {
 
     if (isDebugMode()) {
       var corsSupport = CorsSupport.builder()
