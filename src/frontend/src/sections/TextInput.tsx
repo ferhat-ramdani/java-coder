@@ -20,18 +20,18 @@ function processLLMResponseStatus(llmResponse: LLMResponse, eventSource: EventSo
             eventSource.close();
             break;
         case "ERROR":
-            console.log("I got an error from the server");
             eventSource.close();
+            Utils.showToast(`Error`, "Internal server error occurred", "danger", "bi-exclamation-triangle");
             break;
         case "TIMEOUT":
             eventSource.close();
             content = llmResponse.content!;
+            Utils.showToast(`Error`, "Timeout error occurred", "danger", "bi-exclamation-triangle");
             break;
         case "GENERATING":
             content = llmResponse.content!;
             break;
         case "FINISH" :
-            console.log("FINISH Signal received");
             content = "Closing communication with server";
             prompt = null;
             eventSource.close();
@@ -63,14 +63,9 @@ function handleLLMResponse(
 ): number {
     const { status, content, prompt } = processLLMResponseStatus(llmResponse, eventSource);
 
-    console.log("received prompt from server :");
-    console.log(prompt);
-
     if (status === LLMResponseStatus.GENERATING.toString()) {
-        console.log("status was generating");
         return handleSystemAuthorType(curChatPrompts, systemPrompt, content, indexOfPrompt);
     } else if(status === LLMResponseStatus.SUCCESS.toString() || status === LLMResponseStatus.ERROR.toString()) {
-        console.log("status was success or error");
         curChatPrompts.setter(prev => prev.filter((_, i) => i !== indexOfPrompt));
         curChatPrompts.setter(prev => [...prev, prompt]);
     }

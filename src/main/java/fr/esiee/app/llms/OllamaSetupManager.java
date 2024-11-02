@@ -100,7 +100,7 @@ public class OllamaSetupManager {
       cmd = "powershell -command \"Expand-Archive -Path '" + file + "' -DestinationPath '" + dest + "' -Force\"";
     }
 
-    var exitCode = executeCMD(cmd, CMDType.OTHER, true);
+    var exitCode = executeCMD(cmd, CMDType.OTHER, false);
     if (exitCode) {
       LOGGER.info("File successfully extracted to {}.", dest);
     } else {
