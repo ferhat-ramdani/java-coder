@@ -1,7 +1,5 @@
 package fr.esiee.app.db;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.esiee.app.db.entities.AuthorType;
 import fr.esiee.app.db.entities.Chat;
@@ -30,14 +28,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DbManagerTest {
 
+  private final List<LLM> llms =
+          List.of(new ObjectMapper().readValue(DbManagerTest.class.getResourceAsStream("/llms_test.json"),
+                  LLM[].class));
+  private final List<Chat> chats =
+          List.of(new ObjectMapper().readValue(DbManagerTest.class.getResourceAsStream("/chats.json"), Chat[].class));
+  private final List<Prompt> prompts =
+          List.of(new ObjectMapper().readValue(DbManagerTest.class.getResourceAsStream("/prompts.json"),
+                  Prompt[].class));
   private DbClient dbClient;
-
   private DbManager dbManager;
-
-  private List<LLM> llms = List.of(new ObjectMapper().readValue(DbManagerTest.class.getResourceAsStream("/llms_test.json"), LLM[].class));
-  private List<Chat> chats = List.of(new ObjectMapper().readValue(DbManagerTest.class.getResourceAsStream("/chats.json"), Chat[].class));
-  private List<Prompt> prompts =
-          List.of(new ObjectMapper().readValue(DbManagerTest.class.getResourceAsStream("/prompts.json"), Prompt[].class));
 
   DbManagerTest() throws IOException {
   }
@@ -52,38 +52,27 @@ class DbManagerTest {
 
   private void initializeLLM() {
     for (var llm : llms) {
-      dbClient.execute().createInsert("INSERT INTO llm(id, name, model, system_prompt, characteristics, temp, seed) VALUES(?, ?, ?, ?, ?, ?, ?)")
-              .addParam(llm.id())
-              .addParam(llm.name())
-              .addParam(llm.model())
-              .addParam(llm.systemPrompt())
-              .addParam(llm.characteristics())
-              .addParam(llm.temp())
-              .addParam(llm.seed())
-              .execute();
+      dbClient.execute().createInsert(
+                      "INSERT INTO llm(id, name, model, system_prompt, characteristics, temp, seed) VALUES(?, ?, ?, ?, ?, ?, ?)")
+              .addParam(llm.id()).addParam(llm.name()).addParam(llm.model()).addParam(llm.systemPrompt())
+              .addParam(llm.characteristics()).addParam(llm.temp()).addParam(llm.seed()).execute();
     }
   }
 
   private void initializeChat() {
     for (var chat : chats) {
       dbClient.execute().createInsert("INSERT INTO Chat(id, title, last_activity, llm_id) VALUES(?, ?, ?, ?)")
-              .addParam(chat.id())
-              .addParam(chat.title())
-              .addParam(chat.lastActivity())
-              .addParam(chat.llmId())
+              .addParam(chat.id()).addParam(chat.title()).addParam(chat.lastActivity()).addParam(chat.llmId())
               .execute();
     }
   }
 
   private void initializePrompt() {
     for (var prompt : prompts) {
-      dbClient.execute().createInsert("INSERT INTO Prompt(id, message, author_type, chat_id, compile) VALUES(?, ?, ?, ?, ?)")
-              .addParam(prompt.id())
-              .addParam(prompt.message())
-              .addParam(prompt.authorType().name())
-              .addParam(prompt.chatId())
-              .addParam(prompt.compile())
-              .execute();
+      dbClient.execute()
+              .createInsert("INSERT INTO Prompt(id, message, author_type, chat_id, compile) VALUES(?, ?, ?, ?, ?)")
+              .addParam(prompt.id()).addParam(prompt.message()).addParam(prompt.authorType().name())
+              .addParam(prompt.chatId()).addParam(prompt.compile()).execute();
     }
   }
 
@@ -99,11 +88,8 @@ class DbManagerTest {
   void testSetupSchema() {
     var tableName = dbClient.execute().createQuery("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES;").execute()
             .map(e -> e.column("TABLE_NAME").getString()).toList();
-    assertAll(
-            () -> assertTrue(tableName.contains("LLM")),
-            () -> assertTrue(tableName.contains("CHAT")),
-            () -> assertTrue(tableName.contains("PROMPT"))
-    );
+    assertAll(() -> assertTrue(tableName.contains("LLM")), () -> assertTrue(tableName.contains("CHAT")),
+            () -> assertTrue(tableName.contains("PROMPT")));
   }
 
   @Test
@@ -164,8 +150,7 @@ class DbManagerTest {
     var prompt = new Prompt(1, "Test", AuthorType.SYSTEM, 1, false);
     dbManager.insertPrompt(prompt);
     var prompts = dbManager.listPrompts();
-    assertEquals(1, prompts.size());
-    assertEquals(prompt, prompts.getFirst());
+    assertAll(() -> assertEquals(1, prompts.size()), () -> assertEquals(prompt, prompts.getFirst()));
   }
 
   @Test
@@ -187,8 +172,8 @@ class DbManagerTest {
     var newPrompt = new Prompt(prompt.id(), "Test", AuthorType.USER, 1, false);
     dbManager.updatePrompt(newPrompt);
     var updatedPrompt = dbManager.listPrompts().getFirst();
-    assertEquals(newPrompt, updatedPrompt);
-    assertNotEquals(prompt, updatedPrompt);
+
+    assertAll(() -> assertEquals(newPrompt, updatedPrompt), () -> assertNotEquals(prompt, updatedPrompt));
   }
 
   @Test
@@ -199,8 +184,8 @@ class DbManagerTest {
     var prompt = prompts.getFirst();
     dbManager.deletePromptById(prompt.id());
     var prompts = dbManager.listPrompts();
-    assertEquals(17, prompts.size());
-    assertNotEquals(prompt, prompts.getFirst());
+
+    assertAll(() -> assertEquals(17, prompts.size()), () -> assertNotEquals(prompt, prompts.getFirst()));
   }
 
   @Test
@@ -219,8 +204,8 @@ class DbManagerTest {
     var chat = new Chat(1, "Test", Timestamp.valueOf("2024-10-31 22:50:25"), 1);
     dbManager.insertChat(chat);
     var chats = dbManager.listChats();
-    assertEquals(1, chats.size());
-    assertEquals(chat, chats.getFirst());
+
+    assertAll(() -> assertEquals(1, chats.size()), () -> assertEquals(chat, chats.getFirst()));
   }
 
   @Test
@@ -243,7 +228,7 @@ class DbManagerTest {
   }
 
   @Test
-  void testChatExists(){
+  void testChatExists() {
     initializeLLM();
     initializeChat();
     var chat = chats.getFirst();
@@ -251,7 +236,7 @@ class DbManagerTest {
   }
 
   @Test
-  void testChatNotExists(){
+  void testChatNotExists() {
     initializeLLM();
     initializeChat();
     var chat = new Chat(100, "Test", Timestamp.from(Instant.now()), 1);
@@ -259,7 +244,7 @@ class DbManagerTest {
   }
 
   @Test
-  void testPromptExists(){
+  void testPromptExists() {
     initializeLLM();
     initializeChat();
     initializePrompt();
@@ -268,7 +253,7 @@ class DbManagerTest {
   }
 
   @Test
-  void testPromptNotExists(){
+  void testPromptNotExists() {
     initializeLLM();
     initializeChat();
     initializePrompt();
@@ -293,8 +278,8 @@ class DbManagerTest {
     var newChat = new Chat(chat.id(), "Test", Timestamp.valueOf("2024-12-24 12:32:59"), 1);
     dbManager.updateChat(newChat);
     var updatedChat = dbManager.getChatById(chat.id());
-    assertEquals(newChat, updatedChat);
-    assertNotEquals(chat, updatedChat);
+
+    assertAll(() -> assertEquals(newChat, updatedChat), () -> assertNotEquals(chat, updatedChat));
   }
 
   @Test
@@ -304,8 +289,9 @@ class DbManagerTest {
     var chat = chats.getLast();
     dbManager.deleteChatById(chat.id());
     var chatsDb = dbManager.listChats();
-    assertEquals(2, chatsDb.size());
-    assertNotEquals(chat, chatsDb.getLast());
+
+    assertAll(() -> assertEquals(2, chatsDb.size()), () -> assertNotEquals(chat, chatsDb.getLast()));
+
   }
 
   @Test
@@ -338,13 +324,13 @@ class DbManagerTest {
   }
 
   @Test
-  void testGetFirstPromptByChatId(){
+  void testGetFirstPromptByChatId() {
     initializeLLM();
     initializeChat();
     initializePrompt();
     var chatId = 1;
     var prompt = dbManager.getFirstPromptByChatId(chatId);
-    assertEquals(prompts.getFirst(), prompt);
-    assertNotEquals(prompts.getLast(), prompt);
+
+    assertAll(() -> assertEquals(prompts.getFirst(), prompt), () -> assertNotEquals(prompts.getLast(), prompt));
   }
 }

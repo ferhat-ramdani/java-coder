@@ -10,7 +10,8 @@ import io.helidon.webserver.testing.junit5.RoutingTest;
 import io.helidon.webserver.testing.junit5.SetUpRoute;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
 @RoutingTest
@@ -34,8 +35,8 @@ public class MainTest {
   @Test
   void testUiEndpoint() {
     try (var response = client.get("/index.html").request()) {
-      assertEquals(response.status(), Status.OK_200);
-      assertEquals(response.headers().contentType().orElseThrow().text(), "text/html");
+      assertAll(() -> assertEquals(response.status(), Status.OK_200),
+              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "text/html"));
     }
   }
 }
