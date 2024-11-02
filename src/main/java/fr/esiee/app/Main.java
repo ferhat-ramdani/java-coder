@@ -24,6 +24,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
+/**
+ * The main class for the application.
+ */
 public class Main {
 
   private static final StaticContentService FRONT_STATIC_PATH =
@@ -31,10 +34,22 @@ public class Main {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
+  /**
+   * Checks if the application is running in debug mode.
+   *
+   * @return true if debug mode is enabled, false otherwise
+   */
   public static boolean isDebugMode() {
     return Config.global().get("debug").asBoolean().orElse(false);
   }
 
+  /**
+   * The main method that serves as the entry point for the application.
+   *
+   * @param args the command line arguments
+   * @throws IOException if an I/O error occurs
+   * @throws InterruptedException if the thread is interrupted
+   */
   public static void main(String[] args) throws IOException, InterruptedException {
 
     LogConfig.configureRuntime();
@@ -63,9 +78,14 @@ public class Main {
 
     Contexts.globalContext().register(server);
 
-    LOGGER.info("WEB server is up! {}://{}:{}", server.hasTls() ? "https" : "http",server.prototype().host(), server.prototype().port());
+    LOGGER.info("WEB server is up! {}://{}:{}", server.hasTls() ? "https" : "http",server.prototype().host(), server.port());
   }
 
+  /**
+   * Configures the routing for the web server.
+   *
+   * @param routing the HttpRouting.Builder to configure the routes with
+   */
   public static void routing(HttpRouting.Builder routing) {
 
     if (isDebugMode()) {
@@ -86,6 +106,11 @@ public class Main {
     registerFrontEndRoutes(routing);
   }
 
+  /**
+   * Registers the front-end routes for the web server.
+   *
+   * @param routing the HttpRouting.Builder to register the routes with
+   */
   private static void registerFrontEndRoutes(HttpRouting.Builder routing) {
     routing.register("/", FRONT_STATIC_PATH).register("/about", FRONT_STATIC_PATH);
   }
