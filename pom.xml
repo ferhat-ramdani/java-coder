@@ -222,6 +222,13 @@
             <version>${helidon.version}</version>
         </dependency>
         <!-- end of openAPI ui dependencies -->
+        <!-- testing flux for streaming ai responses-->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-reactor</artifactId>
+            <version>${langchain4j.version}</version>
+        </dependency>
+        <!-- end of testing flux for streaming ai responses-->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>

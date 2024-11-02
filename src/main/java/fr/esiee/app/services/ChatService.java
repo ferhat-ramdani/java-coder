@@ -6,11 +6,13 @@ import fr.esiee.app.exception.RestApiException;
 import fr.esiee.app.utils.ErrorUtils;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
+import io.helidon.http.sse.SseEvent;
 import io.helidon.webserver.http.Handler;
 import io.helidon.webserver.http.HttpRules;
 import io.helidon.webserver.http.HttpService;
 import io.helidon.webserver.http.ServerRequest;
 import io.helidon.webserver.http.ServerResponse;
+import io.helidon.webserver.sse.SseSink;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -42,10 +44,12 @@ public class ChatService implements HttpService {
   @Override
   public void routing(HttpRules httpRules) {
     httpRules.get("/", this::listChats)
+
             .get("/{id}", this::getChatById)
             .post("/", Handler.create(Chat.class, this::insertChat))
             .put("/", Handler.create(Chat.class, this::updateChat))
             .delete("/{id}", this::deleteChatById);
+
   }
 
   @GET

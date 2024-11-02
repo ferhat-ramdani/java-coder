@@ -67,6 +67,10 @@ public class DbManager {
     }
   }
 
+  private static String truncate(String str, int length) {
+    return str.length() > length ? str.substring(0, length) : str;
+  }
+
   /**
    * Initializes the DbManager instance.
    *
@@ -190,7 +194,10 @@ public class DbManager {
             .createNamedGet("select-prompt-by-id")
             .addParam("id", promptId)
             .execute()
-            .orElseThrow(() -> new NotFoundException("Prompt " + promptId + " not found"))
+            .orElseThrow(() -> {
+              LOGGER.error("Prompt {} not found", promptId);
+              return new NotFoundException("Prompt " + promptId + " not found");
+            })
             .as(Prompt.class);
   }
 
@@ -377,11 +384,12 @@ public class DbManager {
     long updatedRow;
     try {
       updatedRow = transaction.createNamedInsert("insert-chat")
-              .addParam(chat.title())
+              .addParam(truncate(chat.title(), 100))
               .addParam(chat.lastActivity())
               .addParam(chat.llmId()).execute();
       transaction.commit();
     } catch (DbClientException t) {
+      LOGGER.error("Exception occured while trying to insert a chat to database : ", t);
       transaction.rollback();
       throw t;
     }
@@ -399,7 +407,7 @@ public class DbManager {
   public Chat getChatByParams(Chat chat) {
     return dbClient.execute()
             .createNamedGet("select-chat-by-params")
-            .addParam("title", chat.title())
+            .addParam("title", truncate(chat.title(), 100))
             .addParam("last_activity", chat.lastActivity())
             .addParam("llm_id", chat.llmId())
             .execute()

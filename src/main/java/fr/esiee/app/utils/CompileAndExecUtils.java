@@ -1,13 +1,15 @@
 package fr.esiee.app.utils;
 
-import fr.esiee.app.exception.RestApiException;
 import org.apache.commons.lang3.SystemUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaFileObject;
 import javax.tools.ToolProvider;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,12 +20,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class CompileAndExecUtils {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(CompileAndExecUtils.class);
   public static final int EXEC_TIMEOUT_SEC = 5;
 
   public enum Operation {
@@ -95,27 +99,34 @@ public class CompileAndExecUtils {
             .start();
 
     try (var executor = Executors.newSingleThreadExecutor();
-         ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+         var outputStream = new ByteArrayOutputStream()) {
 
-      var outputFuture = executor.submit(() -> {
-        try (var processOutput = process.getInputStream()) {
-          processOutput.transferTo(outputStream);
-        } catch (IOException e) {
-          throw new RestApiException(e);
-        }
-      });
+      Future<?> outputFuture;
+      try {
+        outputFuture = executor.submit(() -> {
+          try (var processOutput = process.getInputStream()) {
+            processOutput.transferTo(outputStream);
+          } catch (IOException e) {
+            throw new UncheckedIOException(e);
+          }
+        });
+      } catch (UncheckedIOException e) {
+        throw e.getCause();
+      }
 
       var finished = process.waitFor(EXEC_TIMEOUT_SEC, TimeUnit.SECONDS);
 
       if (!finished) {
+        LOGGER.warn("Execution of class {} timed out after {} seconds", className, EXEC_TIMEOUT_SEC);
         process.destroy();
+      } else {
+        outputFuture.get();
       }
 
-      outputFuture.get();
-
       var output = outputStream.toString(StandardCharsets.UTF_8);
+
       if (!finished){
-        return output + "\nExecution timed out after " + EXEC_TIMEOUT_SEC + " seconds.\n";
+        output += "\nExecution timed out after " + EXEC_TIMEOUT_SEC + " seconds.\n";
       }
       return output;
     }
@@ -159,15 +170,11 @@ public class CompileAndExecUtils {
     }
   }
 
-  private static void deleteFile(Path filePath) {
+  private static void deleteFile(Path filePath) throws IOException {
     Objects.requireNonNull(filePath);
 
     if (Files.exists(filePath)) {
-      try {
         Files.delete(filePath);
-      } catch (IOException e) {
-        throw new RuntimeException("Cannot delete " + filePath, e);
-      }
     }
   }
 

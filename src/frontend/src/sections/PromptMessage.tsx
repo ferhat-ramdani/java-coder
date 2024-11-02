@@ -17,6 +17,10 @@ const PromptMessage: Component<PromptProps> = (props) => {
             bgColor = "text-bg-primary";
             alignmentClass = "align-items-end";
             break;
+        case AuthorType.SYSTEM:
+            bgColor = "text-bg-secondary";
+            alignmentClass = "align-items-start";
+            break;
         case AuthorType.AI:
             bgColor = "text-bg-success";
             alignmentClass = "align-items-start";
@@ -41,6 +45,11 @@ const PromptMessage: Component<PromptProps> = (props) => {
                     </Show>
                 </Match>
                 <Match when={props.prompt.authorType === AuthorType.USER}>
+                    <div class={classes}>
+                        <p class="m-0">{props.prompt.message}</p>
+                    </div>
+                </Match>
+                <Match when={props.prompt.authorType === AuthorType.SYSTEM}>
                     <div class={classes}>
                         <p class="m-0">{props.prompt.message}</p>
                     </div>
