@@ -1,7 +1,6 @@
 import Config from '../Config';
 import { Prompt } from "../interfaces/Prompt";
 import {Utils} from "./Utils";
-import {onCleanup} from "solid-js";
 
 class PromptService {
 
@@ -17,7 +16,7 @@ class PromptService {
     }
 
     async getPromptById(id: number): Promise<Prompt> {
-        const response = await fetch(`${this.apiUrl}/byid/${id}`);
+        const response = await fetch(`${this.apiUrl}/${id}`);
         if (!response.ok) {
             throw new Error(`Error during GET query : ${response.statusText}`);
         }

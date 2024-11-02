@@ -33,7 +33,6 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -214,7 +213,6 @@ public class GeneratorService implements HttpService {
             .modelName(llm.model())
             .temperature(llm.temp())
             .seed(llm.seed())
-//            .timeout(Duration.ofSeconds(2))
             .build();
 
     assistant = AiServices.builder(Assistant.class)
@@ -227,7 +225,6 @@ public class GeneratorService implements HttpService {
   private void updateMemoryWithPreviousPrompts(ChatMemory chatMemory, int chatId) {
     var prevPrompts = dbService.getPromptsByChatId(chatId);
     prevPrompts.stream()
-//            .filter(prompt -> prompt.authorType() != AuthorType.SYSTEM)
             .forEach(prompt -> chatMemory.add(new ChatMessage() {
                 @Override
                 public ChatMessageType type() {
