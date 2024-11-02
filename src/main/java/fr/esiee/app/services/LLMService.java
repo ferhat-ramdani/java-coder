@@ -25,15 +25,30 @@ import java.util.NoSuchElementException;
 @Tag(name = "LLM", description = "Endpoints to get llm's informations.")
 @ApiResponse(content = @Content(mediaType = "application/json", schema = @Schema(implementation = LLMDTO.class)), responseCode = "200", description = "Successful operation")
 @Path("/api/llm/")
+/**
+ * Class representing the LLMService.
+ * Provides endpoints to get LLM's information.
+ */
 public class LLMService implements HttpService {
 
   private final DbManager dbService;
 
+  /**
+   * Constructs a new LLMService instance.
+   * Initializes the DbManager from the global context.
+   *
+   * @throws NoSuchElementException if the DbManager is not found in the global context
+   */
   public LLMService() {
     dbService = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found."));
   }
 
   @Override
+  /**
+   * Configures the routing rules for the HTTP service.
+   *
+   * @param httpRules the HTTP rules to configure
+   */
   public void routing(HttpRules httpRules) {
     httpRules.get("/", this::getListOfLLM)
             .get("/{id}", this::getLLMById)
@@ -44,6 +59,12 @@ public class LLMService implements HttpService {
   @javax.ws.rs.Path("/")
   @Operation(summary = "get LLMs", description = "Get list of all LLMs")
   @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = LLMDTO.class))))
+  /**
+   * Endpoint to get the list of all LLMs.
+   *
+   * @param req the server request
+   * @param res the server response
+   */
   public void getListOfLLM(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
     var llmsToSend = dbService.listLLMs().stream().map(LLMDTO::copyOf).toList();
     res.status(Status.OK_200).send(llmsToSend);
@@ -52,6 +73,12 @@ public class LLMService implements HttpService {
   @GET
   @javax.ws.rs.Path("/first")
   @Operation(summary = "get first LLM", description = "Get the first LLM of the list of supported LLMs")
+  /**
+   * Endpoint to get the first LLM.
+   *
+   * @param req the server request
+   * @param res the server response
+   */
   public void getFirstLLM(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
     var llm = dbService.getFirstLLM();
     res.status(Status.OK_200).send(LLMDTO.copyOf(llm));
@@ -60,6 +87,13 @@ public class LLMService implements HttpService {
   @GET
   @javax.ws.rs.Path("/{id}")
   @Operation(summary = "get LLM by ID", description = "Get a LLM by its ID")
+  /**
+   * Retrieves a LLM by its ID.
+   *
+   * @param req the server request containing the LLM ID
+   * @param res the server response to send the LLM data
+   * @throws RestApiException if the LLM ID is not provided
+   */
   public void getLLMById(
           @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the llm to retrieve", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest req,
           @Parameter(hidden = true) ServerResponse res
