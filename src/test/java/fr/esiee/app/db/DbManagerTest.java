@@ -333,4 +333,17 @@ class DbManagerTest {
 
     assertAll(() -> assertEquals(prompts.getFirst(), prompt), () -> assertNotEquals(prompts.getLast(), prompt));
   }
+
+  @Test
+  void testTruncate() {
+    var bigString = "a".repeat(250);
+    var normalizedString = "a".repeat(100);
+
+    var result = DbManager.truncate(bigString, 100);
+    assertAll(
+            () -> assertEquals(100, result.length()),
+            () -> assertEquals(normalizedString, result),
+            () -> assertEquals(result, DbManager.truncate(result, 150))
+    );
+  }
 }

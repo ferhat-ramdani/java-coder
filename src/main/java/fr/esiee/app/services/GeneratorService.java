@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import java.io.IOException;
@@ -107,7 +108,10 @@ public class GeneratorService implements HttpService {
     res.status(Status.OK_200).send("Prompt received successfully.");
   }
 
-  public void streamLLMResponse(ServerRequest req, ServerResponse res) {
+  @GET
+  @Path("/stream")
+  @Operation(summary = "stream generation info", description = "Streams message about the generation.")
+  public void streamLLMResponse(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
     try (var sseSink = res.sink(SseSink.TYPE)) {
       if(pendingPrompt == null) {
         LOGGER.error("Front is trying to stream a response, but no prompt is pending.");

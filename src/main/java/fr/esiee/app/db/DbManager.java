@@ -67,7 +67,14 @@ public class DbManager {
     }
   }
 
-  private static String truncate(String str, int length) {
+  /**
+   * Truncates the given string to the specified length.
+   *
+   * @param str the string to be truncated
+   * @param length the maximum length of the truncated string
+   * @return the truncated string if its length exceeds the specified length, otherwise the original string
+   */
+  static String truncate(String str, int length) {
     return str.length() > length ? str.substring(0, length) : str;
   }
 
