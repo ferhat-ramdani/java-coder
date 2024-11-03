@@ -11,27 +11,36 @@ import {LLMResponse, LLMResponseStatus} from "../interfaces/LLMResponse";
 
 type PromptAccessorSetter = { accessor: Accessor<Prompt[]>; setter: Setter<Prompt[]> };
 
-function processLLMResponseStatus(llmResponse: LLMResponse, eventSource: EventSource): any {
+function processLLMResponseStatus(llmResponse: LLMResponse, eventSource: EventSource, setSendDisabled: Setter<boolean>): any {
     let content = "";
     let prompt = llmResponse.prompt;
 
+    if(prompt != null && prompt?.authorType === AuthorType.SYSTEM) {
+        prompt.temporary = llmResponse.status === LLMResponseStatus.GENERATING.toString();
+    }
+
     switch (llmResponse.status) {
         case "SUCCESS":
+            setSendDisabled(false);
             eventSource.close();
             break;
         case "ERROR":
+            setSendDisabled(false);
             eventSource.close();
             Utils.showToast(`Error`, "Internal server error occurred", "danger", "bi-exclamation-triangle");
             break;
         case "TIMEOUT":
+            setSendDisabled(false);
             eventSource.close();
             content = llmResponse.content!;
             Utils.showToast(`Error`, "Timeout error occurred", "danger", "bi-exclamation-triangle");
             break;
         case "GENERATING":
+            setSendDisabled(true);
             content = llmResponse.content!;
             break;
         case "FINISH" :
+            setSendDisabled(false);
             content = "Closing communication with server";
             prompt = null;
             eventSource.close();
@@ -58,10 +67,11 @@ function handleLLMResponse(
     llmResponse: LLMResponse,
     eventSource: EventSource,
     curChatPrompts: PromptAccessorSetter,
+    setSendDisabled: Setter<boolean>,
     systemPrompt: Prompt,
     indexOfPrompt: number = -1
 ): number {
-    const { status, content, prompt } = processLLMResponseStatus(llmResponse, eventSource);
+    const { status, content, prompt } = processLLMResponseStatus(llmResponse, eventSource, setSendDisabled);
 
     if (status === LLMResponseStatus.GENERATING.toString()) {
         return handleSystemAuthorType(curChatPrompts, systemPrompt, content, indexOfPrompt);
@@ -82,9 +92,9 @@ const TextInput: Component = () => {
         setMessage("");
         try {
             const newPrompt: Prompt = createPrompt(messageToSend, AuthorType.USER, curChatId.accessor()!);
-            insertNewPrompt(newPrompt);
+            await insertNewPrompt(newPrompt);
             await generatorService.generateResponseFromLLM(newPrompt, (llmResponse: LLMResponse, eventSource: EventSource, systemPrompt: Prompt, IndexOfPrompt: number) => {
-                return handleLLMResponse(llmResponse, eventSource, curChatPrompts, systemPrompt, IndexOfPrompt);
+                return handleLLMResponse(llmResponse, eventSource, curChatPrompts, setSendDisabled, systemPrompt, IndexOfPrompt);
             });
         } catch (error) {
             console.error("Error fetching llm response:", error);

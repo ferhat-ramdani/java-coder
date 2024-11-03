@@ -1,7 +1,6 @@
 package fr.esiee.app.services;
 
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -36,6 +35,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -217,6 +217,7 @@ public class GeneratorService implements HttpService {
             .modelName(llm.model())
             .temperature(llm.temp())
             .seed(llm.seed())
+            .timeout(Duration.ofSeconds(30))
             .build();
 
     assistant = AiServices.builder(Assistant.class)
