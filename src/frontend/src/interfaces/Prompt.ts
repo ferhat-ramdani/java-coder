@@ -19,7 +19,3 @@ export function createPrompt(message: string, authorType: AuthorType, chatId: nu
         temporary: temporary
     };
 }
-
-export function setPromptToTemporary(prompt: Prompt): Prompt {
-    return {...prompt, temporary: true};
-}

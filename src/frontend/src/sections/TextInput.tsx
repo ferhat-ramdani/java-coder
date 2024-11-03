@@ -8,10 +8,15 @@ import {AuthorType} from "../interfaces/AuthorType";
 import generatorService from "../services/GeneratorService";
 import {Utils} from "../services/Utils";
 import {LLMResponse, LLMResponseStatus} from "../interfaces/LLMResponse";
+import {LLM} from "../interfaces/LLM";
 
 type PromptAccessorSetter = { accessor: Accessor<Prompt[]>; setter: Setter<Prompt[]> };
 
-function processLLMResponseStatus(llmResponse: LLMResponse, eventSource: EventSource, setSendDisabled: Setter<boolean>): any {
+function processLLMResponseStatus(
+    llmResponse: LLMResponse,
+    eventSource: EventSource,
+    setSendDisabled: Setter<boolean>
+): any {
     let content = "";
     let prompt = llmResponse.prompt;
 
@@ -50,7 +55,12 @@ function processLLMResponseStatus(llmResponse: LLMResponse, eventSource: EventSo
     return { status: llmResponse.status, content, prompt };
 }
 
-function handleSystemAuthorType(curChatPrompts: PromptAccessorSetter, systemPrompt: Prompt, content: string, indexOfPrompt: number): number {
+function handleSystemAuthorType(
+    curChatPrompts: PromptAccessorSetter,
+    systemPrompt: Prompt,
+    content: string,
+    indexOfPrompt: number
+): number {
     let newIndex = indexOfPrompt;
     if(indexOfPrompt >= 0) {
         let prompt = curChatPrompts.accessor()[indexOfPrompt];
@@ -82,65 +92,94 @@ function handleLLMResponse(
     return indexOfPrompt;
 }
 
+const insertNewPrompt = async (
+    prompt: Prompt,
+    curChatPrompts : PromptAccessorSetter,
+    send: boolean = false
+) => {
+    try {
+        if(send) {
+            await promptService.createPrompt(prompt);
+        }
+        curChatPrompts.setter(prev => [...prev, prompt]);
+    } catch (error) {
+        console.error("Failed to create prompt:", error);
+    }
+}
+
+const createNewChat = async (
+    title: string,
+    selectedLLM: LLM | null,
+    curChatId: Setter<number | null>,
+    chats: { refetcher: () => void }
+) => {
+    if (selectedLLM) {
+        const newChat: Chat = { id: 0, title: title, lastActivity: Date.now(), llmId: selectedLLM!.id };
+        try {
+            const createdChat = await chatService.createChat(newChat);
+            curChatId(createdChat.id);
+            chats.refetcher();
+        } catch (error) {
+            console.error("Error creating chat:", error);
+        }
+    } else {
+        Utils.showToast("Error", "Please select an LLM Model", "danger", "bi-exclamation-triangle");
+    }
+};
+
+const fetchLLMResponse = async (
+    message: string,
+    setMessage: Setter<string>,
+    curChatId: Accessor<number | null>,
+    curChatPrompts: PromptAccessorSetter,
+    setSendDisabled: Setter<boolean>
+) => {
+    const messageToSend = message;
+    setMessage("");
+    try {
+        const newPrompt: Prompt = createPrompt(messageToSend, AuthorType.USER, curChatId()!);
+        await insertNewPrompt(newPrompt, curChatPrompts);
+        await generatorService.generateResponseFromLLM(newPrompt,
+            (llmResponse: LLMResponse, eventSource: EventSource, systemPrompt: Prompt, IndexOfPrompt: number) => {
+            return handleLLMResponse(llmResponse, eventSource, curChatPrompts, setSendDisabled, systemPrompt, IndexOfPrompt);
+        });
+    } catch (error) {
+        console.error("Error fetching llm response:", error);
+    }
+};
+
+const handleSendMessage = async (
+    message: Accessor<string>,
+    setMessage: Setter<string>,
+    curChatId: { accessor : Accessor<number|null>, setter : Setter<number | null> },
+    selectedLLM: Accessor<LLM | null>,
+    curChatPrompts: PromptAccessorSetter,
+    setSendDisabled: Setter<boolean>,
+    chats: { refetcher: () => void }
+) => {
+    if (!message().trim()) return;
+
+    if (!curChatId.accessor() && !selectedLLM()) {
+        Utils.showToast("Error", "Please select an LLM Model", "danger", "bi-exclamation-triangle");
+    } else {
+        setSendDisabled(true);
+        if (!curChatId.accessor() && selectedLLM()) {
+            await createNewChat(message(), selectedLLM(), curChatId.setter, chats);
+        }
+        await fetchLLMResponse(message(), setMessage, curChatId.accessor, curChatPrompts, setSendDisabled);
+        setSendDisabled(false);
+    }
+};
+
 const TextInput: Component = () => {
     const [{curChatId, selectedLLM, curChatPrompts, chats}] = useAppContext();
     const [message, setMessage] = createSignal("");
     const [sendDisabled, setSendDisabled] = createSignal(false);
 
-    const fetchLLMResponse = async () => {
-        const messageToSend = message();
-        setMessage("");
-        try {
-            const newPrompt: Prompt = createPrompt(messageToSend, AuthorType.USER, curChatId.accessor()!);
-            await insertNewPrompt(newPrompt);
-            await generatorService.generateResponseFromLLM(newPrompt, (llmResponse: LLMResponse, eventSource: EventSource, systemPrompt: Prompt, IndexOfPrompt: number) => {
-                return handleLLMResponse(llmResponse, eventSource, curChatPrompts, setSendDisabled, systemPrompt, IndexOfPrompt);
-            });
-        } catch (error) {
-            console.error("Error fetching llm response:", error);
-        }
-    }
 
     const handleSend = async () => {
-        if (!message().trim()) return;
-
-        if (!curChatId.accessor() && !selectedLLM.accessor()) {
-            Utils.showToast("Error", "Please select an LLM Model", "danger", "bi-exclamation-triangle");
-        } else {
-            setSendDisabled(true);
-            if (!curChatId.accessor() && selectedLLM.accessor()) {
-                await createNewChat(message());
-            }
-            await fetchLLMResponse();
-            setSendDisabled(false);
-        }
+        await handleSendMessage(message, setMessage, curChatId, selectedLLM.accessor, curChatPrompts, setSendDisabled, chats);
     };
-
-    const createNewChat = async (title = "") => {
-        if(selectedLLM.accessor()) {
-            const newChat: Chat = { id: 0, title: title, lastActivity: Date.now(), llmId: selectedLLM.accessor()!.id };
-            try {
-                const createdChat = await chatService.createChat(newChat);
-                curChatId.setter(createdChat.id);
-                chats.refetcher();
-            } catch (error) {
-                console.error("Error creating chat:", error);
-            }
-        } else {
-            Utils.showToast("Error", "Please select an LLM Model", "danger", "bi-exclamation-triangle");
-        }
-    };
-
-    const insertNewPrompt = async (prompt: Prompt, send: boolean = false) => {
-        try {
-            if(send) {
-                await promptService.createPrompt(prompt);
-            }
-            curChatPrompts.setter(prev => [...prev, prompt]);
-        } catch (error) {
-            console.error("Failed to create prompt:", error);
-        }
-    }
 
     return (
         <div class="input-group d-flex justify-content-center">

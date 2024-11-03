@@ -43,10 +43,6 @@ const ChatItem: Component<{ chat: Chat }> = (prop) => {
         const chatId = curChatId.accessor();
         if (chatId) {
             const chatPrompts = await fetchPromptsOfChat(chatId);
-            console.log("chat prompts recieved from database");
-            console.log(chatPrompts);
-            console.log("chat prompts temporary");
-            console.log(chatPrompts[0].temporary);
             curChatPrompts.setter(chatPrompts);
         } else {
             curChatPrompts.setter([]);
