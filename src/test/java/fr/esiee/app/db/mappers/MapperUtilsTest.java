@@ -14,10 +14,11 @@ class MapperUtilsTest {
     var avenger = new Avenger("Tony Stark", "Iron Man", "Iron Man Suit");
 
     var result = MapperUtils.recordToMap(avenger);
-    assertEquals(3, result.size());
-    assertEquals(avenger.name, result.get("name"));
-    assertEquals(avenger.alias, result.get("alias"));
-    assertEquals(avenger.weapon, result.get("weapon"));
+
+    assertAll(() -> assertEquals(3, result.size()),
+            () -> assertEquals(avenger.name, result.get("name")),
+            () -> assertEquals(avenger.alias, result.get("alias")),
+            () -> assertEquals(avenger.weapon, result.get("weapon")));
   }
 
   @Test
@@ -25,10 +26,10 @@ class MapperUtilsTest {
     var avenger = new Avenger("Steve Rogers", "Captain America", "Vibranium Shield");
 
     var result = MapperUtils.recordToList(avenger);
-    assertEquals(3, result.size());
-    assertEquals(avenger.name, result.get(0));
-    assertEquals(avenger.alias, result.get(1));
-    assertEquals(avenger.weapon, result.get(2));
+    assertAll(() -> assertEquals(3, result.size()),
+            () -> assertEquals(avenger.name, result.get(0)),
+            () -> assertEquals(avenger.alias, result.get(1)),
+            () -> assertEquals(avenger.weapon, result.get(2)));
   }
 
   @Test

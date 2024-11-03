@@ -9,6 +9,7 @@ import io.helidon.webserver.testing.junit5.RoutingTest;
 import io.helidon.webserver.testing.junit5.SetUpRoute;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
@@ -31,32 +32,32 @@ public class ApiRoutingServiceTest {
   @Test
   public void testLlmEndpoint() {
     try (var response = client.get("/llm").request()) {
-      assertEquals(response.status(), Status.OK_200);
-      assertEquals(response.headers().contentType().orElseThrow().text(), "application/json");
+      assertAll(() -> assertEquals(response.status(), Status.OK_200),
+              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"));
     }
   }
 
   @Test
   public void testChatEndpoint() {
     try (var response = client.get("/chat").request()) {
-      assertEquals(response.status(), Status.OK_200);
-      assertEquals(response.headers().contentType().orElseThrow().text(), "application/json");
+      assertAll(() -> assertEquals(response.status(), Status.OK_200),
+              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"));
     }
   }
 
   @Test
   public void testPromptEndpoint() {
     try (var response = client.get("/prompt").request()) {
-      assertEquals(response.status(), Status.OK_200);
-      assertEquals(response.headers().contentType().orElseThrow().text(), "application/json");
+      assertAll(() -> assertEquals(response.status(), Status.OK_200),
+              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"));
     }
   }
 
   @Test
   public void testInvalidEndpoint() {
     try (var response = client.get("/inside").request()) {
-      assertEquals(response.status(), Status.BAD_REQUEST_400);
-      assertEquals(response.headers().contentType().orElseThrow().text(), "application/json");
+      assertAll(() -> assertEquals(response.status(), Status.BAD_REQUEST_400),
+              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"));
     }
   }
 }
