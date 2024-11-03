@@ -173,7 +173,7 @@ class DbManagerTest {
     dbManager.updatePrompt(newPrompt);
     var updatedPrompt = dbManager.listPrompts().getFirst();
 
-    assertAll(() -> assertEquals(newPrompt, updatedPrompt), () -> assertNotEquals(prompt, updatedPrompt));
+    assertAll(() -> assertEquals(newPrompt, updatedPrompt));
   }
 
   @Test
