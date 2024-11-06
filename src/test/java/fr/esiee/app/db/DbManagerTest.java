@@ -10,6 +10,7 @@ import io.helidon.config.Config;
 import io.helidon.dbclient.DbClient;
 import io.helidon.http.NotFoundException;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -40,6 +41,14 @@ class DbManagerTest {
   private DbManager dbManager;
 
   DbManagerTest() throws IOException {
+  }
+
+  @BeforeAll
+  static void resetDB() {
+    var config = Config.global().get("db");
+    try(var dbClient = DbClient.builder(config).build()) {
+      dbClient.execute().delete("DROP ALL OBJECTS");
+    }
   }
 
   @BeforeEach
@@ -78,9 +87,7 @@ class DbManagerTest {
 
   @AfterEach
   void closeDBManager() {
-    dbClient.execute().createDelete("DELETE FROM llm").execute();
-    dbClient.execute().createDelete("DELETE FROM chat").execute();
-    dbClient.execute().createDelete("DELETE FROM prompt").execute();
+    dbClient.execute().delete("DROP ALL OBJECTS");
     dbClient.close();
   }
 
@@ -340,10 +347,7 @@ class DbManagerTest {
     var normalizedString = "a".repeat(100);
 
     var result = DbManager.truncate(bigString, 100);
-    assertAll(
-            () -> assertEquals(100, result.length()),
-            () -> assertEquals(normalizedString, result),
-            () -> assertEquals(result, DbManager.truncate(result, 150))
-    );
+    assertAll(() -> assertEquals(100, result.length()), () -> assertEquals(normalizedString, result),
+            () -> assertEquals(result, DbManager.truncate(result, 150)));
   }
 }

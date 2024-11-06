@@ -1,7 +1,6 @@
 package fr.esiee.app.services;
 
 import fr.esiee.app.db.DbManager;
-import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
 import io.helidon.webclient.http1.Http1Client;
 import io.helidon.webserver.http.HttpRouting;
@@ -9,9 +8,10 @@ import io.helidon.webserver.testing.junit5.RoutingTest;
 import io.helidon.webserver.testing.junit5.SetUpRoute;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
 
 @RoutingTest
 public class ApiRoutingServiceTest {
@@ -23,9 +23,8 @@ public class ApiRoutingServiceTest {
   }
 
   @SetUpRoute
-  static void routing(HttpRouting.Builder builder) {
-    var mockDbManager = mock(DbManager.class);
-    Contexts.globalContext().register(mockDbManager);
+  static void routing(HttpRouting.Builder builder) throws IOException {
+    DbManager.initialize();
     builder.register("/", new ApiRoutingService());
   }
 
