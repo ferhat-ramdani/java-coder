@@ -9,6 +9,7 @@ import io.helidon.common.context.Contexts;
 import io.helidon.config.Config;
 import io.helidon.dbclient.DbClient;
 import io.helidon.http.NotFoundException;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,10 +45,20 @@ class DbManagerTest {
   }
 
   @BeforeAll
-  static void resetDB() {
+  static void cleanDB() {
     var config = Config.global().get("db");
     try(var dbClient = DbClient.builder(config).build()) {
       dbClient.execute().delete("DROP ALL OBJECTS");
+    }
+  }
+
+  @AfterAll
+  static void restoreDB() throws IOException {
+    var config = Config.global().get("db");
+    try(var dbClient = DbClient.builder(config).build()) {
+      var dbManager = new DbManager(dbClient);
+      dbManager.setupSchema();
+      dbManager.setupData();
     }
   }
 

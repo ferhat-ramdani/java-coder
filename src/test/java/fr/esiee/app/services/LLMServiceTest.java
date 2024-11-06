@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @RoutingTest
 class LLMServiceTest {
 
-  private static DbManager dbManager;
+  private final DbManager dbManager;
   private final Http1Client client;
 
   public LLMServiceTest(Http1Client client) {
