@@ -6,13 +6,11 @@ import fr.esiee.app.exception.RestApiException;
 import fr.esiee.app.utils.ErrorUtils;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
-import io.helidon.http.sse.SseEvent;
 import io.helidon.webserver.http.Handler;
 import io.helidon.webserver.http.HttpRules;
 import io.helidon.webserver.http.HttpService;
 import io.helidon.webserver.http.ServerRequest;
 import io.helidon.webserver.http.ServerResponse;
-import io.helidon.webserver.sse.SseSink;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -37,21 +35,37 @@ public class ChatService implements HttpService {
 
   private final DbManager dbClient;
 
+  /**
+   * Constructs a new ChatService instance.
+   * Initializes the DbManager from the global context.
+   *
+   * @throws NoSuchElementException if DbManager is not found in the global context.
+   */
   public ChatService() {
     this.dbClient = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found."));
   }
 
+  /**
+   * Defines the routing rules for the ChatService.
+   *
+   * @param httpRules the HttpRules to define the routes
+   */
   @Override
   public void routing(HttpRules httpRules) {
     httpRules.get("/", this::listChats)
-
-            .get("/{id}", this::getChatById)
             .post("/", Handler.create(Chat.class, this::insertChat))
             .put("/", Handler.create(Chat.class, this::updateChat))
+            .get("/{id}", this::getChatById)
             .delete("/{id}", this::deleteChatById);
-
   }
 
+  /**
+   * Retrieves a chat by its ID.
+   *
+   * @param request  the server request containing the chat ID
+   * @param response the server response to send the chat data
+   * @throws RestApiException if the chat ID is not provided or invalid
+   */
   @GET
   @Path("/{id}")
   @Operation(summary = "Get chat by ID", description = "Retrieves a chat by its ID")
@@ -66,6 +80,12 @@ public class ChatService implements HttpService {
     response.status(Status.OK_200).send(chat);
   }
 
+  /**
+   * Retrieves a list of all chats.
+   *
+   * @param request  the server request
+   * @param response the server response
+   */
   @GET
   @Path("/")
   @Operation(summary = "List all chats", description = "Retrieves a list of all chats")
@@ -77,6 +97,12 @@ public class ChatService implements HttpService {
     response.status(Status.OK_200).send(dbClient.listChats());
   }
 
+  /**
+   * Inserts a chat into the database.
+   *
+   * @param chat     the chat object to insert
+   * @param response the server response to send the result
+   */
   @POST
   @Path("/")
   @Operation(summary = "Insert a chat", description = "Inserts a chat into the database")
@@ -92,6 +118,12 @@ public class ChatService implements HttpService {
     response.status(Status.CREATED_201).send(latestChat);
   }
 
+  /**
+   * Updates a chat in the database.
+   *
+   * @param chat     the chat object to update
+   * @param response the server response to send the result
+   */
   @PUT
   @Path("/")
   @Operation(summary = "Update a chat", description = "Updates a chat in the database")
@@ -106,6 +138,13 @@ public class ChatService implements HttpService {
     response.status(Status.OK_200).send("Updated " + updatedRows + " rows");
   }
 
+  /**
+   * Deletes a chat by its ID.
+   *
+   * @param request  the server request containing the chat ID
+   * @param response the server response to send the result
+   * @throws RestApiException if the chat ID is not provided or invalid
+   */
   @DELETE
   @Path("/{id}")
   @Operation(summary = "Delete a chat by ID", description = "Deletes a chat by its ID")
