@@ -1,7 +1,10 @@
 package fr.esiee.app.db.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.Objects;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record Prompt(int id, String message, AuthorType authorType, int chatId, boolean compile) {
   public Prompt {
     Objects.requireNonNull(message);

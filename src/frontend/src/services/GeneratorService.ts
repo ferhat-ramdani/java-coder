@@ -17,7 +17,7 @@ class GeneratorService {
 
         eventSource.onmessage = (event) => {
             const llmResponse: LLMResponse = JSON.parse(event.data);
-            const systemPrompt: Prompt = createPrompt("", AuthorType.SYSTEM, prompt.chatId);
+            const systemPrompt: Prompt = createPrompt("", AuthorType.SYSTEM, prompt.chatId, false, true);
             index = responseHandler(llmResponse, eventSource, systemPrompt, index);
         }
     }

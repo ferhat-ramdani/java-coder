@@ -1,7 +1,6 @@
 package fr.esiee.app.services;
 
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -36,6 +35,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -181,7 +181,7 @@ public class GeneratorService implements HttpService {
     String code = null;
     for (int attempt = 1; attempt <= NB_ATTEMPTS; attempt++) {
       LOGGER.info("Attempting to generate class (attempt {}/{}).", attempt, NB_ATTEMPTS);
-      sseSink.emit(SseEvent.create(LLMResponse.generating("Attempting to generate class (attempt " + attempt + "/" + NB_ATTEMPTS + ").")));
+      sseSink.emit(SseEvent.create(LLMResponse.generating("Attempting to generate class (attempt " + attempt + "/" + NB_ATTEMPTS + ")")));
 
       String answer;
       try{
@@ -192,17 +192,17 @@ public class GeneratorService implements HttpService {
 
       code = CompileAndExecUtils.extractCode(answer);
       LOGGER.info("Code extracted from response.");
-      sseSink.emit(SseEvent.create(LLMResponse.generating("Code extracted from response.")));
+      sseSink.emit(SseEvent.create(LLMResponse.generating("Code extracted from response")));
 
       var errors = CompileAndExecUtils.processText(code, CompileAndExecUtils.Operation.COMPILE);
 
       if (errors.isEmpty()) {
         LOGGER.info("No errors found in generated code.");
-        sseSink.emit(SseEvent.create(LLMResponse.generating("No errors found in generated code.")));
+        sseSink.emit(SseEvent.create(LLMResponse.generating("No errors found in generated code")));
         return new SourceCode(code, true);
       } else {
         LOGGER.info("Errors found in generated code:\n{}", errors);
-        sseSink.emit(SseEvent.create(LLMResponse.generating("Errors found in generated code.")));
+        sseSink.emit(SseEvent.create(LLMResponse.generating("Errors found in generated code")));
         errorsText = SYSTEM_ERR_MESSAGE + errors;
       }
     }
@@ -217,6 +217,7 @@ public class GeneratorService implements HttpService {
             .modelName(llm.model())
             .temperature(llm.temp())
             .seed(llm.seed())
+            .timeout(Duration.ofSeconds(30))
             .build();
 
     assistant = AiServices.builder(Assistant.class)
