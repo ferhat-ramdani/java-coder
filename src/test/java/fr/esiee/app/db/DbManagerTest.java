@@ -361,4 +361,17 @@ class DbManagerTest {
     assertAll(() -> assertEquals(100, result.length()), () -> assertEquals(normalizedString, result),
             () -> assertEquals(result, DbManager.truncate(result, 150)));
   }
+
+
+  @Test
+  void testBugTitileChat() {
+    initializeLLM();
+    var title = "MgFxgoN1xkZHMCzuFAdDtF9wOyoxrze2v4veXkQsd0BgorAyzt8SWn0s6BTa52MvYsRspPF0tYGBy985FKp2FaRJVDHdtTjChVW4MgFxgoN1xkZHMCzuFAdDtF9wOyoxrze2v4veXkQsd0BgorAyzt8SWn0s6BTa52MvYsRspPF0tYGBy985FKp2FaRJVDHdtTjChVW4";
+    var chat = new Chat(1, title, Timestamp.valueOf("2024-10-31 22:50:25"), 1);
+    var titleTruncate = DbManager.truncate(title, 100);
+    dbManager.insertChat(chat);
+    var chats = dbManager.listChats();
+    assertAll(() -> assertEquals(1, chats.size()),
+            () -> assertEquals(titleTruncate, chats.getFirst().title()));
+  }
 }
