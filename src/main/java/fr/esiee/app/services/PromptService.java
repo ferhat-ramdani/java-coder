@@ -31,21 +31,38 @@ public class PromptService implements HttpService {
 
   private final DbManager dbClient;
 
+  /**
+   * Constructs a new PromptService instance.
+   * Initializes the DbManager from the global context.
+   *
+   * @throws NoSuchElementException if DbManager is not found in the global context.
+   */
   public PromptService() {
     this.dbClient = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found."));
   }
 
+  /**
+   * Configures the routing rules for the HTTP service.
+   *
+   * @param httpRules the HTTP rules to configure
+   */
   @Override
   public void routing(HttpRules httpRules) {
     httpRules.get("/", this::listPrompts)
-            .get("/{id}", this::getPromptById)
-            .get("/bychat/{id}", this::getPromptsByChatId)
-            .get("/bychat/{id}/first", this::getFirstPromptByChatId)
             .post("/", Handler.create(Prompt.class, this::insertPrompt))
             .put("/", Handler.create(Prompt.class, this::updatePrompt))
+            .get("/bychat/{id}/first", this::getFirstPromptByChatId)
+            .get("/bychat/{id}", this::getPromptsByChatId)
+            .get("/{id}", this::getPromptById)
             .delete("/{id}", this::deletePromptById);
   }
 
+  /**
+   * Handles HTTP GET requests to list all prompts.
+   *
+   * @param request  the server request
+   * @param response the server response
+   */
   @GET
   @javax.ws.rs.Path("/")
   @Operation(summary = "List all prompts", description = "Retrieves a list of all prompts")
@@ -54,6 +71,12 @@ public class PromptService implements HttpService {
     response.status(Status.OK_200).send(dbClient.listPrompts());
   }
 
+  /**
+   * Handles HTTP POST requests to insert a new prompt.
+   *
+   * @param prompt   the prompt to insert
+   * @param response the server response
+   */
   @POST
   @javax.ws.rs.Path("/")
   @Operation(summary = "Insert a prompt", description = "Inserts a prompt into the database")
@@ -69,6 +92,12 @@ public class PromptService implements HttpService {
     response.status(Status.CREATED_201).send("Prompt inserted successfully");
   }
 
+  /**
+   * Handles HTTP PUT requests to update an existing prompt.
+   *
+   * @param prompt   the prompt to update
+   * @param response the server response
+   */
   @PUT
   @javax.ws.rs.Path("/")
   @Operation(summary = "Update a prompt", description = "Updates a prompt in the database")
@@ -83,6 +112,13 @@ public class PromptService implements HttpService {
     response.status(Status.OK_200).send("Prompt updated successfully");
   }
 
+  /**
+   * Handles HTTP DELETE requests to delete a prompt by its ID.
+   *
+   * @param request  the server request containing the ID of the prompt to delete
+   * @param response the server response
+   * @throws RestApiException if the prompt ID is not provided
+   */
   @DELETE
   @javax.ws.rs.Path("/{id}")
   @Operation(summary = "Delete a prompt by ID", description = "Deletes a prompt by its ID")
@@ -97,6 +133,13 @@ public class PromptService implements HttpService {
     response.status(Status.OK_200).send("Deleted " + deletedRows + " rows");
   }
 
+  /**
+   * Handles HTTP GET requests to retrieve a prompt by its ID.
+   *
+   * @param request  the server request containing the ID of the prompt to retrieve
+   * @param response the server response
+   * @throws RestApiException if the prompt ID is not provided
+   */
   @GET
   @javax.ws.rs.Path("/{id}")
   @Operation(summary = "Get prompt by ID", description = "Retrieves a prompt by its ID")
@@ -111,6 +154,13 @@ public class PromptService implements HttpService {
     response.status(Status.OK_200).send(prompt);
   }
 
+  /**
+   * Handles HTTP GET requests to retrieve a list of prompts by chat ID.
+   *
+   * @param request  the server request containing the chat ID
+   * @param response the server response
+   * @throws RestApiException if the chat ID is not provided
+   */
   @GET
   @javax.ws.rs.Path("/bychat/{id}")
   @Operation(summary = "List prompts by chat ID", description = "Retrieves a list of prompts by chat ID")
@@ -125,6 +175,13 @@ public class PromptService implements HttpService {
     response.status(Status.OK_200).send(prompts);
   }
 
+  /**
+   * Handles HTTP GET requests to retrieve the first prompt by chat ID.
+   *
+   * @param request  the server request containing the chat ID
+   * @param response the server response
+   * @throws RestApiException if the chat ID is not provided
+   */
   @GET
   @javax.ws.rs.Path("/bychat/{id}/first")
   @Operation(summary = "Get first prompt by chat ID", description = "Retrieves the first prompt by chat ID")
