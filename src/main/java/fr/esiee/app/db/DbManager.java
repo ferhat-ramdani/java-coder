@@ -510,6 +510,7 @@ public class DbManager {
 
   /**
    * Deletes a chat from the database by its ID.
+   * Note that this method does not delete the prompts associated with the chat.
    *
    * @param chatId the ID of the chat to be deleted
    * @return the number of rows affected by the delete operation
