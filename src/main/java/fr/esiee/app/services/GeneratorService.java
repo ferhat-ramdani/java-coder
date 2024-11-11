@@ -51,13 +51,11 @@ public class GeneratorService implements HttpService {
   private final LLMConfig llmConfig;
   private final int NB_ATTEMPTS = 3;
   private final int MAX_MEMORY_PROMPTS = 30;
-
-  private LLM curLLM;
-  private OllamaChatModel model;
-  private Assistant assistant;
   private Prompt pendingPrompt;
 
-
+  /**
+   * An interface to represent the assistant.
+   */
   private interface Assistant {
     String chat(@dev.langchain4j.service.UserMessage String userMessage);
   }
@@ -89,6 +87,11 @@ public class GeneratorService implements HttpService {
    * An enum to represent the status of the LLM response.
    */
   private enum LLMResponseStatus { GENERATING, ERROR, SUCCESS, FINISH }
+
+  /**
+   * A record to store the model configuration.
+   */
+  private record ModelConfig(OllamaChatModel model, Assistant assistant) {}
 
   public GeneratorService() {
     this.dbService = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found."));
@@ -227,10 +230,7 @@ public class GeneratorService implements HttpService {
     Objects.requireNonNull(llm);
     Objects.requireNonNull(requestText);
 
-    if (llm != curLLM || model == null || assistant == null) {
-      updateModelSettings(llm, chatId);
-      curLLM = llm;
-    }
+    var modelConfig = updateModelSettings(llm, chatId);
 
     String errorsText = null;
     String code = null;
@@ -240,7 +240,7 @@ public class GeneratorService implements HttpService {
 
       String answer;
       try{
-        answer = assistant.chat(attempt == 1 ? requestText : errorsText);
+        answer = modelConfig.assistant.chat(attempt == 1 ? requestText : errorsText);
       } catch (RuntimeException e) {
         throw new IOException("Error while asking assistant to generate response.", e.getCause());
       }
@@ -270,10 +270,10 @@ public class GeneratorService implements HttpService {
    * @param llm the LLM model
    * @param chatId the chat ID
    */
-  private void updateModelSettings(LLM llm, int chatId) {
+  private ModelConfig updateModelSettings(LLM llm, int chatId) {
     var chatMemory = MessageWindowChatMemory.withMaxMessages(MAX_MEMORY_PROMPTS);
     updateMemoryWithPreviousPrompts(chatMemory, chatId);
-    model = OllamaChatModel.builder()
+    var model = OllamaChatModel.builder()
             .baseUrl(llmConfig.baseUrl())
             .modelName(llm.model())
             .temperature(llm.temp())
@@ -281,11 +281,12 @@ public class GeneratorService implements HttpService {
             .timeout(Duration.ofSeconds(30))
             .build();
 
-    assistant = AiServices.builder(Assistant.class)
+    var assistant = AiServices.builder(Assistant.class)
             .chatLanguageModel(model)
             .systemMessageProvider(_ -> llm.systemPrompt())
             .chatMemory(chatMemory)
             .build();
+    return new ModelConfig(model, assistant);
   }
 
   /**
@@ -311,9 +312,6 @@ public class GeneratorService implements HttpService {
 
   @TestOnly
   void resetService(ServerRequest req, ServerResponse res) {
-    curLLM = null;
-    model = null;
-    assistant = null;
     pendingPrompt = null;
     res.status(Status.OK_200).send("Service reset successfully.");
   }
