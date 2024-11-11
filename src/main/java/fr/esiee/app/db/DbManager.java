@@ -249,12 +249,7 @@ public class DbManager {
     if (prompt.id() < 0 || prompt.chatId() < 0) {
       throw new IllegalArgumentException("id, llmId, or chatId is negative");
     }
-    if (promptExists(prompt.id())) {
-      throw new IllegalArgumentException("Prompt " + prompt.id() + " already exists");
-    }
-
     var transaction = dbClient.transaction();
-
     long updatedRows;
     try {
       updatedRows = transaction.createNamedInsert("insert-prompt")
@@ -263,7 +258,6 @@ public class DbManager {
               .addParam(prompt.chatId())
               .addParam(prompt.compile())
               .execute();
-
       transaction.commit();
     } catch (DbClientException t) {
       transaction.rollback();
@@ -272,7 +266,6 @@ public class DbManager {
     if (updatedRows <= 0) {
       throw new BadRequestException("Failed to insert prompt");
     }
-    updateChatLastActivity(prompt.chatId());
     return updatedRows;
   }
 
@@ -282,7 +275,7 @@ public class DbManager {
    * @param chatId the ID of the chat to update
    * @throws DbClientException if there is an error during the database operation
    */
-  void updateChatLastActivity(int chatId) {
+  public void updateChatLastActivity(int chatId) {
     var transaction = dbClient.transaction();
     try {
       transaction.createNamedUpdate("update-chat-last-activity")
