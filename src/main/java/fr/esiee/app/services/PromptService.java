@@ -84,7 +84,8 @@ public class PromptService implements HttpService {
   @Schema(name = "AuthorType", implementation = AuthorType.class)
   @ApiResponse(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Prompt.class)), responseCode = "201", description = "Prompt inserted successfully")
   public void insertPrompt(Prompt prompt, @Parameter(hidden = true) ServerResponse response) {
-    long insertedRows = dbClient.insertPrompt(prompt);
+    var insertedRows = dbClient.insertPrompt(prompt);
+    dbClient.updateChatLastActivity(prompt.chatId());
     if (insertedRows <= 0) {
       ErrorUtils.send(response, Status.BAD_REQUEST_400, "Failed to insert prompt");
       return;
