@@ -200,10 +200,11 @@ public class CompileAndExecUtils {
     }
     if (firstDelimiter == -1) return text;
 
-    int newLineOffset = text.charAt(firstDelimiter + offset) == '\n' ? 1 : 0;
-    text = text.substring(firstDelimiter + offset + newLineOffset);
+    int newLineOffsetStart = text.charAt(firstDelimiter + offset) == '\n' ? 1 : 0;
+    text = text.substring(firstDelimiter + offset + newLineOffsetStart);
     int secondDelimiter = text.indexOf("```");
-    return secondDelimiter == -1 ? text : text.substring(0, secondDelimiter);
+    int newLineOffsetEnd = (secondDelimiter != -1 && text.charAt(secondDelimiter - 1) == '\n') ? 1 : 0;
+    return secondDelimiter == -1 ? text : text.substring(0, secondDelimiter - newLineOffsetEnd);
   }
 
 
