@@ -39,8 +39,8 @@ public class CompileAndExecUtils {
     Objects.requireNonNull(code);
     var classNameOpt = extractClassName(code);
     if (classNameOpt.isEmpty()) {
-      return "No class name could be extracted";
-//      throw new IllegalStateException("no class name could be extracted");
+//      return "No class name could be extracted";
+      throw new IllegalStateException("no class name could be extracted");
     }
 
     var className = classNameOpt.get();
@@ -184,6 +184,12 @@ public class CompileAndExecUtils {
     return tempDir;
   }
 
+  /**
+   * Extracts the code block from the given text.
+   *
+   * @param text the text containing the code block
+   * @return the extracted code block, or the original text if no code block is found
+   */
   public static String extractCode(String text) {
     int firstDelimiter = text.indexOf("```java");
     int offset = 7;
@@ -194,13 +200,20 @@ public class CompileAndExecUtils {
     }
     if (firstDelimiter == -1) return text;
 
-    text = text.substring(firstDelimiter + offset);
+    int newLineOffset = text.charAt(firstDelimiter + offset) == '\n' ? 1 : 0;
+    text = text.substring(firstDelimiter + offset + newLineOffset);
     int secondDelimiter = text.indexOf("```");
     return secondDelimiter == -1 ? text : text.substring(0, secondDelimiter);
   }
 
 
-  private static Optional<String> extractClassName(String code) {
+  /**
+ * Extracts the class name from the given Java code.
+ *
+ * @param code the Java code to extract the class name from
+ * @return an Optional containing the class name if found, otherwise an empty Optional
+ */
+  static Optional<String> extractClassName(String code) {
     String regex = "public\\s+(?:\\w+\\s+)*(?:class|record)\\s+(\\w+)(?:\\s*<.*?>)?\\s*(?:extends\\s+\\w+)?\\s*(?:implements\\s+[\\w,\\s]+)?";
     Pattern pattern = Pattern.compile(regex);
     Matcher matcher = pattern.matcher(code);
