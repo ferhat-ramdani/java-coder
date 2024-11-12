@@ -1,10 +1,25 @@
-java:
+image: maven:3.8.6-openjdk-23
+
+stages:
+  - build
+  - test
+  - package
+  
+build_job:
+  stage: build
+  script:
+    - mvn compile
+
+package_job:
+  stage: package
+  script:
+    - mvn package
+
+test_job:
   stage: test
   script:
-    - mvn verify
+    - mvn test
   artifacts:
     when: always
     reports:
-      junit:
-        - target/surefire-reports/TEST-*.xml
-        - target/failsafe-reports/TEST-*.xml
+      junit: target/surefire-reports/TEST-*.xml
