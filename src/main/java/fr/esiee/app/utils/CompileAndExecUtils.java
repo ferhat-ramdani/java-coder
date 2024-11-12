@@ -92,15 +92,11 @@ public class CompileAndExecUtils {
           throws IOException, InterruptedException, ExecutionException {
     Objects.requireNonNull(classDirectory);
     Objects.requireNonNull(className);
-
-
     var process = new ProcessBuilder("java", "-cp", classDirectory.toString(), className)
             .redirectErrorStream(true)
             .start();
-
     try (var executor = Executors.newSingleThreadExecutor();
          var outputStream = new ByteArrayOutputStream()) {
-
       Future<?> outputFuture;
       try {
         outputFuture = executor.submit(() -> {
@@ -113,18 +109,14 @@ public class CompileAndExecUtils {
       } catch (UncheckedIOException e) {
         throw e.getCause();
       }
-
       var finished = process.waitFor(EXEC_TIMEOUT_SEC, TimeUnit.SECONDS);
-
       if (!finished) {
         LOGGER.warn("Execution of class {} timed out after {} seconds", className, EXEC_TIMEOUT_SEC);
         process.destroy();
       } else {
         outputFuture.get();
       }
-
       var output = outputStream.toString(StandardCharsets.UTF_8);
-
       if (!finished){
         output += "\nExecution timed out after " + EXEC_TIMEOUT_SEC + " seconds.\n";
       }
@@ -203,7 +195,7 @@ public class CompileAndExecUtils {
     int newLineOffsetStart = text.charAt(firstDelimiter + offset) == '\n' ? 1 : 0;
     text = text.substring(firstDelimiter + offset + newLineOffsetStart);
     int secondDelimiter = text.indexOf("```");
-    int newLineOffsetEnd = (secondDelimiter != -1 && text.charAt(secondDelimiter - 1) == '\n') ? 1 : 0;
+    int newLineOffsetEnd = (secondDelimiter > 0 && text.charAt(secondDelimiter - 1) == '\n') ? 1 : 0;
     return secondDelimiter == -1 ? text : text.substring(0, secondDelimiter - newLineOffsetEnd);
   }
 
