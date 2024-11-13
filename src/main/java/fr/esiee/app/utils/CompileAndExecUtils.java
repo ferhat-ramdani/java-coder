@@ -124,7 +124,13 @@ public class CompileAndExecUtils {
     }
   }
 
-  private static String compileJavaFile(Path javaFilePath) {
+  /**
+   * Compiles the Java file at the specified path.
+   *
+   * @param javaFilePath the path to the Java file to compile
+   * @return the compilation errors, or an empty string if the compilation was successful
+   */
+  static String compileJavaFile(Path javaFilePath) {
     Objects.requireNonNull(javaFilePath);
     var compiler = ToolProvider.getSystemJavaCompiler();
     var diagnostics = new DiagnosticCollector<JavaFileObject>();
@@ -145,14 +151,27 @@ public class CompileAndExecUtils {
     return String.join("\n", errors);
   }
 
-  private static void addExecutePermission(Path path) throws IOException {
+  /**
+   * Adds execute permission to the specified file path.
+   *
+   * @param path the path to the file to add execute permission to
+   * @throws IOException if an I/O error occurs
+   */
+  static void addExecutePermission(Path path) throws IOException {
     Objects.requireNonNull(path);
     var permissions = Files.getPosixFilePermissions(path);
     permissions.add(PosixFilePermission.OWNER_EXECUTE);
     Files.setPosixFilePermissions(path, permissions);
   }
 
-  private static void writeToFile(String content, Path filePath) throws IOException {
+  /**
+   * Writes the specified content to the specified file path.
+   *
+   * @param content  the content to write to the file
+   * @param filePath the path to the file to write the content to
+   * @throws IOException if an I/O error occurs
+   */
+  static void writeToFile(String content, Path filePath) throws IOException {
     Objects.requireNonNull(content);
     Files.createDirectories(filePath.getParent());
     Files.createFile(filePath);
@@ -161,16 +180,26 @@ public class CompileAndExecUtils {
       writer.write(content);
     }
   }
-
+  /**
+   * Deletes the specified file if it exists.
+   *
+   * @param filePath the path to the file to be deleted
+   * @throws IOException if an I/O error occurs
+   */
   private static void deleteFile(Path filePath) throws IOException {
     Objects.requireNonNull(filePath);
-
     if (Files.exists(filePath)) {
         Files.delete(filePath);
     }
   }
 
-  private static Path createTempPath() throws IOException {
+  /**
+   * Creates a temporary directory path for storing compiled and executed files.
+   *
+   * @return the path to the temporary directory
+   * @throws IOException if an I/O error occurs
+   */
+  static Path createTempPath() throws IOException {
     var tempDir = Files.createTempDirectory("compile-exec-files");
     tempDir.toFile().deleteOnExit();
     return tempDir;
@@ -181,8 +210,10 @@ public class CompileAndExecUtils {
    *
    * @param text the text containing the code block
    * @return the extracted code block, or the original text if no code block is found
+   * @throws NullPointerException if the text is null
    */
   public static String extractCode(String text) {
+    Objects.requireNonNull(text);
     int firstDelimiter = text.indexOf("```java");
     int offset = 7;
 
