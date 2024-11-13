@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
-    "@solidjs/router": "^0.14.5",
+    "@solidjs/router": "^0.14.10",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
     "solid-js": "^1.8.22"

@@ -10,20 +10,11 @@ import {Spinner} from "./sections/Spinner";
 const App: Component = () => {
 
     return (
-        <Suspense fallback={<Spinner text="Loading..."/>}>
-            <div class="container-fluid vh-100">
-                <div class="row h-100">
-                    <ContextProvider>
-                        <Sidebar/>
-                        <div class="col-10 d-flex flex-column p-0 h-100">
-                            <TopBar/>
-                            <PromptsContainer/>
-                            <TextInput/>
-                        </div>
-                    </ContextProvider>
-                </div>
-            </div>
-        </Suspense>
+        <>
+            <Sidebar/>
+            <PromptsContainer/>
+            <TextInput/>
+        </>
     );
 };
 
