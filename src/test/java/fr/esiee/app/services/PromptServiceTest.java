@@ -18,6 +18,8 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.function.BiPredicate;
 
+import static io.helidon.http.HttpMediaTypes.JSON_PREDICATE;
+import static io.helidon.http.HttpMediaTypes.PLAINTEXT_UTF_8;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -67,7 +69,7 @@ public class PromptServiceTest {
       var prompts = response.as(Prompt[].class);
       var promptsFromDb = dbManager.listPrompts();
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"),
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())),
               () -> assertEquals(prompts.length, promptsFromDb.size()),
               () -> assertEquals(List.of(prompts), promptsFromDb));
     }
@@ -80,7 +82,7 @@ public class PromptServiceTest {
     try (var response = client.post("/").submit(prompt)) {
       var promptFromDb = dbManager.listPrompts().stream().filter(p -> promptPredicate.test(p, prompt)).findAny();
       assertAll(() -> assertEquals(Status.CREATED_201, response.status()),
-              () -> assertTrue(response.headers().contentType().orElseThrow().text().contains("text/plain")),
+              () -> assertEquals(0, PLAINTEXT_UTF_8.compareTo(response.headers().contentType().orElseThrow())),
               () -> assertDoesNotThrow(() -> promptFromDb.orElseThrow()));
     }
   }
@@ -97,7 +99,7 @@ public class PromptServiceTest {
     try (var response = client.put("/").submit(promptUpdated)) {
       var promptFromDbUpdated = dbManager.getPromptById(promptFromDb.id());
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertTrue(response.headers().contentType().orElseThrow().text().contains("text/plain")),
+              () -> assertEquals(0, PLAINTEXT_UTF_8.compareTo(response.headers().contentType().orElseThrow())),
               () -> assertEquals(promptUpdated, promptFromDbUpdated));
     }
   }
@@ -111,7 +113,7 @@ public class PromptServiceTest {
             dbManager.listPrompts().stream().filter(p -> promptPredicate.test(p, prompt)).findAny().orElseThrow();
     try (var response = client.delete("/" + promptFromDb.id()).request()) {
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertTrue(response.headers().contentType().orElseThrow().text().contains("text/plain")),
+              () -> assertEquals(0, PLAINTEXT_UTF_8.compareTo(response.headers().contentType().orElseThrow())),
               () -> assertThrows(NotFoundException.class, () -> dbManager.getPromptById(promptFromDb.id())));
     }
   }
@@ -126,7 +128,7 @@ public class PromptServiceTest {
     try (var response = client.get("/" + promptFromDb.id()).request()) {
       var promptFromResponse = response.as(Prompt.class);
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"),
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())),
               () -> assertEquals(promptFromDb, promptFromResponse));
     }
   }
@@ -142,7 +144,7 @@ public class PromptServiceTest {
       var prompts = response.as(Prompt[].class);
       var promptsFromDb = dbManager.getPromptsByChatId(prompt1.chatId());
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"),
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())),
               () -> assertEquals(prompts.length, promptsFromDb.size()),
               () -> assertEquals(List.of(prompts), promptsFromDb));
     }
@@ -159,7 +161,7 @@ public class PromptServiceTest {
       var prompt = response.as(Prompt.class);
       var promptFromDb = dbManager.getFirstPromptByChatId(prompt1.chatId());
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"),
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())),
               () -> assertEquals(prompt, promptFromDb));
     }
   }
