@@ -28,7 +28,6 @@ import java.util.List;
 public class DbManager {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DbManager.class);
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final DbClient dbClient;
 
@@ -118,7 +117,7 @@ public class DbManager {
    * @throws IOException if an I/O error occurs while reading the LLM data
    */
   private static void setupLLMs(DbExecute exec) throws IOException {
-    var llms = OBJECT_MAPPER.readTree(DbManager.class.getResourceAsStream("/llms.json"));
+    var llms = new ObjectMapper().readTree(DbManager.class.getResourceAsStream("/llms.json"));
     for (JsonNode llm : llms) {
       exec.namedInsert("insert-llm",
               llm.get("name").asText(),
