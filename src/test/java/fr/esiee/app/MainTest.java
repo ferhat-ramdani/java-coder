@@ -34,7 +34,7 @@ public class MainTest {
   void testUiEndpoint() {
     try (var response = client.get("/index.html").request()) {
       assertAll(() -> assertEquals(response.status(), Status.OK_200),
-              () -> assertEquals(TEXT_HTML, response.headers().contentType().orElseThrow()));
+              () -> assertEquals(TEXT_HTML.text(), response.headers().contentType().orElseThrow().text()));
     }
   }
 }
