@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
+import static io.helidon.common.media.type.MediaTypes.TEXT_HTML;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -33,7 +34,7 @@ public class MainTest {
   void testUiEndpoint() {
     try (var response = client.get("/index.html").request()) {
       assertAll(() -> assertEquals(response.status(), Status.OK_200),
-              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "text/html"));
+              () -> assertEquals(TEXT_HTML, response.headers().contentType().orElseThrow()));
     }
   }
 }
