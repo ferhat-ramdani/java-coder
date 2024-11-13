@@ -1,5 +1,6 @@
 package fr.esiee.app.utils;
 
+import fr.esiee.app.exception.RestApiException;
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,19 +29,28 @@ import java.util.regex.Pattern;
 public class CompileAndExecUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CompileAndExecUtils.class);
-  public static final int EXEC_TIMEOUT_SEC = 5;
+  static final int EXEC_TIMEOUT_SEC = 5;
 
   public enum Operation {
     COMPILE, EXECUTE
   }
 
+  /**
+   * Processes the given Java code by either compiling or executing it based on the specified operation.
+   *
+   * @param code the Java code to process
+   * @param operation the operation to perform (either COMPILE or EXECUTE)
+   * @return the result of the operation (compilation errors or execution output)
+   * @throws IOException if an I/O error occurs
+   * @throws InterruptedException if the execution is interrupted
+   * @throws ExecutionException if an error occurs during execution
+   */
   public static String processText(String code, Operation operation)
           throws IOException, InterruptedException, ExecutionException {
     Objects.requireNonNull(code);
     var classNameOpt = extractClassName(code);
     if (classNameOpt.isEmpty()) {
-      return "No class name could be extracted";
-//      throw new IllegalStateException("no class name could be extracted");
+      throw new RestApiException("no class name could be extracted");
     }
 
     var className = classNameOpt.get();
@@ -59,21 +69,45 @@ public class CompileAndExecUtils {
     }
   }
 
+  /**
+   * Compiles the given Java code and returns the compilation errors.
+   *
+   * @param javaCode the Java code to compile
+   * @param className the name of the class to compile
+   * @param javaFilePath the path to the Java file to be compiled
+   * @return the compilation errors, or an empty string if the compilation was successful
+   * @throws IOException if an I/O error occurs
+   */
   private static String compileJavaClass(String javaCode, String className, Path javaFilePath) throws IOException {
     Objects.requireNonNull(javaCode);
     Objects.requireNonNull(className);
     Objects.requireNonNull(javaFilePath);
 
-    writeToFile(javaCode, javaFilePath);
+    Files.writeString(javaFilePath, javaCode);
     return compileJavaFile(javaFilePath);
   }
 
+  /**
+   * Compiles and executes the given Java code. If the execution takes longer than
+   * <code>EXEC_TIMEOUT_SEC</code> seconds, the execution is stopped (and a message
+   * is appended to the output).
+   *
+   * @param javaCode the Java code to compile and execute
+   * @param className the name of the class to compile and execute
+   * @param targetDir the directory to store the compiled files
+   * @param javaFilePath the path to the Java file to be compiled
+   * @param classFilePath the path to the compiled class file
+   * @return the output of the executed class
+   * @throws IOException if an I/O error occurs
+   * @throws InterruptedException if the execution is interrupted
+   * @throws ExecutionException if an error occurs during execution
+   */
   private static String compileAndExecuteJavaCode(String javaCode, String className, Path targetDir, Path javaFilePath, Path classFilePath)
           throws IOException, InterruptedException, ExecutionException {
     Objects.requireNonNull(javaCode);
     Objects.requireNonNull(className);
 
-    writeToFile(javaCode, javaFilePath);
+    Files.writeString(javaFilePath, javaCode);
     var compileErrors = compileJavaFile(javaFilePath);
     if (!compileErrors.isEmpty()) {
       return compileErrors;
@@ -84,23 +118,36 @@ public class CompileAndExecUtils {
     return executeClassFile(targetDir, className);
   }
 
+  /**
+   * Checks if the current operating system is a Unix-like system.
+   *
+   * @return true if the operating system is a Unix-like system, false otherwise
+   */
   private static boolean isPosixFamily() {
     return SystemUtils.IS_OS_UNIX || SystemUtils.IS_OS_LINUX || SystemUtils.IS_OS_MAC;
   }
 
-  private static String executeClassFile(Path classDirectory, String className)
+  /**
+   * Executes the compiled Java class file. If the execution takes longer than
+   * <code>EXEC_TIMEOUT_SEC</code> seconds, the execution is stopped (and a message
+   * is appended to the output).
+   *
+   * @param classDirectory the directory containing the compiled class file
+   * @param className the name of the class to execute
+   * @return the output of the executed class
+   * @throws IOException if an I/O error occurs
+   * @throws InterruptedException if the execution is interrupted
+   * @throws ExecutionException if an error occurs during execution
+   */
+  static String executeClassFile(Path classDirectory, String className)
           throws IOException, InterruptedException, ExecutionException {
     Objects.requireNonNull(classDirectory);
     Objects.requireNonNull(className);
-
-
     var process = new ProcessBuilder("java", "-cp", classDirectory.toString(), className)
             .redirectErrorStream(true)
             .start();
-
     try (var executor = Executors.newSingleThreadExecutor();
          var outputStream = new ByteArrayOutputStream()) {
-
       Future<?> outputFuture;
       try {
         outputFuture = executor.submit(() -> {
@@ -113,18 +160,14 @@ public class CompileAndExecUtils {
       } catch (UncheckedIOException e) {
         throw e.getCause();
       }
-
       var finished = process.waitFor(EXEC_TIMEOUT_SEC, TimeUnit.SECONDS);
-
       if (!finished) {
         LOGGER.warn("Execution of class {} timed out after {} seconds", className, EXEC_TIMEOUT_SEC);
         process.destroy();
       } else {
         outputFuture.get();
       }
-
       var output = outputStream.toString(StandardCharsets.UTF_8);
-
       if (!finished){
         output += "\nExecution timed out after " + EXEC_TIMEOUT_SEC + " seconds.\n";
       }
@@ -132,7 +175,13 @@ public class CompileAndExecUtils {
     }
   }
 
-  private static String compileJavaFile(Path javaFilePath) {
+  /**
+   * Compiles the Java file at the specified path.
+   *
+   * @param javaFilePath the path to the Java file to compile
+   * @return the compilation errors, or an empty string if the compilation was successful
+   */
+  static String compileJavaFile(Path javaFilePath) {
     Objects.requireNonNull(javaFilePath);
     var compiler = ToolProvider.getSystemJavaCompiler();
     var diagnostics = new DiagnosticCollector<JavaFileObject>();
@@ -153,38 +202,53 @@ public class CompileAndExecUtils {
     return String.join("\n", errors);
   }
 
-  private static void addExecutePermission(Path path) throws IOException {
+  /**
+   * Adds execute permission to the specified file path.
+   *
+   * @param path the path to the file to add execute permission to
+   * @throws IOException if an I/O error occurs
+   */
+  static void addExecutePermission(Path path) throws IOException {
     Objects.requireNonNull(path);
     var permissions = Files.getPosixFilePermissions(path);
     permissions.add(PosixFilePermission.OWNER_EXECUTE);
     Files.setPosixFilePermissions(path, permissions);
   }
 
-  private static void writeToFile(String content, Path filePath) throws IOException {
-    Objects.requireNonNull(content);
-    Files.createDirectories(filePath.getParent());
-    Files.createFile(filePath);
-
-    try (var writer = Files.newBufferedWriter(filePath)) {
-      writer.write(content);
-    }
-  }
-
+  /**
+   * Deletes the specified file if it exists.
+   *
+   * @param filePath the path to the file to be deleted
+   * @throws IOException if an I/O error occurs
+   */
   private static void deleteFile(Path filePath) throws IOException {
     Objects.requireNonNull(filePath);
-
     if (Files.exists(filePath)) {
         Files.delete(filePath);
     }
   }
 
-  private static Path createTempPath() throws IOException {
+  /**
+   * Creates a temporary directory path for storing compiled and executed files.
+   *
+   * @return the path to the temporary directory
+   * @throws IOException if an I/O error occurs
+   */
+  static Path createTempPath() throws IOException {
     var tempDir = Files.createTempDirectory("compile-exec-files");
     tempDir.toFile().deleteOnExit();
     return tempDir;
   }
 
+  /**
+   * Extracts the code block from the given text.
+   *
+   * @param text the text containing the code block
+   * @return the extracted code block, or the original text if no code block is found
+   * @throws NullPointerException if the text is null
+   */
   public static String extractCode(String text) {
+    Objects.requireNonNull(text);
     int firstDelimiter = text.indexOf("```java");
     int offset = 7;
 
@@ -194,13 +258,21 @@ public class CompileAndExecUtils {
     }
     if (firstDelimiter == -1) return text;
 
-    text = text.substring(firstDelimiter + offset);
+    int newLineOffsetStart = text.charAt(firstDelimiter + offset) == '\n' ? 1 : 0;
+    text = text.substring(firstDelimiter + offset + newLineOffsetStart);
     int secondDelimiter = text.indexOf("```");
-    return secondDelimiter == -1 ? text : text.substring(0, secondDelimiter);
+    int newLineOffsetEnd = (secondDelimiter > 0 && text.charAt(secondDelimiter - 1) == '\n') ? 1 : 0;
+    return secondDelimiter == -1 ? text : text.substring(0, secondDelimiter - newLineOffsetEnd);
   }
 
 
-  private static Optional<String> extractClassName(String code) {
+  /**
+ * Extracts the class name from the given Java code.
+ *
+ * @param code the Java code to extract the class name from
+ * @return an Optional containing the class name if found, otherwise an empty Optional
+ */
+  static Optional<String> extractClassName(String code) {
     String regex = "public\\s+(?:\\w+\\s+)*(?:class|record)\\s+(\\w+)(?:\\s*<.*?>)?\\s*(?:extends\\s+\\w+)?\\s*(?:implements\\s+[\\w,\\s]+)?";
     Pattern pattern = Pattern.compile(regex);
     Matcher matcher = pattern.matcher(code);
