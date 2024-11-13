@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.util.List;
 
+import static io.helidon.http.HttpMediaTypes.JSON_UTF_8;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -40,7 +41,7 @@ class LLMServiceTest {
       var llmDtosFromDb = dbManager.listLLMs().stream().map(LLMDTO::copyOf).toList();
 
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"),
+              () -> assertEquals(0, JSON_UTF_8.compareTo(response.headers().contentType().orElseThrow())),
               () -> assertEquals(llmDtos.length, llmDtosFromDb.size()), () -> assertEquals(3, llmDtos.length),
               () -> assertEquals(List.of(llmDtos), llmDtosFromDb));
     }
@@ -53,7 +54,7 @@ class LLMServiceTest {
       var llmDtoFromDb = LLMDTO.copyOf(dbManager.getFirstLLM());
 
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"),
+              () -> assertEquals(0, JSON_UTF_8.compareTo(response.headers().contentType().orElseThrow())),
               () -> assertEquals(llmDto, llmDtoFromDb));
     }
   }
@@ -65,7 +66,7 @@ class LLMServiceTest {
       var llmDtoFromDb = LLMDTO.copyOf(dbManager.getLLMById(1));
 
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals("application/json", response.headers().contentType().orElseThrow().text()),
+              () -> assertEquals(0, JSON_UTF_8.compareTo(response.headers().contentType().orElseThrow())),
               () -> assertEquals(llmDtoFromDb, llmDto));
     }
   }

@@ -15,8 +15,11 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.sql.Timestamp;
 
-import static io.helidon.http.HttpMediaTypes.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static io.helidon.common.media.type.MediaTypes.TEXT_EVENT_STREAM;
+import static io.helidon.http.HttpMediaTypes.PLAINTEXT_UTF_8;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @RoutingTest
 public class GeneratorServiceTest {
@@ -36,7 +39,7 @@ public class GeneratorServiceTest {
   }
 
   void resetService() {
-    try(var res = client.get("/reset").request()) {
+    try (var res = client.get("/reset").request()) {
       assertAll(
               () -> assertEquals(Status.OK_200, res.status()),
               () -> assertEquals(0, PLAINTEXT_UTF_8.compareTo(res.headers().contentType().orElseThrow())),
@@ -53,7 +56,7 @@ public class GeneratorServiceTest {
     Prompt prompt = new Prompt(1, "Sample message", AuthorType.USER, chatId, true);
     dbManager.insertPrompt(prompt);
     var dbPrompt = dbManager.getPromptByPromptInfo(prompt);
-    try(var response = client.post("/class").submit(dbPrompt)) {
+    try (var response = client.post("/class").submit(dbPrompt)) {
       var responseText = response.as(String.class);
       assertAll(
               () -> assertEquals(Status.OK_200, response.status()),
@@ -71,7 +74,8 @@ public class GeneratorServiceTest {
     var chat = new Chat(0, "Title", Timestamp.valueOf("2024-10-31 22:50:25"), 1);
     dbManager.insertChat(chat);
     var chatId = dbManager.getChatByParams(chat).id();
-    Prompt prompt = new Prompt(1, "Generate a Java class that computes big prime numbers.", AuthorType.USER, chatId, true);
+    Prompt prompt =
+            new Prompt(1, "Generate a Java class that computes big prime numbers.", AuthorType.USER, chatId, true);
     dbManager.insertPrompt(prompt);
     var promptId = dbManager.getPromptByPromptInfo(prompt).id();
     try (var response = client.post("/class").submit(prompt)) {
@@ -85,7 +89,7 @@ public class GeneratorServiceTest {
     try (var response = client.get("/stream").request()) {
       assertAll(
               () -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals("text/event-stream", response.headers().contentType().orElseThrow().text())
+              () -> assertEquals(TEXT_EVENT_STREAM, response.headers().contentType().orElseThrow().mediaType())
       );
     }
     dbManager.deletePromptById(promptId);
@@ -98,7 +102,9 @@ public class GeneratorServiceTest {
     var chat = new Chat(0, "Title", Timestamp.valueOf("2024-10-31 22:50:25"), 1);
     dbManager.insertChat(chat);
     var chatId = dbManager.getChatByParams(chat).id();
-    Prompt prompt = new Prompt(1, "public class PrimeCalculator { public static void main(String[] args) { for (int i = 2; i < 100; i++) { if (isPrime(i)) { System.out.println(i); } } } public static boolean isPrime(int num) { if (num <= 1) return false; for (int i = 2; i <= Math.sqrt(num); i++) { if (num % i == 0) return false; } return true; } }", AuthorType.AI, chatId, true);
+    Prompt prompt = new Prompt(1,
+            "public class PrimeCalculator { public static void main(String[] args) { for (int i = 2; i < 100; i++) { if (isPrime(i)) { System.out.println(i); } } } public static boolean isPrime(int num) { if (num <= 1) return false; for (int i = 2; i <= Math.sqrt(num); i++) { if (num % i == 0) return false; } return true; } }",
+            AuthorType.AI, chatId, true);
     dbManager.insertPrompt(prompt);
     var promptId = dbManager.getPromptByPromptInfo(prompt).id();
     try (var response = client.post("/exec").submit(promptId)) {
