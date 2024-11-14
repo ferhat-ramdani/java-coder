@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.List;
 
+import static io.helidon.http.HttpMediaTypes.JSON_PREDICATE;
+import static io.helidon.http.HttpMediaTypes.PLAINTEXT_UTF_8;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -44,7 +46,7 @@ public class ChatServiceTest {
       var chatFromResponse = response.as(Chat.class);
       var chatFromDb = dbManager.getChatById(chatFromResponse.id());
       assertAll(() -> assertEquals(Status.CREATED_201, response.status()),
-              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"),
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())),
               () -> assertEquals(chat.title(), chatFromDb.title()),
               () -> assertEquals(chat.lastActivity(), chatFromDb.lastActivity()),
               () -> assertEquals(chat.llmId(), chatFromDb.llmId()));
@@ -64,7 +66,7 @@ public class ChatServiceTest {
       var chats = response.as(Chat[].class);
       var chatsFromDb = dbManager.listChats();
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"),
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())),
               () -> assertEquals(chats.length, chatsFromDb.size()),
               () -> assertEquals(List.of(chats), chatsFromDb));
     }
@@ -74,36 +76,38 @@ public class ChatServiceTest {
   void testGetChatById() {
     var chat1 = new Chat(0, "Title", Timestamp.valueOf("2024-10-31 22:50:25"), 1);
     dbManager.insertChat(chat1);
-    try (var response = client.get("/1").request()) {
+    var chatFromDb = dbManager.getChatByParams(chat1);
+    try (var response = client.get("/" + chatFromDb.id()).request()) {
       var chat = response.as(Chat.class);
-      var chatFromDb = dbManager.getChatById(1);
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"),
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())),
               () -> assertEquals(chat, chatFromDb));
     }
   }
 
   @Test
-  void testUpdateChat(){
+  void testUpdateChat() {
     var chat1 = new Chat(0, "Title", Timestamp.valueOf("2024-10-31 22:50:25"), 1);
     dbManager.insertChat(chat1);
-    var chat = new Chat(1, "TitleUpdated", Timestamp.valueOf("2024-10-31 22:50:25"), 1);
+    var chatFromDb1 = dbManager.getChatByParams(chat1);
+    var chat = new Chat(chatFromDb1.id(), "TitleUpdated", Timestamp.valueOf("2024-10-31 22:50:25"), 1);
     try (var response = client.put("/").submit(chat)) {
       var chatFromDb = dbManager.getChatById(chat.id());
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertTrue(response.headers().contentType().orElseThrow().text().contains("text/plain")),
+              () -> assertEquals(0, PLAINTEXT_UTF_8.compareTo(response.headers().contentType().orElseThrow())),
               () -> assertEquals(chat, chatFromDb));
     }
   }
 
   @Test
-  void testDeleteChat(){
+  void testDeleteChat() {
     var chat1 = new Chat(0, "Title", Timestamp.valueOf("2024-10-31 22:50:25"), 1);
     dbManager.insertChat(chat1);
-    try (var response = client.delete("/1").request()) {
+    var chatFromDb = dbManager.getChatByParams(chat1);
+    try (var response = client.delete("/" + chatFromDb.id()).request()) {
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertThrows(NotFoundException.class, () -> dbManager.getChatById(1)),
-              () -> assertTrue(response.headers().contentType().orElseThrow().text().contains("text/plain")));
+              () -> assertThrows(NotFoundException.class, () -> dbManager.getChatById(chatFromDb.id())),
+              () -> assertEquals(0, PLAINTEXT_UTF_8.compareTo(response.headers().contentType().orElseThrow())));
     }
   }
 }

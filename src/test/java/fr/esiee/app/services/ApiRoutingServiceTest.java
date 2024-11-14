@@ -10,8 +10,10 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
+import static io.helidon.http.HttpMediaTypes.JSON_PREDICATE;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @RoutingTest
 public class ApiRoutingServiceTest {
@@ -31,32 +33,32 @@ public class ApiRoutingServiceTest {
   @Test
   public void testLlmEndpoint() {
     try (var response = client.get("/llm").request()) {
-      assertAll(() -> assertEquals(response.status(), Status.OK_200),
-              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"));
+      assertAll(() -> assertEquals(Status.OK_200, response.status()),
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())));
     }
   }
 
   @Test
   public void testChatEndpoint() {
     try (var response = client.get("/chat").request()) {
-      assertAll(() -> assertEquals(response.status(), Status.OK_200),
-              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"));
+      assertAll(() -> assertEquals(Status.OK_200, response.status()),
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())));
     }
   }
 
   @Test
   public void testPromptEndpoint() {
     try (var response = client.get("/prompt").request()) {
-      assertAll(() -> assertEquals(response.status(), Status.OK_200),
-              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"));
+      assertAll(() -> assertEquals(Status.OK_200, response.status()),
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())));
     }
   }
 
   @Test
   public void testInvalidEndpoint() {
     try (var response = client.get("/inside").request()) {
-      assertAll(() -> assertEquals(response.status(), Status.BAD_REQUEST_400),
-              () -> assertEquals(response.headers().contentType().orElseThrow().text(), "application/json"));
+      assertAll(() -> assertEquals(Status.BAD_REQUEST_400, response.status()),
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())));
     }
   }
 }
