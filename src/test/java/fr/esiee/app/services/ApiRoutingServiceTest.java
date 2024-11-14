@@ -10,9 +10,10 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static io.helidon.http.HttpMediaTypes.JSON_UTF_8;
+import static io.helidon.http.HttpMediaTypes.JSON_PREDICATE;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @RoutingTest
 public class ApiRoutingServiceTest {
@@ -33,7 +34,7 @@ public class ApiRoutingServiceTest {
   public void testLlmEndpoint() {
     try (var response = client.get("/llm").request()) {
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(0, JSON_UTF_8.compareTo(response.headers().contentType().orElseThrow())));
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())));
     }
   }
 
@@ -41,7 +42,7 @@ public class ApiRoutingServiceTest {
   public void testChatEndpoint() {
     try (var response = client.get("/chat").request()) {
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(0, JSON_UTF_8.compareTo(response.headers().contentType().orElseThrow())));
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())));
     }
   }
 
@@ -49,7 +50,7 @@ public class ApiRoutingServiceTest {
   public void testPromptEndpoint() {
     try (var response = client.get("/prompt").request()) {
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(0, JSON_UTF_8.compareTo(response.headers().contentType().orElseThrow())));
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())));
     }
   }
 
@@ -57,7 +58,7 @@ public class ApiRoutingServiceTest {
   public void testInvalidEndpoint() {
     try (var response = client.get("/inside").request()) {
       assertAll(() -> assertEquals(Status.BAD_REQUEST_400, response.status()),
-              () -> assertEquals(0, JSON_UTF_8.compareTo(response.headers().contentType().orElseThrow())));
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())));
     }
   }
 }

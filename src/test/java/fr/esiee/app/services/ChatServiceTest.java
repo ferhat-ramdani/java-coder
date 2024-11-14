@@ -15,11 +15,12 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.List;
 
-import static io.helidon.http.HttpMediaTypes.JSON_UTF_8;
+import static io.helidon.http.HttpMediaTypes.JSON_PREDICATE;
 import static io.helidon.http.HttpMediaTypes.PLAINTEXT_UTF_8;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @RoutingTest
 public class ChatServiceTest {
@@ -45,7 +46,7 @@ public class ChatServiceTest {
       var chatFromResponse = response.as(Chat.class);
       var chatFromDb = dbManager.getChatById(chatFromResponse.id());
       assertAll(() -> assertEquals(Status.CREATED_201, response.status()),
-              () -> assertEquals(0, JSON_UTF_8.compareTo(response.headers().contentType().orElseThrow())),
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())),
               () -> assertEquals(chat.title(), chatFromDb.title()),
               () -> assertEquals(chat.lastActivity(), chatFromDb.lastActivity()),
               () -> assertEquals(chat.llmId(), chatFromDb.llmId()));
@@ -65,7 +66,7 @@ public class ChatServiceTest {
       var chats = response.as(Chat[].class);
       var chatsFromDb = dbManager.listChats();
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(0, JSON_UTF_8.compareTo(response.headers().contentType().orElseThrow())),
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())),
               () -> assertEquals(chats.length, chatsFromDb.size()),
               () -> assertEquals(List.of(chats), chatsFromDb));
     }
@@ -79,7 +80,7 @@ public class ChatServiceTest {
     try (var response = client.get("/" + chatFromDb.id()).request()) {
       var chat = response.as(Chat.class);
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(0, JSON_UTF_8.compareTo(response.headers().contentType().orElseThrow())),
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())),
               () -> assertEquals(chat, chatFromDb));
     }
   }
