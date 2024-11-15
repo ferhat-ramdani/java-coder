@@ -183,10 +183,10 @@ const TextInput: Component = () => {
 
     return (
         <div class="input-group d-flex justify-content-center">
-            <div class="input-group w-50 mb-2 d-flex">
+            <div class="input-group w-100 d-flex">
               <textarea
                   class="form-control rounded-start"
-                  rows="1"
+                  rows="2"
                   placeholder="Type your message here..."
                   style="resize: none;"
                   value={message()}

@@ -1,22 +1,39 @@
-import {Component, For, onMount} from "solid-js";
+import {Component, createSignal, For, onMount} from "solid-js";
 import PromptMessage from "./PromptMessage";
 import PromptService from "../services/PromptService";
-import {useAppContext} from "../Context";
+import {Prompt} from "../interfaces/Prompt";
+import chatService from "../services/ChatService";
+import {Utils} from "../services/Utils";
+import {useNavigate} from "@solidjs/router";
 
-const PromptsContainer: Component = () => {
+interface PromptsContainerProps {
+    chatId: number
+}
+const PromptsContainer: Component<PromptsContainerProps> = (props: PromptsContainerProps) => {
 
-    const [{curChatPrompts}] = useAppContext();
+    const navigate = useNavigate();
+    const [curChatPrompts, setCurChatPrompts] = createSignal<Prompt[]>([]);
 
-    return (<div class="flex-grow-1 p-0 container-fluid h-100 w-100 overflow-auto">
-            <div class="row w-100">
-                <div class="col-2"></div>
-                <div class="col-8">
-                    <For each={curChatPrompts.accessor()} fallback={`Prompt Example`}>
-                        {(prompt) => <PromptMessage prompt={prompt}/>}
-                    </For>
-                </div>
-            </div>
-        </div>);
+    onMount(async () => {
+        if(props.chatId === 0) {
+
+        } else {
+            try {
+                const chat = await chatService.getChatById(props.chatId);
+                const prompts = await PromptService.getPromptsByChatId(chat.id);
+                setCurChatPrompts(prompts);
+            } catch (error) {
+                Utils.showToast("Error", "Failed to fetch chat", "danger", "bi-exclamation-triangle");
+                navigate("/chats");
+            }
+        }
+    });
+
+    return (
+            <For each={curChatPrompts()} fallback={`Prompt Example`}>
+                {(prompt) => <PromptMessage prompt={prompt}/>}
+            </For>
+            );
 };
 
 export default PromptsContainer;

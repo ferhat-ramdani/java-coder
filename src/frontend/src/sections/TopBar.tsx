@@ -1,45 +1,40 @@
-import {Component, createResource, For, Match, Switch} from "solid-js";
-import llmService from "../services/LLMService";
-import {useAppContext} from "../Context";
-
-const fetchLLM = async () => await llmService.getLLMS();
+import {Component, createSignal} from "solid-js";
+import {A} from "@solidjs/router";
 
 const TopBar: Component = () => {
-    const [{curChatId, selectedLLM}] = useAppContext();
-    const [llms] = createResource(fetchLLM);
+    const [isNavCollapsed, setIsNavCollapsed] = createSignal(true);
 
-    const handleLLMChange = (event: Event) => {
-        const selectedModel = Number((event.target as HTMLSelectElement).value);
-        const llm = llms()?.find(llm => llm.id === selectedModel);
-        if (llm) {
-            selectedLLM.setter(llm);
-        }
+    const toggleNavbar = () => {
+        setIsNavCollapsed(!isNavCollapsed());
     };
 
-    return (<div class="d-flex bg-light border-bottom">
-            <div class="p-2 flex-grow-1 align-self-center">
-                <span class="ms-3 mb-0 h3">ChatGPT</span>
-            </div>
-            <div class="p-2 align-self-center">
-                <select
-                    class="form-select"
-                    aria-label="Select LLM Model"
-                    disabled={llms.loading || curChatId.accessor() != null}
-                    onChange={handleLLMChange}
-                >
-                    <option value="" selected={selectedLLM.accessor() === null}
-                            disabled>{llms.loading ? "Loading.." : "Select LLM Model"}</option>
-                    <For each={llms()} fallback={<option>Loading...</option>}>
-                        {item => (
-                            <option value={item.id} selected={selectedLLM.accessor()?.id === item.id}
-                                    data-bs-toggle="tooltip" data-bs-placement="top" title={item.characteristics}>
-                                {item.name}
-                            </option>
-                        )}
-                    </For>
-                </select>
-            </div>
-    </div>);
+    return (
+        <>
+            <nav class="navbar navbar-expand-sm navbar-light bg-light border-bottom">
+                <div class="container-fluid">
+                    <A href={`/`} class={`navbar-brand`}>LLM's Chat</A>
+                    <button class="navbar-toggler" type="button"
+                            data-bs-target="#navbarNav" aria-controls="navbarNav"
+                            aria-label="Toggle navigation" onClick={toggleNavbar}>
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class={`navbar-collapse ${isNavCollapsed() ? "collapse" : "show"}`} id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item">
+                                <A href={`/chats`} class={`nav-link`}>Chats</A>
+                            </li>
+                            <li class="nav-item">
+                                <A href={`/llms`} class={`nav-link`}>LLMS</A>
+                            </li>
+                            <li class="nav-item">
+                                <A href={`/openapi/ui`} class={`nav-link`}>OpenAPI</A>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </>
+    );
 };
 
 export default TopBar;

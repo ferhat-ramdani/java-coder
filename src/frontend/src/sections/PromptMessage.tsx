@@ -15,15 +15,15 @@ const getPromptStyles = (authorType: AuthorType) => {
     switch (authorType) {
         case AuthorType.USER:
             bgColor = "text-bg-primary";
-            alignmentClass = "align-items-end";
+            alignmentClass = "justify-content-end";
             break;
         case AuthorType.SYSTEM:
             bgColor = "text-bg-secondary";
-            alignmentClass = "align-items-start";
+            alignmentClass = "justify-content-start";
             break;
         case AuthorType.AI:
             bgColor = "text-bg-success";
-            alignmentClass = "align-items-start";
+            alignmentClass = "justify-content-start";
             break;
     }
 
@@ -56,7 +56,7 @@ const setupIntervals = (
 };
 const PromptMessage: Component<PromptProps> = (props) => {
     const { bgColor, alignmentClass } = getPromptStyles(props.prompt.authorType);
-    const classes = `p-3 mt-2 mb-1 rounded-1 ${bgColor} text-start inline-block mw-100`;
+    const classes = `px-2 py-1 ${bgColor} text-break max-width70 rounded`;
 
     const [seconds, setSeconds] = createSignal(0);
     const [dots, setDots] = createSignal(".");
@@ -67,21 +67,21 @@ const PromptMessage: Component<PromptProps> = (props) => {
     });
 
     return (
-        <div class={`d-flex flex-column ${alignmentClass}`}>
+        <div class={`d-flex mb-2 ${alignmentClass}`}>
             <Switch>
                 <Match when={props.prompt.authorType === AuthorType.AI}>
-                    <pre class={classes}>
+                    <pre class={`${classes} m-0`}>
                       <code>{props.prompt.message}</code>
                     </pre>
                     <Show when={props.prompt.compile}>
-                        <button class="btn btn-primary mt-2" onClick={_ => execute(props.prompt.id)}>
+                        <button class="btn btn-primary" onClick={_ => execute(props.prompt.id)}>
                             <i class="bi bi-power"></i>
                         </button>
                     </Show>
                 </Match>
                 <Match when={props.prompt.authorType === AuthorType.USER}>
                     <div class={classes}>
-                        <p class="m-0">{props.prompt.message}</p>
+                        {props.prompt.message}
                     </div>
                 </Match>
                 <Match when={props.prompt.authorType === AuthorType.SYSTEM}>

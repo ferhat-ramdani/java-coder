@@ -1,26 +1,17 @@
 import {Component, createResource, Show} from "solid-js";
 import ChatService from "../services/ChatService";
 import PromptService from "../services/PromptService";
-import promptService from "../services/PromptService";
 import LLMService from "../services/LLMService";
 import {Utils} from '../services/Utils';
 import {Chat} from "../interfaces/Chat";
 import {useAppContext} from "../Context";
-import {Prompt} from "../interfaces/Prompt";
 import {SpinnerSmall} from "./Spinner";
+import {A} from "@solidjs/router";
 
-const fetchPromptsOfChat = async (chatId: number): Promise<Prompt[]> => {
-    try {
-        return await promptService.getPromptsByChatId(chatId);
-    } catch (error) {
-        console.error("Failed to fetch prompts", error);
-        return [];
-    }
-}
 
 const ChatItem: Component<{ chat: Chat }> = (prop) => {
     const chat: Chat = prop.chat;
-    const [{curChatPrompts, curChatId, selectedLLM, chats}] = useAppContext();
+    const [{selectedLLM, chats}] = useAppContext();
     const timestamp = Utils.toHumanReadable(chat.lastActivity);
 
     const [fetchedLLM, {refetch}] = createResource(async () => {
@@ -31,30 +22,6 @@ const ChatItem: Component<{ chat: Chat }> = (prop) => {
             return null;
         }
     });
-
-    const handleClick = async () => {
-        curChatId.setter(chat.id);
-        if (fetchedLLM()) {
-            selectedLLM.setter(fetchedLLM()!);
-        } else {
-            refetch()
-            selectedLLM.setter(fetchedLLM()!);
-        }
-        const chatId = curChatId.accessor();
-        if (chatId) {
-            const chatPrompts = await fetchPromptsOfChat(chatId);
-            curChatPrompts.setter(chatPrompts);
-        } else {
-            curChatPrompts.setter([]);
-        }
-    };
-
-    const showDelete = () => {
-        if (curChatId.accessor() != chat.id) {
-            document.getElementById(`${chat.id}-remove`)?.classList.toggle('d-block');
-            document.getElementById(`${chat.id}-remove`)?.classList.toggle('d-none');
-        }
-    }
 
     const handleDelete = async () => {
         const chatId = chat.id;
@@ -69,39 +36,26 @@ const ChatItem: Component<{ chat: Chat }> = (prop) => {
                 console.error("Failed to delete chat or prompts", error);
             }
         }
-        curChatId.setter(null);
         selectedLLM.setter(null);
-        curChatPrompts.setter([]);
         chats.mutator(chats.resource()?.filter(Chat => Chat.id !== chatId));
     };
 
-    return (<div
-            class={`d-flex justify-content-between align-items-center hover-darken rounded position-relative border-bottom ${curChatId.accessor() === chat.id ? 'darkened' : 'brightened'}`}
-            onClick={handleClick}
-            onMouseEnter={() => {
-                showDelete();
-            }}
-            onMouseLeave={() => {
-                showDelete();
-            }}>
-            <div class="p-2 text-truncate">
+    return (
+        <li class={`list-group-item d-flex justify-content-between align-items-center hover-darken`}>
+            <A href={`/chats/${chat.id}`} class={'no-decoration text-truncate w-100'} activeClass="text-decoration-none"
+               inactiveClass="text-decoration-none" end>
                 <div class="text-truncate">
-                    <strong>{chat.title ? chat.title : "- No Title -"}</strong>
+                    <h5 class={`mb-1 text-truncate`}>{chat.title ? chat.title : "- No Title -"}</h5>
+                    <Show when={!fetchedLLM.loading} fallback={<SpinnerSmall text="LLM loading"/>} keyed>
+                        <small class={`text-body-secondary text-truncate`}>Date: {timestamp} | LLM: {fetchedLLM() ? `${fetchedLLM()!.name}` : "- No LLM -"}</small>
+                    </Show>
                 </div>
-                <div class="text-truncate">{timestamp}</div>
-                <Show when={!fetchedLLM.loading} fallback={<SpinnerSmall text="LLM loading"/>} keyed>
-                    <div class="text-truncate">
-                        {fetchedLLM() ? `${fetchedLLM()!.name}` : "- No LLM -"}
-                    </div>
-                </Show>
-            </div>
-            <div class="my-2">
-                <button id={`${chat.id}-remove`} type="button"
-                        class={`btn-close ${curChatId.accessor() === chat.id ? 'd-block' : 'd-none'}`}
-                        onClick={handleDelete}>
-                </button>
-            </div>
-        </div>);
+            </A>
+            <button id={`${chat.id}-remove`} type="button" aria-label="Close"
+                    class={`btn-close`}
+                    onClick={handleDelete}>
+            </button>
+        </li>);
 };
 
 export default ChatItem;

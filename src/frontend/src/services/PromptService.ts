@@ -25,9 +25,7 @@ class PromptService {
 
     async getPromptsByChatId(chatId: number): Promise<Prompt[]> {
         const response = await fetch(`${this.apiUrl}/bychat/${chatId}`);
-
         await Utils.showErrorToast(response, "Error during prompts retrieval.");
-
         return await response.json();
     }
 

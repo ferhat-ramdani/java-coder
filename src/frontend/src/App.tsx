@@ -1,6 +1,6 @@
 import {Component, Suspense} from 'solid-js';
 
-import Sidebar from "./sections/Sidebar";
+import ChatsUI from "./sections/ChatsUI";
 import TextInput from "./sections/TextInput";
 import PromptsContainer from "./sections/PromptsContainer";
 import TopBar from "./sections/TopBar";
@@ -11,7 +11,7 @@ const App: Component = () => {
 
     return (
         <>
-            <Sidebar/>
+            <ChatsUI/>
             <PromptsContainer/>
             <TextInput/>
         </>
