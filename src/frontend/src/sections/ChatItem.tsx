@@ -8,7 +8,6 @@ import {useAppContext} from "../Context";
 import {SpinnerSmall} from "./Spinner";
 import {A} from "@solidjs/router";
 
-
 const ChatItem: Component<{ chat: Chat }> = (prop) => {
     const chat: Chat = prop.chat;
     const [{selectedLLM, chats}] = useAppContext();
@@ -45,7 +44,7 @@ const ChatItem: Component<{ chat: Chat }> = (prop) => {
             <A href={`/chats/${chat.id}`} class={'no-decoration text-truncate w-100'} activeClass="text-decoration-none"
                inactiveClass="text-decoration-none" end>
                 <div class="text-truncate">
-                    <h5 class={`mb-1 text-truncate`}>{chat.title ? chat.title : "- No Title -"}</h5>
+                    <h5 class={`mb-1 text-truncate`}>{chat.title ? chat.title : "- No Prompt -"}</h5>
                     <Show when={!fetchedLLM.loading} fallback={<SpinnerSmall text="LLM loading"/>} keyed>
                         <small class={`text-body-secondary text-truncate`}>Date: {timestamp} | LLM: {fetchedLLM() ? `${fetchedLLM()!.name}` : "- No LLM -"}</small>
                     </Show>

@@ -9,6 +9,7 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.service.AiServices;
 import fr.esiee.app.db.DbManager;
+import fr.esiee.app.db.entities.Chat;
 import fr.esiee.app.utils.ErrorUtils;
 import fr.esiee.app.utils.CompileAndExecUtils;
 import fr.esiee.app.config.LLMConfig;
@@ -132,6 +133,12 @@ public class GeneratorService implements HttpService {
       return;
     }
     pendingPrompt = prompt;
+    dbService.updateChatLastActivity(prompt.chatId());
+    var chat = dbService.getChatById(prompt.chatId());
+    if (chat.title().isBlank()) {
+      var newChat = new Chat(chat.id(), prompt.message(), chat.lastActivity(), chat.llmId());
+      dbService.updateChat(newChat);
+    }
     res.status(Status.OK_200).send("Prompt received successfully.");
   }
 

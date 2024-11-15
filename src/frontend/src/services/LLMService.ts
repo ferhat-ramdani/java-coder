@@ -1,6 +1,5 @@
 import Config from '../Config';
 import {LLM} from "../interfaces/LLM";
-import {Prompt} from "../interfaces/Prompt";
 import {Utils} from "./Utils";
 
 

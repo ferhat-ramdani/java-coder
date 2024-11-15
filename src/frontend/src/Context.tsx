@@ -8,6 +8,7 @@ import chatService from "./services/ChatService";
 type myStorage = {
     selectedLLM: { accessor: Accessor<LLM | null>, setter: Setter<LLM | null> };
     chats: { resource: Resource<Chat[]>, mutator: Setter<Chat[] | undefined>, refetcher:  () => any};
+    pageTitle: {accessor: Accessor<string>, setter: Setter<string>};
 };
 
 const fetchChats = async (): Promise<Chat[]> => {
@@ -22,10 +23,12 @@ const fetchChats = async (): Promise<Chat[]> => {
 function createStorage(): myStorage {
     const [selectedLLM, setSelectedLLM] = createSignal<LLM | null>(null);
     const [chats, { mutate: setChats, refetch: refetchChats }] = createResource<Chat[]>(fetchChats);
+    const [pageTitle, setPageTitle] = createSignal("");
 
     return {
         selectedLLM: { accessor: selectedLLM, setter: setSelectedLLM },
-        chats: { resource: chats, mutator: setChats, refetcher: refetchChats }
+        chats: { resource: chats, mutator: setChats, refetcher: refetchChats},
+        pageTitle: { accessor: pageTitle, setter: setPageTitle }
     };
 }
 

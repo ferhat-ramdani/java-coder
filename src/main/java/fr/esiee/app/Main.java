@@ -30,7 +30,7 @@ import java.io.IOException;
 public class Main {
 
   private static final StaticContentService FRONT_STATIC_PATH =
-          StaticContentService.builder("/static").welcomeFileName("index.html").build();
+          StaticContentService.builder("static").welcomeFileName("index.html").build();
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
@@ -119,6 +119,8 @@ public class Main {
    * @param routing the HttpRouting.Builder to register the routes with
    */
   private static void registerFrontEndRoutes(HttpRouting.Builder routing) {
-    routing.register("/", FRONT_STATIC_PATH).register("/about", FRONT_STATIC_PATH);
+    routing.register("/", FRONT_STATIC_PATH)
+            .register("/chats[/*]", FRONT_STATIC_PATH)
+            .register("/llms", FRONT_STATIC_PATH);
   }
 }
