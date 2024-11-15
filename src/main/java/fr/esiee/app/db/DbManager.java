@@ -207,21 +207,6 @@ public class DbManager {
             .as(Prompt.class);
   }
 
-  /* This method is not used, don't delete it, it may be useful in the future
-  private void deleteData() {
-    var tx = dbClient.transaction();
-    try {
-      tx.namedDelete("delete-all-prompts");
-      tx.namedDelete("delete-all-llms");
-      tx.namedDelete("delete-all-chats");
-      tx.commit();
-    } catch (DbClientException t) {
-      tx.rollback();
-      throw t;
-    }
-  }
-   */
-
 
   /**
    * Retrieves the count of all LLMs in the database.

@@ -39,13 +39,8 @@ public class OllamaSetupManager {
   private static final String SERVE_CMD = CMD_PREFIX + " serve";
   private static final String PULL_CMD = CMD_PREFIX + " pull";
 
-//  private static final String UNIX_CHECK_CMD = "which " + CMD_PREFIX;
-//  private static final String WINDOWS_CHECK_CMD = "where " + CMD_PREFIX;
-
 
   public static void setupOllamaAndLLMs() throws IOException, InterruptedException {
-//    var cmd = SystemUtils.IS_OS_WINDOWS ? WINDOWS_CHECK_CMD : UNIX_CHECK_CMD;
-//    if (!executeCMD(cmd, CMDType.OTHER, false)) {
     if(!IsOllamaInstalled()){
       LOGGER.info("Installing Ollama...");
       installOllama();

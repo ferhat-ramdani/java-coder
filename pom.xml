@@ -253,7 +253,6 @@
                 <configuration>
                     <release>${java.version}</release>
                     <compilerArgs>
-<!--                        <arg>&#45;&#45;enable-preview</arg>-->
                         <arg>-Xlint:all</arg>
                     </compilerArgs>
                 </configuration>
