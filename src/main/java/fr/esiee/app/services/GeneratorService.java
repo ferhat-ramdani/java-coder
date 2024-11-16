@@ -280,6 +280,23 @@ public class GeneratorService implements HttpService {
   private ModelConfig updateModelSettings(LLM llm, int chatId) {
     var chatMemory = MessageWindowChatMemory.withMaxMessages(MAX_MEMORY_PROMPTS);
     updateMemoryWithPreviousPrompts(chatMemory, chatId);
+    var model = getOllamaChatModel(llm);
+
+    var assistant = AiServices.builder(Assistant.class)
+            .chatLanguageModel(model)
+            .systemMessageProvider(_ -> llm.systemPrompt())
+            .chatMemory(chatMemory)
+            .build();
+    return new ModelConfig(model, assistant);
+  }
+
+  /**
+   * Creates and configures an OllamaChatModel based on the provided LLM configuration.
+   *
+   * @param llm the LLM configuration
+   * @return the configured OllamaChatModel
+   */
+  private OllamaChatModel getOllamaChatModel(LLM llm) {
     var modelBuilder = OllamaChatModel.builder()
             .baseUrl(llmConfig.baseUrl())
             .modelName(llm.model());
@@ -298,14 +315,7 @@ public class GeneratorService implements HttpService {
       modelBuilder.timeout(Duration.ofSeconds(30));
     }
 
-    var model = modelBuilder.build();
-
-    var assistant = AiServices.builder(Assistant.class)
-            .chatLanguageModel(model)
-            .systemMessageProvider(_ -> llm.systemPrompt())
-            .chatMemory(chatMemory)
-            .build();
-    return new ModelConfig(model, assistant);
+    return modelBuilder.build();
   }
 
   /**
