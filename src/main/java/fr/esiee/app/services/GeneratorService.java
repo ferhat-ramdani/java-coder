@@ -293,7 +293,7 @@ public class GeneratorService implements HttpService {
     }
 
     if (llm.timeoutSec() != 0) {
-      modelBuilder.timeout(Duration.ofMillis(llm.timeoutSec()));
+      modelBuilder.timeout(Duration.ofSeconds(llm.timeoutSec()));
     } else {
       modelBuilder.timeout(Duration.ofSeconds(30));
     }
