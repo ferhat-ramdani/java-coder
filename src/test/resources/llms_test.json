@@ -6,7 +6,8 @@
     "systemPrompt": "You will generate a class written in java each time you are asked. Whatever the request is, very classy that you generate must have a main method. Use console prints rather. And java lib without terminal input.",
     "characteristics": "- Specialized in programming\n- Knowledge in large range of programming languages",
     "temp": 0.2,
-    "seed": 65427929
+    "seed": 65427929,
+    "timeoutSec": 30
   },
   {
     "id": 2,
@@ -15,6 +16,7 @@
     "systemPrompt": "You will generate a class written in java each time you are asked. Whatever the request is, very classy that you generate must have a main method. Use console prints rather. And java lib without terminal input.",
     "characteristics": "- Specialized in programming\n- Knowledge in large range of programming languages",
     "temp": 0.5,
-    "seed": 1728808900
+    "seed": 1728808900,
+    "timeoutSec": 30
   }
 ]

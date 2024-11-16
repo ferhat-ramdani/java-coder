@@ -73,9 +73,9 @@ class DbManagerTest {
   private void initializeLLM() {
     for (var llm : llms) {
       dbClient.execute().createInsert(
-                      "INSERT INTO llm(id, name, model, system_prompt, characteristics, temp, seed) VALUES(?, ?, ?, ?, ?, ?, ?)")
+                      "INSERT INTO llm(id, name, model, system_prompt, characteristics, temp, seed, timeout_sec) VALUES(?, ?, ?, ?, ?, ?, ?, ?)")
               .addParam(llm.id()).addParam(llm.name()).addParam(llm.model()).addParam(llm.systemPrompt())
-              .addParam(llm.characteristics()).addParam(llm.temp()).addParam(llm.seed()).execute();
+              .addParam(llm.characteristics()).addParam(llm.temp()).addParam(llm.seed()).addParam(llm.timeoutSec()).execute();
     }
   }
 
