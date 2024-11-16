@@ -1,45 +1,84 @@
-import {Component, createResource, For, Match, Switch} from "solid-js";
-import llmService from "../services/LLMService";
+import {Component, createEffect, createSignal} from "solid-js";
+import {A} from "@solidjs/router";
 import {useAppContext} from "../Context";
+import {Link, MetaProvider, Title} from "@solidjs/meta";
 
-const fetchLLM = async () => await llmService.getLLMS();
 
 const TopBar: Component = () => {
-    const [{curChatId, selectedLLM}] = useAppContext();
-    const [llms] = createResource(fetchLLM);
 
-    const handleLLMChange = (event: Event) => {
-        const selectedModel = Number((event.target as HTMLSelectElement).value);
-        const llm = llms()?.find(llm => llm.id === selectedModel);
-        if (llm) {
-            selectedLLM.setter(llm);
+    const THEME_KEY = "user-theme";
+
+
+    const [isNavCollapsed, setIsNavCollapsed] = createSignal(true);
+    const [isDarkMode, setIsDarkMode] = createSignal(false);
+    const [{pageTitle}] = useAppContext();
+
+    const toggleNavbar = () => {
+        setIsNavCollapsed(!isNavCollapsed());
+    };
+
+    const setDarkTheme = (prefersDark: boolean): void => {
+        setIsDarkMode(prefersDark);
+        localStorage.setItem(THEME_KEY, prefersDark ? "dark" : "light");
+        document.documentElement.setAttribute("data-bs-theme", prefersDark ? "dark" : "light");
+    }
+
+    const loadTheme = (): void => {
+        const savedTheme = localStorage.getItem(THEME_KEY);
+        if (savedTheme === "dark") {
+            setDarkTheme(true);
+        } else if (savedTheme === "light") {
+            setDarkTheme(false);
+        } else {
+            detectTheme();
         }
     };
 
-    return (<div class="d-flex bg-light border-bottom">
-            <div class="p-2 flex-grow-1 align-self-center">
-                <span class="ms-3 mb-0 h3">ChatGPT</span>
-            </div>
-            <div class="p-2 align-self-center">
-                <select
-                    class="form-select"
-                    aria-label="Select LLM Model"
-                    disabled={llms.loading || curChatId.accessor() != null}
-                    onChange={handleLLMChange}
-                >
-                    <option value="" selected={selectedLLM.accessor() === null}
-                            disabled>{llms.loading ? "Loading.." : "Select LLM Model"}</option>
-                    <For each={llms()} fallback={<option>Loading...</option>}>
-                        {item => (
-                            <option value={item.id} selected={selectedLLM.accessor()?.id === item.id}
-                                    data-bs-toggle="tooltip" data-bs-placement="top" title={item.characteristics}>
-                                {item.name}
-                            </option>
-                        )}
-                    </For>
-                </select>
-            </div>
-    </div>);
+    const detectTheme = (): void => {
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        setDarkTheme(prefersDark);
+    };
+
+    createEffect(() => {
+        loadTheme();
+    });
+
+    const toggleTheme = (): void => {
+        setDarkTheme(!isDarkMode());
+    };
+
+    return (
+        <>
+            <MetaProvider>
+                <Title>{pageTitle.accessor()}</Title>
+                <Link rel="stylesheet" href={`https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs${isDarkMode() ? "2015" : ""}.min.css`}/>
+            </MetaProvider>
+            <nav class="navbar navbar-expand-sm border-bottom">
+                <div class="container-fluid">
+                <A href={`/`} class={`navbar-brand`}>LLM's Chat</A>
+                    <button class="navbar-toggler" type="button"
+                            data-bs-target="#navbarNav" aria-controls="navbarNav"
+                            aria-label="Toggle navigation" onClick={toggleNavbar}>
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <h5 class={`text-center w-100 m-0 text-truncate`}>{pageTitle.accessor()}</h5>
+                    <div class={`navbar-collapse ${isNavCollapsed() ? "collapse" : "show"}`} id="navbarNav">
+                        <ul class="navbar-nav ms-auto nav-underline">
+                            <li class="nav-item">
+                                <A href={`/chats`} class={`nav-link fs-5`} activeClass={`active`}>Chats</A>
+                            </li>
+                            <li class="nav-item">
+                                <A href={`/llms`} class={`nav-link fs-5`} activeClass={`active`}>LLMS</A>
+                            </li>
+                        </ul>
+                        <button class={`btn btn-sm ms-2 ${isDarkMode() ? 'btn-outline-warning' : 'btn-outline-secondary'}`} onClick={toggleTheme}>
+                            {isDarkMode() ? <i class="bi bi-brightness-high-fill"></i> : <i class="bi bi-moon-fill"></i>}
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </>
+    );
 };
 
 export default TopBar;

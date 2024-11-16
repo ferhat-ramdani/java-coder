@@ -11,6 +11,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/bootstrap": "^5.2.10",
+    "@types/highlight.js": "^9.12.4",
     "@types/node": "^22.5.5",
     "solid-devtools": "^0.29.2",
     "typescript": "^5.3.3",
@@ -19,9 +20,11 @@
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
-    "@solidjs/router": "^0.14.5",
+    "@solidjs/meta": "^0.29.4",
+    "@solidjs/router": "^0.14.10",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
+    "highlight.js": "^11.10.0",
     "solid-js": "^1.8.22"
   }
 }

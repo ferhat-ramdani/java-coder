@@ -23,7 +23,7 @@ public class OllamaSetupManager {
   private static final String LOCAL_PATH = SystemUtils.USER_HOME + "/.chatgptfordev";
   private static final String LINUX_OLLAMA_PATH = LOCAL_PATH + "/bin";
 
-  private static final String OLLAMA_VERSION = "v0.3.13";
+  private static final String OLLAMA_VERSION = "v0.4.1";
 
   private static final String WINDOWS_FILE = "ollama-windows-" + SystemUtils.OS_ARCH + ".zip";
   private static final String LINUX_FILE = "ollama-linux-" + SystemUtils.OS_ARCH + ".tgz";

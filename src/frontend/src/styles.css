@@ -14,3 +14,18 @@
 .brightened {
     background-color: transparent;
 }
+
+.no-decoration {
+    color: inherit;
+    text-decoration: none;
+}
+
+.max-width70 {
+    max-width: 70%;
+}
+
+@media (max-width: 576px) {
+    .max-width70 {
+        max-width: 90%;
+    }
+}

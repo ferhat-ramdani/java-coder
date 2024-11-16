@@ -133,6 +133,12 @@ public class GeneratorService implements HttpService {
       return;
     }
     pendingPrompt = prompt;
+    dbService.updateChatLastActivity(prompt.chatId());
+    var chat = dbService.getChatById(prompt.chatId());
+    if (chat.title().isBlank()) {
+      var newChat = new Chat(chat.id(), prompt.message(), chat.lastActivity(), chat.llmId());
+      dbService.updateChat(newChat);
+    }
     res.status(Status.OK_200).send("Prompt received successfully.");
   }
 
@@ -294,13 +300,7 @@ public class GeneratorService implements HttpService {
   private ModelConfig updateModelSettings(LLM llm, int chatId) {
     var chatMemory = MessageWindowChatMemory.withMaxMessages(MAX_MEMORY_PROMPTS);
     updateMemoryWithPreviousPrompts(chatMemory, chatId);
-    var model = OllamaChatModel.builder()
-            .baseUrl(llmConfig.baseUrl())
-            .modelName(llm.model())
-            .temperature(llm.temp())
-            .seed(llm.seed())
-            .timeout(Duration.ofSeconds(30))
-            .build();
+    var model = getOllamaChatModel(llm);
 
     var assistant = AiServices.builder(Assistant.class)
             .chatLanguageModel(model)
@@ -308,6 +308,34 @@ public class GeneratorService implements HttpService {
             .chatMemory(chatMemory)
             .build();
     return new ModelConfig(model, assistant);
+  }
+
+  /**
+   * Creates and configures an OllamaChatModel based on the provided LLM configuration.
+   *
+   * @param llm the LLM configuration
+   * @return the configured OllamaChatModel
+   */
+  private OllamaChatModel getOllamaChatModel(LLM llm) {
+    var modelBuilder = OllamaChatModel.builder()
+            .baseUrl(llmConfig.baseUrl())
+            .modelName(llm.model());
+
+    if (llm.temp() != 0.0) {
+      modelBuilder.temperature(llm.temp());
+    }
+
+    if (llm.seed() != 0) {
+      modelBuilder.seed(llm.seed());
+    }
+
+    if (llm.timeoutSec() != 0) {
+      modelBuilder.timeout(Duration.ofSeconds(llm.timeoutSec()));
+    } else {
+      modelBuilder.timeout(Duration.ofSeconds(30));
+    }
+
+    return modelBuilder.build();
   }
 
   /**

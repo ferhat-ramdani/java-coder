@@ -1,38 +1,37 @@
-import {Accessor, Component, createSignal, Match, onCleanup, Setter, Show, Switch} from "solid-js";
+import {Accessor, Component, createEffect, createSignal, Match, onCleanup, Setter, Show, Switch} from "solid-js";
 import {AuthorType} from "../interfaces/AuthorType";
 import {Prompt} from "../interfaces/Prompt";
 import generatorService from "../services/GeneratorService";
 import {Utils} from "../services/Utils";
+import hljs from 'highlight.js';
 
 interface PromptProps {
     prompt: Prompt;
 }
 
 const getPromptStyles = (authorType: AuthorType) => {
-    let bgColor = "";
     let alignmentClass = "";
 
     switch (authorType) {
         case AuthorType.USER:
-            bgColor = "text-bg-primary";
-            alignmentClass = "align-items-end";
+            alignmentClass = "justify-content-end";
             break;
         case AuthorType.SYSTEM:
-            bgColor = "text-bg-secondary";
-            alignmentClass = "align-items-start";
+            alignmentClass = "justify-content-start";
             break;
         case AuthorType.AI:
-            bgColor = "text-bg-success";
-            alignmentClass = "align-items-start";
+            alignmentClass = "justify-content-start";
             break;
     }
 
-    return { bgColor, alignmentClass };
+    return alignmentClass;
 };
 
-const execute = async (id: number) => {
+const execute = async (id: number, setExecutionDisabled: Setter<boolean>,) => {
+    setExecutionDisabled(true);
     const res = await generatorService.executeClass(id);
     Utils.showNoActionModal('Execution output', res);
+    setExecutionDisabled(false);
 }
 
 const setupIntervals = (
@@ -55,39 +54,56 @@ const setupIntervals = (
     return { interval, dotsInterval };
 };
 const PromptMessage: Component<PromptProps> = (props) => {
-    const { bgColor, alignmentClass } = getPromptStyles(props.prompt.authorType);
-    const classes = `p-3 mt-2 mb-1 rounded-1 ${bgColor} text-start inline-block mw-100`;
+    const alignmentClass = getPromptStyles(props.prompt.authorType);
+    const classes = `text-break max-width70 rounded border`;
+
+    let codeRef: HTMLPreElement | undefined;
+
+    createEffect(() => {
+        if (codeRef) {
+            hljs.highlightElement(codeRef);
+        }
+    });
 
     const [seconds, setSeconds] = createSignal(0);
     const [dots, setDots] = createSignal(".");
     const { interval, dotsInterval } = setupIntervals(props.prompt.temporary, setSeconds, seconds, setDots, dots);
+
+    const [executeDisabled, setExecuteDisabled] = createSignal(false);
     onCleanup(() => {
         if (interval) clearInterval(interval);
         if (dotsInterval) clearInterval(dotsInterval);
     });
 
     return (
-        <div class={`d-flex flex-column ${alignmentClass}`}>
+        <div class={`d-flex mb-2 ${alignmentClass}`}>
             <Switch>
                 <Match when={props.prompt.authorType === AuthorType.AI}>
-                    <pre class={classes}>
-                      <code>{props.prompt.message}</code>
-                    </pre>
-                    <Show when={props.prompt.compile}>
-                        <button class="btn btn-primary mt-2" onClick={_ => execute(props.prompt.id)}>
-                            <i class="bi bi-power"></i>
+                    <div class={`position-relative max-width70`}>
+                        <pre class={`text-break rounded border mx-2 my-1`}>
+                          <code ref={codeRef} class={`language-java`}>{props.prompt.message}</code>
+                        </pre>
+                        <button class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2" onClick={() => navigator.clipboard.writeText(`${props.prompt.message}`)}>
+                            <i class="bi bi-clipboard-plus-fill"></i>
                         </button>
-                    </Show>
+                        <Show when={props.prompt.compile}>
+                            <button class="btn btn-sm btn-outline-primary position-absolute bottom-0 end-0 m-2"
+                                    onClick={() => execute(props.prompt.id, setExecuteDisabled)}
+                                    disabled={executeDisabled()}>
+                                <i class="bi bi-power"></i>
+                            </button>
+                        </Show>
+                    </div>
                 </Match>
                 <Match when={props.prompt.authorType === AuthorType.USER}>
-                    <div class={classes}>
-                        <p class="m-0">{props.prompt.message}</p>
+                    <div class={`${classes} px-2 py-1 bg-secondary-subtle`}>
+                    {props.prompt.message}
                     </div>
                 </Match>
                 <Match when={props.prompt.authorType === AuthorType.SYSTEM}>
-                    <div class={`${classes} d-inline-flex align-items-center`}>
+                    <div class={`${classes} px-2 py-1 d-inline-flex align-items-center `}>
                         {!props.prompt.temporary ? null : (
-                            <span class="badge bg-dark ms-2">{seconds()}s</span>
+                            <span class="badge text-bg-secondary ms-2">{seconds()}s</span>
                         )}
                         <p class="m-0 ms-2">{props.prompt.message}{!props.prompt.temporary ? "" : dots()}</p>
                     </div>

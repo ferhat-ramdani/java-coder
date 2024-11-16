@@ -4,13 +4,11 @@ import {createStore, SetStoreFunction} from "solid-js/store"
 import { LLM } from './interfaces/LLM';
 import {Chat} from "./interfaces/Chat";
 import chatService from "./services/ChatService";
-import {Prompt} from "./interfaces/Prompt";
 
 type myStorage = {
-    curChatId: { accessor: Accessor<number | null>, setter: Setter<number | null> };
     selectedLLM: { accessor: Accessor<LLM | null>, setter: Setter<LLM | null> };
-    curChatPrompts: { accessor: Accessor<Prompt[]>, setter: Setter<Prompt[]> };
     chats: { resource: Resource<Chat[]>, mutator: Setter<Chat[] | undefined>, refetcher:  () => any};
+    pageTitle: {accessor: Accessor<string>, setter: Setter<string>};
 };
 
 const fetchChats = async (): Promise<Chat[]> => {
@@ -23,16 +21,14 @@ const fetchChats = async (): Promise<Chat[]> => {
 };
 
 function createStorage(): myStorage {
-    const [curChatId, setCurChatId] = createSignal<number | null>(null);
     const [selectedLLM, setSelectedLLM] = createSignal<LLM | null>(null);
-    const [curChatPrompts, setCurChatPrompts] = createSignal<Prompt[]>([]);
     const [chats, { mutate: setChats, refetch: refetchChats }] = createResource<Chat[]>(fetchChats);
+    const [pageTitle, setPageTitle] = createSignal("");
 
     return {
-        curChatId: { accessor: curChatId, setter: setCurChatId },
         selectedLLM: { accessor: selectedLLM, setter: setSelectedLLM },
-        curChatPrompts: {accessor: curChatPrompts, setter: setCurChatPrompts},
-        chats: { resource: chats, mutator: setChats, refetcher: refetchChats }
+        chats: { resource: chats, mutator: setChats, refetcher: refetchChats},
+        pageTitle: { accessor: pageTitle, setter: setPageTitle }
     };
 }
 
