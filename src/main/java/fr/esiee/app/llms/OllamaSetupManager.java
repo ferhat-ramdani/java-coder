@@ -136,7 +136,10 @@ public class OllamaSetupManager {
     }
     var env = processBuilder.environment();
     var url = Contexts.globalContext().get(LLMConfig.class).orElse(LLMConfig.defaultConfig()).urlAndPort();
-    env.put((SystemUtils.IS_OS_WINDOWS ? "PATH" : "Path"), env.get("Path") + ";" + (SystemUtils.IS_OS_WINDOWS ? LOCAL_PATH : LINUX_OLLAMA_PATH) + "/");
+    switch(getOS()) {
+      case WINDOWS -> env.put("Path", env.get("Path") + ";" + LOCAL_PATH + "/");
+      case LINUX -> env.put("PATH", env.get("PATH") + ":" + LINUX_OLLAMA_PATH + "/");
+    }
     env.put("OLLAMA_MODELS", LOCAL_PATH + "/models");
     env.put("OLLAMA_HOST", url);
     var process = processBuilder.start();
