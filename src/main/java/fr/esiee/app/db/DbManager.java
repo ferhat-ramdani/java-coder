@@ -92,11 +92,11 @@ public class DbManager {
     var dbUser = config.get("db.connection.username").asString().orElseThrow(() -> new RuntimeException("Database username is not set."));
     var dbPassword = config.get("db.connection.password").asString().orElseThrow(() -> new RuntimeException("Database password is not set."));
 
-    if (dbUser.isBlank() || dbUser.isEmpty()) {
+    if (dbUser.isBlank()) {
       LOGGER.error("Database username is not set.");
     }
 
-    if (dbPassword.isBlank() || dbPassword.isEmpty()) {
+    if (dbPassword.isBlank()) {
       LOGGER.error("Database password is not set.");
     }
 
@@ -125,7 +125,8 @@ public class DbManager {
               llm.get("system_prompt").asText(""),
               llm.get("characteristics").asText(""),
               llm.get("temp").asDouble(0),
-              llm.get("seed").asInt(new SecureRandom().nextInt()));
+              llm.get("seed").asInt(0),
+              llm.get("timeout_sec").asInt(0));
     }
   }
 

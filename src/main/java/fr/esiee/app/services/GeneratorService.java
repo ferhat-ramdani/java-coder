@@ -280,13 +280,25 @@ public class GeneratorService implements HttpService {
   private ModelConfig updateModelSettings(LLM llm, int chatId) {
     var chatMemory = MessageWindowChatMemory.withMaxMessages(MAX_MEMORY_PROMPTS);
     updateMemoryWithPreviousPrompts(chatMemory, chatId);
-    var model = OllamaChatModel.builder()
+    var modelBuilder = OllamaChatModel.builder()
             .baseUrl(llmConfig.baseUrl())
-            .modelName(llm.model())
-            .temperature(llm.temp())
-            .seed(llm.seed())
-            .timeout(Duration.ofSeconds(30))
-            .build();
+            .modelName(llm.model());
+
+    if (llm.temp() != 0.0) {
+      modelBuilder.temperature(llm.temp());
+    }
+
+    if (llm.seed() != 0) {
+      modelBuilder.seed(llm.seed());
+    }
+
+    if (llm.timeoutSec() != 0) {
+      modelBuilder.timeout(Duration.ofMillis(llm.timeoutSec()));
+    } else {
+      modelBuilder.timeout(Duration.ofSeconds(30));
+    }
+
+    var model = modelBuilder.build();
 
     var assistant = AiServices.builder(Assistant.class)
             .chatLanguageModel(model)

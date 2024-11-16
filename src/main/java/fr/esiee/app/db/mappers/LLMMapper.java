@@ -22,7 +22,8 @@ public record LLMMapper() implements DbMapper<LLM> {
                 row.column("SYSTEM_PROMPT").getString(),
                 row.column("CHARACTERISTICS").getString(),
                 row.column("TEMP").getDouble(),
-                row.column("SEED").getInt()
+                row.column("SEED").getInt(),
+                row.column("TIMEOUT_SEC").getInt()
         );
     }
 
