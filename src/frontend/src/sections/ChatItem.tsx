@@ -10,7 +10,7 @@ import {A} from "@solidjs/router";
 
 const ChatItem: Component<{ chat: Chat }> = (prop) => {
     const chat: Chat = prop.chat;
-    const [{selectedLLM, chats}] = useAppContext();
+    const [{chats}] = useAppContext();
     const timestamp = Utils.toHumanReadable(chat.lastActivity);
 
     const [fetchedLLM, {refetch}] = createResource(async () => {
@@ -35,7 +35,6 @@ const ChatItem: Component<{ chat: Chat }> = (prop) => {
                 console.error("Failed to delete chat or prompts", error);
             }
         }
-        selectedLLM.setter(null);
         chats.mutator(chats.resource()?.filter(Chat => Chat.id !== chatId));
     };
 

@@ -31,8 +31,8 @@ const LLMsUI: Component = () => {
     });
 
     return (<>
-        <div class="container mt-3">
-            <div class="list-group">
+        <div class="container">
+            <div class="list-group my-3">
                 <For each={llms()} fallback={<Spinner text={`Loading...`}/>}>
                     {(item) => (
                         <label class="list-group-item d-flex gap-2 hover-darken" onClick={() => handleLLMChange(item.id)}>
@@ -40,7 +40,9 @@ const LLMsUI: Component = () => {
                                    checked={selectedLLM.accessor()?.id === item.id}/>
                             <div>
                                 <span class={`fw-bold`}>{item.name}</span>
-                                <small class="d-block text-body-secondary">{item.characteristics}</small>
+                                <For each={item.characteristics.split(";")}>
+                                    {(characteristic) => <small class="d-block text-body-secondary">{characteristic.trim()}</small>}
+                                </For>
                             </div>
                         </label>)}
                 </For>

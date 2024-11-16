@@ -1,26 +1,47 @@
 [
   {
-    "name": "llama3",
-    "model": "llama3.2:3b",
-    "system_prompt": "You will generate a class written in java each time you are asked. Whatever the request is, very classy that you generate must have a main method. Use console prints rather. And java lib without terminal input.",
-    "characteristics": "- Specialized in programming\n- Knowledge in large range of programming languages",
-    "temp": 0.2,
-    "seed": 65427929
-  },
-  {
-    "name": "Code Gemma",
-    "model": "codegemma:7b",
-    "system_prompt": "You will generate a class written in java each time you are asked. Whatever the request is, very classy that you generate must have a main method. Use console prints rather. And java lib without terminal input.",
-    "characteristics": "- Specialized in programming\n- Knowledge in large range of programming languages",
-    "temp": 0.5,
-    "seed": 1728808900
-  },
-  {
-    "name": "Gemma2",
-    "model": "gemma2:9b",
-    "system_prompt": "You will generate a class written in java each time you are asked. Whatever the request is, very classy that you generate must have a main method. Use console prints rather. And java lib without terminal input.",
-    "characteristics": "- Specialized in programming\n- Knowledge in large range of programming languages",
+    "name": "llama3.2 1B",
+    "model": "llama3.2:1b",
+    "system_prompt": "You will generate a Java class with a main method for every request, using console prints for output. Provide only the code without any explanations.",
+    "characteristics": "Developer: Meta; Optimized for multilingual dialogues, surpassing many open-source and proprietary models on industry-standard benchmarks.",
     "temp": 0.3,
-    "seed": 840479760226
+    "seed": 0,
+    "timeout_sec": 0
+  },
+  {
+    "name": "CodeGemma 7B",
+    "model": "codegemma:7b",
+    "system_prompt": "For all questions, provide a simple Java class with a main method, using console prints for output. Provide only the code without any explanations.",
+    "characteristics": "Developer: Google; A specialized version of Gemma 1, fine-tuned for code generation, offering optimized performance for programming tasks.",
+    "timeout_sec": 40,
+    "seed": 0,
+    "temp": 0
+  },
+  {
+    "name": "Gemma 2 9B",
+    "model": "gemma2:9b",
+    "system_prompt": "Generate a complete Java class with a main method for every query, using console prints for output. Provide only the code without any explanations.",
+    "characteristics": "Developer: Google; Distilled from Gemma 2 27B, providing a balance between performance and efficiency.",
+    "timeout_sec": 40,
+    "seed": 0,
+    "temp": 0
+  },
+  {
+    "name": "Gemma 2 27B",
+    "model": "gemma2:27b",
+    "system_prompt": "For each query, generate a complete Java class containing a main method, utilizing console prints for output. Provide only the code without any explanations.",
+    "characteristics": "Developer: Google; Achieves exceptional benchmark results, outperforming some larger open models.",
+    "timeout_sec": 240,
+    "seed": 0,
+    "temp": 0
+  },
+  {
+    "name": "Qwen 2.5-Coder 32B",
+    "model": "qwen2.5-coder:32b",
+    "system_prompt": "Respond to every input by generating a well-structured Java class with a main method, using console prints for output. Provide only the code without any explanations.",
+    "characteristics": "Developer: Alibaba Cloud; Specialized in programming tasks, supporting a context length of up to 128,000 tokens.",
+    "timeout_sec": 240,
+    "seed": 0,
+    "temp": 0
   }
 ]
