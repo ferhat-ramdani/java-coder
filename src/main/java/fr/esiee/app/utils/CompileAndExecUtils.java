@@ -19,10 +19,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -143,38 +140,54 @@ public class CompileAndExecUtils {
           throws IOException, InterruptedException, ExecutionException {
     Objects.requireNonNull(classDirectory);
     Objects.requireNonNull(className);
-    var process = new ProcessBuilder("java", "-cp", classDirectory.toString(), className)
-            .redirectErrorStream(true)
-            .start();
+
+    var process = createProcess(classDirectory, className);
     try (var executor = Executors.newSingleThreadExecutor();
          var outputStream = new ByteArrayOutputStream()) {
-      Future<?> outputFuture;
-      try {
-        outputFuture = executor.submit(() -> {
-          try (var processOutput = process.getInputStream()) {
-            processOutput.transferTo(outputStream);
-          } catch (IOException e) {
-            throw new UncheckedIOException(e);
-          }
-        });
-      } catch (UncheckedIOException e) {
-        throw e.getCause();
-      }
-      var finished = process.waitFor(EXEC_TIMEOUT_SEC, TimeUnit.SECONDS);
-      if (!finished) {
-        LOGGER.warn("Execution of class {} timed out after {} seconds", className, EXEC_TIMEOUT_SEC);
-        process.destroy();
+      var outputFuture = captureProcessOutput(process, executor, outputStream);
+
+      if (!awaitProcessCompletion(process)) {
+        handleTimeout(process, className);
       } else {
         outputFuture.get();
       }
-      var output = outputStream.toString(StandardCharsets.UTF_8);
-      if (!finished){
-        output += "\nExecution timed out after " + EXEC_TIMEOUT_SEC + " seconds.\n";
-      }
-      return output;
+
+      return finalizeOutput(outputStream, process.isAlive());
     }
   }
 
+  private static Process createProcess(Path classDirectory, String className) throws IOException {
+    return new ProcessBuilder("java", "-cp", classDirectory.toString(), className)
+            .redirectErrorStream(true)
+            .start();
+  }
+
+  private static Future<?> captureProcessOutput(Process process, ExecutorService executor, ByteArrayOutputStream outputStream) {
+    return executor.submit(() -> {
+      try (var processOutput = process.getInputStream()) {
+        processOutput.transferTo(outputStream);
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    });
+  }
+
+  private static boolean awaitProcessCompletion(Process process) throws InterruptedException {
+    return process.waitFor(EXEC_TIMEOUT_SEC, TimeUnit.SECONDS);
+  }
+
+  private static void handleTimeout(Process process, String className) {
+    LOGGER.warn("Execution of class {} timed out after {} seconds", className, EXEC_TIMEOUT_SEC);
+    process.destroy();
+  }
+
+  private static String finalizeOutput(ByteArrayOutputStream outputStream, boolean timedOut) {
+    var output = outputStream.toString(StandardCharsets.UTF_8);
+    if (timedOut) {
+      output += "\nExecution timed out after " + EXEC_TIMEOUT_SEC + " seconds.\n";
+    }
+    return output;
+  }
   /**
    * Compiles the Java file at the specified path.
    *
