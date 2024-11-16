@@ -43,6 +43,17 @@ public class Main {
     return Config.global().get("debug").asBoolean().orElse(false);
   }
 
+  private static WebServer createWebServer(Config config) {
+    return WebServer.builder()
+            .mediaContext(it -> it
+                    .mediaSupportsDiscoverServices(false)
+                    .addMediaSupport(JacksonSupport.create(config))
+                    .build())
+            .addFeature(OpenApiFeature.create(config.get("openapi")))
+            .config(config.get("server"))
+            .routing(Main::routing).build().start();
+  }
+
   /**
    * The main method that serves as the entry point for the application.
    *
@@ -51,7 +62,6 @@ public class Main {
    * @throws InterruptedException if the thread is interrupted
    */
   public static void main(String[] args) throws IOException, InterruptedException {
-
     LogConfig.configureRuntime();
 
     var config = Config.builder()
@@ -59,25 +69,14 @@ public class Main {
             .build();
 
     Config.global(config);
-
     DbManager.initialize();
-
     var llmConfig = config.get("provider").as(LLMConfig.class).orElse(LLMConfig.defaultConfig());
     Contexts.globalContext().register(llmConfig);
-
     OllamaSetupManager.setupOllamaAndLLMs();
 
-    var server = WebServer.builder()
-            .mediaContext(it -> it
-                    .mediaSupportsDiscoverServices(false)
-                    .addMediaSupport(JacksonSupport.create(config))
-                    .build())
-            .addFeature(OpenApiFeature.create(config.get("openapi")))
-            .config(config.get("server"))
-            .routing(Main::routing).build().start();
+    var server = createWebServer(config);
 
     Contexts.globalContext().register(server);
-
     LOGGER.info("WEB server is up! {}://{}:{}", server.hasTls() ? "https" : "http",server.prototype().host(), server.port());
   }
 
@@ -87,7 +86,6 @@ public class Main {
    * @param routing the HttpRouting.Builder to configure the routes with
    */
   public static void routing(HttpRouting.Builder routing) {
-
     if (isDebugMode()) {
       var corsSupport = CorsSupport.builder()
               .addCrossOrigin(CrossOriginConfig.builder()
@@ -100,7 +98,6 @@ public class Main {
     } else {
       routing.register("/api", new ApiRoutingService());
     }
-
     routing.error(NotFoundException.class, (_, res, exception) -> {
                       ErrorUtils.send(res, Status.BAD_REQUEST_400, exception.getMessage());
                       LOGGER.error("A NotFoundException occurred: ", exception);
@@ -109,7 +106,6 @@ public class Main {
                       ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, exception.getMessage());
                       LOGGER.error("A RestApiException occurred: ", exception);
                     });
-
     registerFrontEndRoutes(routing);
   }
 

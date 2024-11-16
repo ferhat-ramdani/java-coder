@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 public class OllamaSetupManager {
@@ -59,24 +60,21 @@ public class OllamaSetupManager {
   }
 
   private static void installOllama() throws IOException, InterruptedException {
-    String url, file;
-
-    if (SystemUtils.IS_OS_LINUX) {
-      url = LINUX_URL;
-      file = LINUX_FILE;
-    } else if (SystemUtils.IS_OS_WINDOWS) {
-      url = WINDOWS_URL;
-      file = WINDOWS_FILE;
-    } else if (SystemUtils.IS_OS_MAC) {
+    if (SystemUtils.IS_OS_MAC) {
       executeCMD(MAC_CMD, CMDType.OTHER, true);
       return;
-    } else {
-      throw new UnsupportedOperationException("Unsupported OS.");
     }
 
+    var osConfig = switch (getOS()) {
+      case LINUX -> Map.of("url", LINUX_URL, "file", LINUX_FILE);
+      case WINDOWS -> Map.of("url", WINDOWS_URL, "file", WINDOWS_FILE);
+      default -> throw new UnsupportedOperationException("Unsupported OS.");
+    };
+
     var tempPath = createTempPath();
-    downloadOllama(url, tempPath.resolve(file));
-    extractOllama(tempPath.resolve(file), Paths.get(LOCAL_PATH));
+    var filePath = tempPath.resolve(osConfig.get("file"));
+    downloadOllama(osConfig.get("url"), filePath);
+    extractOllama(filePath, Paths.get(LOCAL_PATH));
   }
 
   private static void downloadOllama(String url, Path destination) throws IOException {
@@ -109,42 +107,37 @@ public class OllamaSetupManager {
     LOGGER.info("Ollama started successfully.");
   }
 
-
   private static Path createTempPath() throws IOException {
     var tempDir = Files.createTempDirectory("ollama-install");
     tempDir.toFile().deleteOnExit();
     return tempDir;
   }
 
+  private static String adjustCommandForOS(String cmd, CMDType type) {
+    if (type == CMDType.OTHER) return cmd;
+
+    return switch (getOS()) {
+      case WINDOWS -> WINDOWS_CMD_PREFIX + cmd;
+      case LINUX -> LINUX_OLLAMA_PATH + "/" + cmd;
+      default -> cmd;
+    };
+  }
+
   private static boolean executeCMD(String cmd, CMDType type, boolean inheritIO) throws IOException, InterruptedException {
-    if(type != CMDType.OTHER) {
-      if (SystemUtils.IS_OS_WINDOWS) {
-        cmd = WINDOWS_CMD_PREFIX + cmd;
-      } else if (SystemUtils.IS_OS_LINUX) {
-        cmd = LINUX_OLLAMA_PATH + "/" + cmd;
-      }
-    }
-
+    cmd = adjustCommandForOS(cmd, type);
     var processBuilder = new ProcessBuilder(cmd.split(" "));
-
     if (inheritIO) {
       processBuilder.inheritIO();
     }
-
     var env = processBuilder.environment();
     var url = Contexts.globalContext().get(LLMConfig.class).orElse(LLMConfig.defaultConfig()).urlAndPort();
-
-    if (SystemUtils.IS_OS_WINDOWS) {
-      env.put("Path", env.get("Path") + ";" + LOCAL_PATH + "/");
-    } else {
-      env.put("PATH", env.get("PATH") + ":" + LINUX_OLLAMA_PATH + "/");
+    switch(getOS()) {
+      case WINDOWS -> env.put("Path", env.get("Path") + ";" + LOCAL_PATH + "/");
+      case LINUX -> env.put("PATH", env.get("PATH") + ":" + LINUX_OLLAMA_PATH + "/");
     }
-
     env.put("OLLAMA_MODELS", LOCAL_PATH + "/models");
     env.put("OLLAMA_HOST", url);
-
     var process = processBuilder.start();
-
     if (type == CMDType.RUN_OLLAM_NO_WAIT) {
       return true;
     }
@@ -165,7 +158,7 @@ public class OllamaSetupManager {
             .get(DbManager.class)
             .orElseThrow(() -> new NoSuchElementException("DbManager not found."))
             .listLLMs();
-    LOGGER.info("Waiting for LLMs to be pulled: to pull {} LLMs.", llmList.size());
+    LOGGER.info("Waiting for {} LLMs to be pulled.", llmList.size());
     for (int i = 0; i < llmList.size(); i++) {
       var llm = llmList.get(i);
       LOGGER.info("Checking if LLM is present: {} - {}/{}", llm.model(), i + 1, llmList.size());
@@ -176,6 +169,15 @@ public class OllamaSetupManager {
       }
     }
     LOGGER.info("LLMs checked and pulled successfully.");
+  }
+
+  private enum OS { LINUX, WINDOWS, MAC, UNKNOWN }
+
+  private static OS getOS() {
+    if (SystemUtils.IS_OS_LINUX) return OS.LINUX;
+    if (SystemUtils.IS_OS_WINDOWS) return OS.WINDOWS;
+    if (SystemUtils.IS_OS_MAC) return OS.MAC;
+    return OS.UNKNOWN;
   }
 
   private enum CMDType {

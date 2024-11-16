@@ -9,6 +9,7 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.service.AiServices;
 import fr.esiee.app.db.DbManager;
+import fr.esiee.app.db.entities.Chat;
 import fr.esiee.app.utils.ErrorUtils;
 import fr.esiee.app.utils.CompileAndExecUtils;
 import fr.esiee.app.config.LLMConfig;
@@ -144,34 +145,53 @@ public class GeneratorService implements HttpService {
   @GET
   @Path("/stream")
   @Operation(summary = "stream generation info", description = "Streams message about the generation.")
-  public void streamLLMResponse(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
+  public void streamLLMResponse(@Parameter(hidden = true) ServerRequest req,
+                                @Parameter(hidden = true) ServerResponse res) {
     try (var sseSink = res.sink(SseSink.TYPE)) {
-      if(pendingPrompt == null) {
-        LOGGER.error("Front is trying to stream a response, but no prompt is pending.");
-        sseSink.emit(SseEvent.create(LLMResponse.finish()));
+      if (pendingPrompt == null) {
+        logAndEmitError(sseSink, "Front is trying to stream a response, but no prompt is pending.");
         return;
       }
-      var chat = dbService.getChatById(pendingPrompt.chatId());
-      var newLLM = dbService.getLLMById(chat.llmId());
+
+      Chat chat = dbService.getChatById(pendingPrompt.chatId());
+      LLM newLLM = dbService.getLLMById(chat.llmId());
       dbService.insertPrompt(pendingPrompt);
 
-      SourceCode generatedCode;
       try {
-        generatedCode = generateClassFromLLM(newLLM, chat.id(), pendingPrompt.message(), sseSink);
-        LOGGER.info("Class generated successfully.");
-        var aiPrompt = new Prompt(0, generatedCode.code, AuthorType.AI, chat.id(), generatedCode.compiled);
-        dbService.insertPrompt(aiPrompt);
-        var registeredPrompt = dbService.getPromptByPromptInfo(aiPrompt);
-        sseSink.emit(SseEvent.create(LLMResponse.done(registeredPrompt)));
+        handleLLMGeneration(newLLM, chat, sseSink);
       } catch (IOException | InterruptedException | ExecutionException e) {
-        LOGGER.error("Error occurred while generating and streaming response to front :", e);
-        sseSink.emit(SseEvent.create(LLMResponse.error(registerErrorPrompt("Error while generating class.", chat.id()))));
+        handleGenerationException(sseSink, e, chat.id());
       } finally {
         pendingPrompt = null;
       }
     }
   }
 
+  private void handleLLMGeneration(LLM newLLM, Chat chat, SseSink sseSink)
+          throws IOException, InterruptedException, ExecutionException {
+    var generatedCode = generateClassFromLLM(newLLM, chat.id(), pendingPrompt.message(), sseSink);
+    LOGGER.info("Class generated successfully.");
+
+    Prompt aiPrompt = new Prompt(0, generatedCode.code, AuthorType.AI, chat.id(), generatedCode.compiled);
+    dbService.insertPrompt(aiPrompt);
+
+    Prompt registeredPrompt = dbService.getPromptByPromptInfo(aiPrompt);
+    sseSink.emit(SseEvent.create(LLMResponse.done(registeredPrompt)));
+  }
+
+  private void handleGenerationException(SseSink sseSink, Exception e, int chatId) {
+    LOGGER.error("Error occurred while generating and streaming response to front:", e);
+    var prompt = new Prompt(0, "Error while generating class.", AuthorType.SYSTEM, chatId, false);
+    dbService.insertPrompt(prompt);
+    var registeredErrorPrompt = dbService.getPromptByPromptInfo(prompt);
+    sseSink.emit(SseEvent.create(LLMResponse.error(registeredErrorPrompt)));
+    throw new RestApiException(e);
+  }
+
+  private void logAndEmitError(SseSink sseSink, String message) {
+    LOGGER.error(message);
+    sseSink.emit(SseEvent.create(LLMResponse.finish()));
+  }
   /**
    * This method executes a Java class based on the provided prompt ID and returns the output.
    * It checks if the class is compiled before execution.
@@ -202,18 +222,6 @@ public class GeneratorService implements HttpService {
   }
 
   /**
-   *  Registers an error prompt in the database.
-   * @param errorMessage the error message
-   * @param chatId the chat ID
-   * @return the registered prompt
-   */
-  private Prompt registerErrorPrompt(String errorMessage, int chatId) {
-    var prompt = new Prompt(0, errorMessage, AuthorType.SYSTEM, chatId, false);
-    dbService.insertPrompt(prompt);
-    return dbService.getPromptByPromptInfo(prompt);
-  }
-
-  /**
    * Generates a class from the LLM model.
    *
    * @param llm the LLM model to use
@@ -231,39 +239,52 @@ public class GeneratorService implements HttpService {
     Objects.requireNonNull(requestText);
 
     var modelConfig = updateModelSettings(llm, chatId);
-
     String errorsText = null;
-    String code = null;
+
     for (int attempt = 1; attempt <= NB_ATTEMPTS; attempt++) {
-      LOGGER.info("Attempting to generate class (attempt {}/{}).", attempt, NB_ATTEMPTS);
-      sseSink.emit(SseEvent.create(LLMResponse.generating("Attempting to generate class (attempt " + attempt + "/" + NB_ATTEMPTS + ")")));
+      logAndEmit(sseSink, "Attempting to generate class (attempt " + attempt + "/" + NB_ATTEMPTS + ")");
+      String response = generateResponse(modelConfig, requestText, errorsText, attempt);
 
-      String answer;
-      try{
-        answer = modelConfig.assistant.chat(attempt == 1 ? requestText : errorsText);
-      } catch (RuntimeException e) {
-        throw new IOException("Error while asking assistant to generate response.", e.getCause());
-      }
+      String code = CompileAndExecUtils.extractCode(response);
+      logAndEmit(sseSink, "Code extracted from response");
 
-      code = CompileAndExecUtils.extractCode(answer);
-      LOGGER.info("Code extracted from response.");
-      sseSink.emit(SseEvent.create(LLMResponse.generating("Code extracted from response")));
-
-      var errors = CompileAndExecUtils.processText(code, CompileAndExecUtils.Operation.COMPILE);
-
-      if (errors.isEmpty()) {
-        LOGGER.info("No errors found in generated code.");
-        sseSink.emit(SseEvent.create(LLMResponse.generating("No errors found in generated code")));
+      if (isCodeValid(code, sseSink)) {
         return new SourceCode(code, true);
       } else {
-        LOGGER.info("Errors found in generated code:\n{}", errors);
-        sseSink.emit(SseEvent.create(LLMResponse.generating("Errors found in generated code")));
-        errorsText = SYSTEM_ERR_MESSAGE + errors;
+        errorsText = SYSTEM_ERR_MESSAGE + logAndEmitErrors(code, sseSink);
       }
     }
-    return new SourceCode(code, false);
+    return new SourceCode(errorsText, false);
   }
 
+  private String generateResponse(ModelConfig modelConfig, String requestText, String errorsText, int attempt) throws IOException {
+    try {
+      return modelConfig.assistant.chat(attempt == 1 ? requestText : errorsText);
+    } catch (RuntimeException e) {
+      throw new IOException("Error while asking assistant to generate response.", e.getCause());
+    }
+  }
+
+  private boolean isCodeValid(String code, SseSink sseSink) throws ExecutionException, InterruptedException, IOException {
+    var errors = CompileAndExecUtils.processText(code, CompileAndExecUtils.Operation.COMPILE);
+    if (errors.isEmpty()) {
+      logAndEmit(sseSink, "No errors found in generated code");
+      return true;
+    }
+    return false;
+  }
+
+  private String logAndEmitErrors(String code, SseSink sseSink) throws IOException, ExecutionException, InterruptedException {
+    var errors = CompileAndExecUtils.processText(code, CompileAndExecUtils.Operation.COMPILE);
+    LOGGER.info("Errors found in generated code:\n{}", errors);
+    logAndEmit(sseSink, "Errors found in generated code");
+    return errors;
+  }
+
+  private void logAndEmit(SseSink sseSink, String message) {
+    LOGGER.info(message);
+    sseSink.emit(SseEvent.create(LLMResponse.generating(message)));
+  }
   /**
    * Updates the model settings.
    *
