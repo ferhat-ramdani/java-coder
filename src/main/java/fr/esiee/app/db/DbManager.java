@@ -124,9 +124,9 @@ public class DbManager {
               llm.get("model").asText(),
               llm.get("system_prompt").asText(""),
               llm.get("characteristics").asText(""),
-              llm.get("temp").asDouble(0),
-              llm.get("seed").asInt(0),
-              llm.get("timeout_sec").asInt(0));
+              llm.get("temp").asDouble(),
+              llm.get("seed").asInt(),
+              llm.get("timeout_sec").asInt());
     }
   }
 
@@ -482,9 +482,11 @@ public class DbManager {
 
     var transaction = dbClient.transaction();
     long updatedRow;
+
+    var newChat = new Chat(chat.id(), truncate(chat.title(), 100), chat.lastActivity(), chat.llmId());
     try {
       updatedRow =  transaction.createNamedUpdate("update-chat-by-id")
-              .namedParam(chat).execute();
+              .namedParam(newChat).execute();
       transaction.commit();
     } catch (DbClientException t) {
       transaction.rollback();
