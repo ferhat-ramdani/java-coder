@@ -24,6 +24,7 @@ import io.helidon.webserver.http.*;
 import io.helidon.webserver.sse.SseSink;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -107,16 +108,16 @@ public class GeneratorService implements HttpService {
   @Override
   public void routing(HttpRules rules) {
     rules.post("/class", Handler.create(Prompt.class, this::receivePrompt))
-            .get("/stream", this::streamLLMResponse)
-            .post("/exec", Handler.create(Integer.class, this::executeClass))
-            .get("/reset", this::resetService); // for testing purposes
+            .get("/stream/{promptId}", this::streamLLMResponse)
+            .post("/exec", Handler.create(Integer.class, this::executeClass));
   }
 
   /**
    * Receives a prompt from the front-end and stores it in the database.
    *
    * @param prompt the prompt to store
-   * @param res the server response
+   * @param res the server response - the response will contain the id
+   *            of the prompt that was registered to the database.
    */
   @POST
   @Path("/class")
@@ -127,19 +128,15 @@ public class GeneratorService implements HttpService {
   public void receivePrompt(Prompt prompt, @Parameter(hidden = true) ServerResponse res) {
     Objects.requireNonNull(prompt);
     Objects.requireNonNull(res);
-    if(pendingPrompt != null) {
-      LOGGER.error("Front is trying to send a prompt, but a prompt is already being processed.");
-      ErrorUtils.send(res, Status.NOT_ACCEPTABLE_406, "A prompt is already being processed.");
-      return;
-    }
-    pendingPrompt = prompt;
+    dbService.insertPrompt(prompt);
+    var registeredPromptId = dbService.getPromptByPromptInfo(prompt).id();
     dbService.updateChatLastActivity(prompt.chatId());
     var chat = dbService.getChatById(prompt.chatId());
     if (chat.title().isBlank()) {
       var newChat = new Chat(chat.id(), prompt.message(), chat.lastActivity(), chat.llmId());
       dbService.updateChat(newChat);
     }
-    res.status(Status.OK_200).send("Prompt received successfully.");
+    res.status(Status.OK_200).send(registeredPromptId);
   }
 
   /**
@@ -149,33 +146,32 @@ public class GeneratorService implements HttpService {
    * @param res the server response
    */
   @GET
-  @Path("/stream")
+  @Path("/stream/{promptId}")
   @Operation(summary = "stream generation info", description = "Streams message about the generation.")
-  public void streamLLMResponse(@Parameter(hidden = true) ServerRequest req,
+  public void streamLLMResponse(@Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the prompt containing front request", required = true, schema = @Schema(type = "integer", description = "Prompt ID", example = "1")) ServerRequest req,
                                 @Parameter(hidden = true) ServerResponse res) {
+    int promptId = req.path()
+            .pathParameters()
+            .first("promptId")
+            .map(Integer::parseInt)
+            .orElseThrow(() -> new RestApiException("Prompt ID is required for streaming response"));
+    LOGGER.info("Front requested to stream a response for the prompt no {}", promptId);
     try (var sseSink = res.sink(SseSink.TYPE)) {
-      if (pendingPrompt == null) {
-        logAndEmitError(sseSink, "Front is trying to stream a response, but no prompt is pending.");
-        return;
-      }
-
-      Chat chat = dbService.getChatById(pendingPrompt.chatId());
-      LLM newLLM = dbService.getLLMById(chat.llmId());
-      dbService.insertPrompt(pendingPrompt);
+      var prompt = dbService.getPromptById(promptId);
+      var chat = dbService.getChatById(prompt.chatId());
+      var newLLM = dbService.getLLMById(chat.llmId());
 
       try {
-        handleLLMGeneration(newLLM, chat, sseSink);
+        handleLLMGeneration(prompt, newLLM, chat, sseSink);
       } catch (IOException | InterruptedException | ExecutionException e) {
         handleGenerationException(sseSink, e, chat.id());
-      } finally {
-        pendingPrompt = null;
       }
     }
   }
 
-  private void handleLLMGeneration(LLM newLLM, Chat chat, SseSink sseSink)
+  private void handleLLMGeneration(Prompt prompt, LLM newLLM, Chat chat, SseSink sseSink)
           throws IOException, InterruptedException, ExecutionException {
-    var generatedCode = generateClassFromLLM(newLLM, chat.id(), pendingPrompt.message(), sseSink);
+    var generatedCode = generateClassFromLLM(newLLM, chat.id(), prompt.message(), sseSink);
     LOGGER.info("Class generated successfully.");
 
     Prompt aiPrompt = new Prompt(0, generatedCode.code, AuthorType.AI, chat.id(), generatedCode.compiled);
@@ -194,10 +190,6 @@ public class GeneratorService implements HttpService {
     throw new RestApiException(e);
   }
 
-  private void logAndEmitError(SseSink sseSink, String message) {
-    LOGGER.error(message);
-    sseSink.emit(SseEvent.create(LLMResponse.finish()));
-  }
   /**
    * This method executes a Java class based on the provided prompt ID and returns the output.
    * It checks if the class is compiled before execution.
@@ -246,13 +238,14 @@ public class GeneratorService implements HttpService {
 
     var modelConfig = updateModelSettings(llm, chatId);
     String errorsText = null;
+    String code = null;
 
     int nbAttempts = 3;
     for (int attempt = 1; attempt <= nbAttempts; attempt++) {
       logAndEmit(sseSink, "Attempting to generate class (attempt " + attempt + "/" + nbAttempts + ")");
       String response = generateResponse(modelConfig, requestText, errorsText, attempt);
 
-      String code = CompileAndExecUtils.extractCode(response);
+      code = CompileAndExecUtils.extractCode(response);
       logAndEmit(sseSink, "Code extracted from response");
 
       if (isCodeValid(code, sseSink)) {
@@ -261,7 +254,7 @@ public class GeneratorService implements HttpService {
         errorsText = "Here are the compilation errors, correct them." + logAndEmitErrors(code, sseSink);
       }
     }
-    return new SourceCode(errorsText, false);
+    return new SourceCode(code, false);
   }
 
   private String generateResponse(ModelConfig modelConfig, String requestText, String errorsText, int attempt) throws IOException {
@@ -357,11 +350,5 @@ public class GeneratorService implements HttpService {
         case SYSTEM -> chatMemory.add(new SystemMessage(prompt.message()));
       }
     }
-  }
-
-  @TestOnly
-  void resetService(ServerRequest req, ServerResponse res) {
-    pendingPrompt = null;
-    res.status(Status.OK_200).send("Service reset successfully.");
   }
 }
