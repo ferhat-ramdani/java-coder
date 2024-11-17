@@ -113,11 +113,11 @@ public class Main {
    * @param routing the HttpRouting.Builder to register the routes with
    */
   private static void registerFrontEndRoutes(HttpRouting.Builder routing) {
-    var front_static_path =
+    var frontStaticPath =
             StaticContentService.builder("static").welcomeFileName("index.html").build();
 
-    routing.register("/", front_static_path)
-            .register("/chats[/*]", front_static_path)
-            .register("/llms", front_static_path);
+    routing.register("/", frontStaticPath)
+            .register("/chats[/*]", frontStaticPath)
+            .register("/llms", frontStaticPath);
   }
 }

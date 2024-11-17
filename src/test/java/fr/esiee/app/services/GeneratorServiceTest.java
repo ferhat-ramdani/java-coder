@@ -38,35 +38,21 @@ public class GeneratorServiceTest {
     builder.register("/", new GeneratorService());
   }
 
-  void resetService() {
-    try (var res = client.get("/reset").request()) {
-      assertAll(
-              () -> assertEquals(Status.OK_200, res.status()),
-              () -> assertEquals(0, PLAINTEXT_UTF_8.compareTo(res.headers().contentType().orElseThrow())),
-              () -> assertEquals("Service reset successfully.", res.as(String.class))
-      );
-    }
-  }
-
   @Test
   void testReceivePrompt() {
     var chat = new Chat(0, "Title", Timestamp.valueOf("2024-10-31 22:50:25"), 1);
     dbManager.insertChat(chat);
     var chatId = dbManager.getChatByParams(chat).id();
-    Prompt prompt = new Prompt(1, "Sample message", AuthorType.USER, chatId, true);
-    dbManager.insertPrompt(prompt);
-    var dbPrompt = dbManager.getPromptByPromptInfo(prompt);
-    try (var response = client.post("/class").submit(dbPrompt)) {
-      var responseText = response.as(String.class);
+    var prompt = new Prompt(1, "Sample message", AuthorType.USER, chatId, true);
+    try (var response = client.post("/class").submit(prompt)) {
+      int promptId = response.as(Integer.class);
       assertAll(
               () -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(0, PLAINTEXT_UTF_8.compareTo(response.headers().contentType().orElseThrow())),
-              () -> assertEquals("Prompt received successfully.", responseText)
+              () -> assertEquals(0, PLAINTEXT_UTF_8.compareTo(response.headers().contentType().orElseThrow()))
       );
+      dbManager.deletePromptById(promptId);
     }
-    dbManager.deletePromptById(dbPrompt.id());
     dbManager.deleteChatById(chatId);
-    resetService();
   }
 
   @Test
@@ -76,25 +62,22 @@ public class GeneratorServiceTest {
     var chatId = dbManager.getChatByParams(chat).id();
     Prompt prompt =
             new Prompt(1, "Generate a Java class that computes big prime numbers.", AuthorType.USER, chatId, true);
-    dbManager.insertPrompt(prompt);
-    var promptId = dbManager.getPromptByPromptInfo(prompt).id();
+    int registeredPromptId = 0;
     try (var response = client.post("/class").submit(prompt)) {
-      var responseText = response.as(String.class);
+      registeredPromptId = response.as(Integer.class);
       assertAll(
               () -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(0, PLAINTEXT_UTF_8.compareTo(response.headers().contentType().orElseThrow())),
-              () -> assertEquals("Prompt received successfully.", responseText)
+              () -> assertEquals(0, PLAINTEXT_UTF_8.compareTo(response.headers().contentType().orElseThrow()))
       );
     }
-    try (var response = client.get("/stream").request()) {
+    try (var response = client.get("/stream/" + registeredPromptId).request()) {
       assertAll(
               () -> assertEquals(Status.OK_200, response.status()),
               () -> assertEquals(TEXT_EVENT_STREAM, response.headers().contentType().orElseThrow().mediaType())
       );
     }
-    dbManager.deletePromptById(promptId);
+    dbManager.deletePromptById(registeredPromptId);
     dbManager.deleteChatById(chatId);
-    resetService();
   }
 
   @Test
@@ -116,6 +99,5 @@ public class GeneratorServiceTest {
     }
     dbManager.deletePromptById(promptId);
     dbManager.deleteChatById(chatId);
-    resetService();
   }
 }
