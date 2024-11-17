@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.BadRequestException;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
@@ -27,10 +26,12 @@ import java.util.List;
  */
 public class DbManager {
 
+  // We don't have injection, so we need to use this declaration.
   private static final Logger LOGGER = LoggerFactory.getLogger(DbManager.class);
 
   private final DbClient dbClient;
 
+  // Just for simplify the code, and to avoid repeating the same values.
   private static final String DB_DEFAULT_USER = "gptfordev";
   private static final String DB_DEFAULT_PASSWORD = "gptfordev";
 

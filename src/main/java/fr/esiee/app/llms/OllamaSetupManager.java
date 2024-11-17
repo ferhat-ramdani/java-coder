@@ -18,8 +18,10 @@ import java.util.NoSuchElementException;
 
 public class OllamaSetupManager {
 
+  // We don't have injection, so we need to use this declaration.
   private static final Logger LOGGER = LoggerFactory.getLogger(OllamaSetupManager.class);
 
+  // Just for simplify the code, and to avoid repeating the same values. we need to use all these constants.
   private static final String LOCAL_PATH = SystemUtils.USER_HOME + "/.chatgptfordev";
   private static final String LINUX_OLLAMA_PATH = LOCAL_PATH + "/bin";
 

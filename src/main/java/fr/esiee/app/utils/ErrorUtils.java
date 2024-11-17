@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 
 public class ErrorUtils {
 
+  // We don't have injection, so we need to use this declaration.
   private static final Logger LOGGER = LoggerFactory.getLogger(ErrorUtils.class);
 
   private record Error(String message, String timestamp, int statusCode, String statusMessage) { }
