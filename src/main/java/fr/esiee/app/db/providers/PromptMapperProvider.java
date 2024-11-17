@@ -14,6 +14,14 @@ import java.util.Optional;
  */
 @Weight(100)
 public class PromptMapperProvider implements DbMapperProvider {
+
+    /*
+     * Yes, this part of code is very weird.
+     * But we can't do anything about it.
+     *
+     * We need it to be able to provide the PromptMapper to the Helidon DB Client.
+     */
+    @SuppressWarnings("unchecked")
     @Override
     public <T> Optional<DbMapper<T>> mapper(Class<T> type) {
         if (type.equals(Prompt.class)) {
