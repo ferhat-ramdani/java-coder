@@ -29,9 +29,7 @@ import java.io.IOException;
  */
 public class Main {
 
-  private static final StaticContentService FRONT_STATIC_PATH =
-          StaticContentService.builder("static").welcomeFileName("index.html").build();
-
+  // We don't have injection, so we need to use this declaration.
   private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
   /**
@@ -115,8 +113,11 @@ public class Main {
    * @param routing the HttpRouting.Builder to register the routes with
    */
   private static void registerFrontEndRoutes(HttpRouting.Builder routing) {
-    routing.register("/", FRONT_STATIC_PATH)
-            .register("/chats[/*]", FRONT_STATIC_PATH)
-            .register("/llms", FRONT_STATIC_PATH);
+    var front_static_path =
+            StaticContentService.builder("static").welcomeFileName("index.html").build();
+
+    routing.register("/", front_static_path)
+            .register("/chats[/*]", front_static_path)
+            .register("/llms", front_static_path);
   }
 }

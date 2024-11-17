@@ -46,12 +46,12 @@ import java.util.concurrent.ExecutionException;
 @Path("/api/gen")
 public class GeneratorService implements HttpService {
 
+  // We don't have injection, so we need to use this declaration.
   private static final Logger LOGGER = LoggerFactory.getLogger(GeneratorService.class);
-  private static final String SYSTEM_ERR_MESSAGE = "Here are the compilation errors, correct them.";
+
   private final DbManager dbService;
   private final LLMConfig llmConfig;
-  private final int NB_ATTEMPTS = 3;
-  private final int MAX_MEMORY_PROMPTS = 30;
+
   private Prompt pendingPrompt;
 
   /**
@@ -247,8 +247,9 @@ public class GeneratorService implements HttpService {
     var modelConfig = updateModelSettings(llm, chatId);
     String errorsText = null;
 
-    for (int attempt = 1; attempt <= NB_ATTEMPTS; attempt++) {
-      logAndEmit(sseSink, "Attempting to generate class (attempt " + attempt + "/" + NB_ATTEMPTS + ")");
+    int nbAttempts = 3;
+    for (int attempt = 1; attempt <= nbAttempts; attempt++) {
+      logAndEmit(sseSink, "Attempting to generate class (attempt " + attempt + "/" + nbAttempts + ")");
       String response = generateResponse(modelConfig, requestText, errorsText, attempt);
 
       String code = CompileAndExecUtils.extractCode(response);
@@ -257,7 +258,7 @@ public class GeneratorService implements HttpService {
       if (isCodeValid(code, sseSink)) {
         return new SourceCode(code, true);
       } else {
-        errorsText = SYSTEM_ERR_MESSAGE + logAndEmitErrors(code, sseSink);
+        errorsText = "Here are the compilation errors, correct them." + logAndEmitErrors(code, sseSink);
       }
     }
     return new SourceCode(errorsText, false);
@@ -298,7 +299,8 @@ public class GeneratorService implements HttpService {
    * @param chatId the chat ID
    */
   private ModelConfig updateModelSettings(LLM llm, int chatId) {
-    var chatMemory = MessageWindowChatMemory.withMaxMessages(MAX_MEMORY_PROMPTS);
+    int maxMemoryPrompts = 30;
+    var chatMemory = MessageWindowChatMemory.withMaxMessages(maxMemoryPrompts);
     updateMemoryWithPreviousPrompts(chatMemory, chatId);
     var model = getOllamaChatModel(llm);
 

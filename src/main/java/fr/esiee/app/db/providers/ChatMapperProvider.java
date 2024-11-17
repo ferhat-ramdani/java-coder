@@ -14,7 +14,6 @@ import java.util.Optional;
  */
 @Weight(100)
 public class ChatMapperProvider implements DbMapperProvider {
-    @SuppressWarnings("unchecked")
     @Override
     public <T> Optional<DbMapper<T>> mapper(Class<T> type) {
         if (type.equals(Chat.class)) {

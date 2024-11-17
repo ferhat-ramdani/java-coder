@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 
 public class CompileAndExecUtils {
 
+  // We don't have injection, so we need to use this declaration.
   private static final Logger LOGGER = LoggerFactory.getLogger(CompileAndExecUtils.class);
   static final int EXEC_TIMEOUT_SEC = 5;
 
