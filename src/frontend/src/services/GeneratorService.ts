@@ -11,8 +11,11 @@ class GeneratorService {
 
     async generateResponseFromLLM(prompt: Prompt, responseHandler: (llmResponse: LLMResponse, eventSource: EventSource, systemPrompt: Prompt, IndexOfPrompt: number) => number){
 
-        await fetch(`${this.apiUrl}/class`, Utils.createRequestInit(prompt, 'POST'));
-        const eventSource = new EventSource(`${this.apiUrl}/stream`)
+        const response = await fetch(`${this.apiUrl}/class`, Utils.createRequestInit(prompt, 'POST'));
+        await Utils.showErrorToast(response, "Error during class registration.");
+        const registeredPromptId = await response.text().then(id => parseInt(id)).catch(e => console.error(e));
+        console.log("Registered prompt id : " + registeredPromptId);
+        const eventSource = new EventSource(`${this.apiUrl}/stream/${registeredPromptId}`);
         let index = -1;
 
         eventSource.onmessage = (event) => {
