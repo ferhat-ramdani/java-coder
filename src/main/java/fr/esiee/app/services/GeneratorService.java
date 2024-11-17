@@ -347,15 +347,12 @@ public class GeneratorService implements HttpService {
   private void updateMemoryWithPreviousPrompts(ChatMemory chatMemory, int chatId) {
     var prevPrompts = dbService.getPromptsByChatId(chatId);
 
-    for (int i = 0; i < prevPrompts.size()-1; i++) {
-      var prompt = prevPrompts.get(i);
-      ChatMessageType type = ChatMessageType.valueOf(prompt.authorType().name());
-      if (type == ChatMessageType.USER) {
-        chatMemory.add(new UserMessage(prompt.message()));
-      } else if (type == ChatMessageType.AI) {
-        chatMemory.add(new AiMessage(prompt.message()));
-      } else if (type == ChatMessageType.SYSTEM) {
-        chatMemory.add(new SystemMessage(prompt.message()));
+    for (var prompt : prevPrompts.subList(0, prevPrompts.size() - 1)) {
+      System.out.println(ChatMessageType.valueOf(prompt.authorType().name()));
+      switch (ChatMessageType.valueOf(prompt.authorType().name())) {
+        case USER -> chatMemory.add(new UserMessage(prompt.message()));
+        case AI -> chatMemory.add(new AiMessage(prompt.message()));
+        case SYSTEM -> chatMemory.add(new SystemMessage(prompt.message()));
       }
     }
   }
