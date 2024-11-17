@@ -53,8 +53,6 @@ public class GeneratorService implements HttpService {
   private final DbManager dbService;
   private final LLMConfig llmConfig;
 
-  private Prompt pendingPrompt;
-
   /**
    * An interface to represent the assistant.
    */
