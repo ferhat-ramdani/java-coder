@@ -341,7 +341,6 @@ public class GeneratorService implements HttpService {
     var prevPrompts = dbService.getPromptsByChatId(chatId);
 
     for (var prompt : prevPrompts.subList(0, prevPrompts.size() - 1)) {
-      System.out.println(ChatMessageType.valueOf(prompt.authorType().name()));
       switch (ChatMessageType.valueOf(prompt.authorType().name())) {
         case USER -> chatMemory.add(new UserMessage(prompt.message()));
         case AI -> chatMemory.add(new AiMessage(prompt.message()));
