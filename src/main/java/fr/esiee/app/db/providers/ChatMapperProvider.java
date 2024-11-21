@@ -33,7 +33,7 @@ public class ChatMapperProvider implements DbMapperProvider {
     public <T> Optional<DbMapper<T>> mapper(Class<T> type) {
         if (type == Chat.class) {
             var chatType = type.asSubclass(Chat.class);
-            return Optional.of(new DbMapper<T> () {
+            return Optional.of(new DbMapper<> () {
                 @Override
                 public T read(DbRow row) {
                     Objects.requireNonNull(row);

@@ -30,9 +30,9 @@ public class PromptMapperProvider implements DbMapperProvider {
      */
     @Override
     public <T> Optional<DbMapper<T>> mapper(Class<T> type) {
-        if (type.equals(Prompt.class)) {
+        if (type == Prompt.class) {
             var promptType = type.asSubclass(Prompt.class);
-            return Optional.of(new DbMapper<T> () {
+            return Optional.of(new DbMapper<> () {
                 @Override
                 public T read(DbRow row) {
                     Objects.requireNonNull(row);

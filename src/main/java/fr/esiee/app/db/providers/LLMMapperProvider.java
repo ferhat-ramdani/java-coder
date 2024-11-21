@@ -29,9 +29,9 @@ public class LLMMapperProvider implements DbMapperProvider {
      */
     @Override
     public <T> Optional<DbMapper<T>> mapper(Class<T> type) {
-        if (type.equals(LLM.class)) {
+        if (type == LLM.class) {
             var llmType = type.asSubclass(LLM.class);
-            return Optional.of((new DbMapper<T>() {
+            return Optional.of((new DbMapper<>() {
                 @Override
                 public T read(DbRow row) {
                     Objects.requireNonNull(row);
