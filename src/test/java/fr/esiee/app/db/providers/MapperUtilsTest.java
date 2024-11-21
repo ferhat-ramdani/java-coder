@@ -1,4 +1,4 @@
-package fr.esiee.app.db.mappers;
+package fr.esiee.app.db.providers;
 
 import org.junit.jupiter.api.Test;
 
