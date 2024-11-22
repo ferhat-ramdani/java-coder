@@ -40,7 +40,8 @@ public class LLMService implements HttpService {
    * @throws NoSuchElementException if the DbManager is not found in the global context
    */
   public LLMService() {
-    dbService = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found."));
+    dbService = Contexts.globalContext().get(DbManager.class)
+            .orElseThrow(() -> new NoSuchElementException("DbManager not found."));
   }
 
   /**
@@ -95,7 +96,8 @@ public class LLMService implements HttpService {
   @javax.ws.rs.Path("/{id}")
   @Operation(summary = "get LLM by ID", description = "Get a LLM by its ID")
   public void getLLMById(
-          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the llm to retrieve", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest req,
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the llm to retrieve", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1"))
+          ServerRequest req,
           @Parameter(hidden = true) ServerResponse res
   ) {
     int llmId = req.path().pathParameters().first("id").map(Integer::parseInt)

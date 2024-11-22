@@ -31,13 +31,9 @@ public class DbManager {
 
   private final DbClient dbClient;
 
-  // Just for simplify the code, and to avoid repeating the same values.
-  private static final String DB_DEFAULT_USER = "gptfordev";
-  private static final String DB_DEFAULT_PASSWORD = "gptfordev";
-
   /**
    * Only used for testing purposes.
-   *
+   * <p>
    * Creates a new DbManager instance with the specified DbClient.
    *
    * @param dbClient the DbClient instance to use for database operations
@@ -70,7 +66,7 @@ public class DbManager {
   /**
    * Truncates the given string to the specified length.
    *
-   * @param str the string to be truncated
+   * @param str    the string to be truncated
    * @param length the maximum length of the truncated string
    * @return the truncated string if its length exceeds the specified length, otherwise the original string
    */
@@ -84,14 +80,16 @@ public class DbManager {
    * @throws IOException if an I/O error occurs during initialization.
    */
   public static void initialize() throws IOException {
-    if(Contexts.globalContext().get(DbManager.class).isPresent()) {
+    if (Contexts.globalContext().get(DbManager.class).isPresent()) {
       LOGGER.info("DbManager already setupialized");
       return;
     }
 
     var config = Config.global();
-    var dbUser = config.get("db.connection.username").asString().orElseThrow(() -> new RuntimeException("Database username is not set."));
-    var dbPassword = config.get("db.connection.password").asString().orElseThrow(() -> new RuntimeException("Database password is not set."));
+    var dbUser = config.get("db.connection.username").asString()
+            .orElseThrow(() -> new RuntimeException("Database username is not set."));
+    var dbPassword = config.get("db.connection.password").asString()
+            .orElseThrow(() -> new RuntimeException("Database password is not set."));
 
     if (dbUser.isBlank()) {
       LOGGER.error("Database username is not set.");
@@ -101,17 +99,18 @@ public class DbManager {
       LOGGER.error("Database password is not set.");
     }
 
-    if (dbUser.equals(DB_DEFAULT_USER) || dbPassword.equals(DB_DEFAULT_PASSWORD)) {
+    if (dbUser.equals("gptfordev") || dbPassword.equals("gptfordev")) {
       LOGGER.warn("You are using the default database user or password.");
       LOGGER.warn("To change it, you can set the values in the `application.yaml` file.");
-      LOGGER.warn("Or in the environment variables. By set `db_connection_username` and `db_connection_password` values.");
+      LOGGER.warn(
+              "Or in the environment variables. By set `db_connection_username` and `db_connection_password` values.");
     }
 
     var dbManager = new DbManager();
     Contexts.globalContext().register(dbManager);
   }
 
-/**
+  /**
    * Inserts LLM data into the database.
    *
    * @param exec the DbExecute instance used to execute the insert statements
@@ -228,8 +227,8 @@ public class DbManager {
    * @param prompt the Prompt object to be inserted
    * @return the number of rows updated
    * @throws IllegalArgumentException if the prompt id or chatId is negative, or if the prompt already exists
-   * @throws DbClientException if there is an error during the database operation
-   * @throws BadRequestException if the prompt insertion fails
+   * @throws DbClientException        if there is an error during the database operation
+   * @throws BadRequestException      if the prompt insertion fails
    */
   public long insertPrompt(Prompt prompt) {
     if (prompt.id() < 0 || prompt.chatId() < 0) {
@@ -281,8 +280,8 @@ public class DbManager {
    * @param prompt the Prompt object containing updated information
    * @return the number of rows updated
    * @throws IllegalArgumentException if the prompt id or chatId is negative
-   * @throws NotFoundException if the prompt does not exist
-   * @throws DbClientException if there is an error during the database operation
+   * @throws NotFoundException        if the prompt does not exist
+   * @throws DbClientException        if there is an error during the database operation
    */
   public long updatePrompt(Prompt prompt) {
     if (prompt.id() < 0 || prompt.chatId() < 0) {
@@ -359,7 +358,7 @@ public class DbManager {
    * @param chat the Chat object to be inserted
    * @return the number of rows updated
    * @throws IllegalArgumentException if the chat id or llmId is negative
-   * @throws DbClientException if there is an error during the database operation
+   * @throws DbClientException        if there is an error during the database operation
    */
   public long insertChat(Chat chat) {
     if (chat.id() < 0 || chat.llmId() < 0) {
@@ -470,8 +469,8 @@ public class DbManager {
    * @param chat the Chat object containing updated information
    * @return the number of rows updated
    * @throws IllegalArgumentException if the chat id or llmId is negative
-   * @throws NotFoundException if the chat does not exist
-   * @throws DbClientException if there is an error during the database operation
+   * @throws NotFoundException        if the chat does not exist
+   * @throws DbClientException        if there is an error during the database operation
    */
   public long updateChat(Chat chat) {
     if (chat.id() < 0 || chat.llmId() < 0) {
@@ -486,7 +485,7 @@ public class DbManager {
 
     var newChat = new Chat(chat.id(), truncate(chat.title(), 100), chat.lastActivity(), chat.llmId());
     try {
-      updatedRow =  transaction.createNamedUpdate("update-chat-by-id")
+      updatedRow = transaction.createNamedUpdate("update-chat-by-id")
               .namedParam(newChat).execute();
       transaction.commit();
     } catch (DbClientException t) {

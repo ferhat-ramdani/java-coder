@@ -6,6 +6,12 @@ public record LLMConfig(String url, int port) {
     return new LLMConfig("127.0.0.1", 14454);
   }
 
+  /**
+   * Constructs the base URL by ensuring it starts with "http://" if it does not already
+   * start with "http://" or "https://", and appends the port.
+   *
+   * @return the constructed base URL as a String
+   */
   public String baseUrl() {
     var tmpUrl = url;
     if (!url.startsWith("http://") || !url.startsWith("https://")) {

@@ -29,6 +29,9 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import java.util.NoSuchElementException;
 
+/**
+ * A service class that provides endpoints to manipulate chats.
+ */
 @Tag(name = "Chat", description = "endpoints to manipulate chats")
 @Path("/api/chat")
 public class ChatService implements HttpService {
@@ -42,7 +45,8 @@ public class ChatService implements HttpService {
    * @throws NoSuchElementException if DbManager is not found in the global context.
    */
   public ChatService() {
-    this.dbClient = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found."));
+    this.dbClient = Contexts.globalContext().get(DbManager.class)
+            .orElseThrow(() -> new NoSuchElementException("DbManager not found."));
   }
 
   /**
@@ -71,7 +75,8 @@ public class ChatService implements HttpService {
   @Operation(summary = "Get chat by ID", description = "Retrieves a chat by its ID")
   @ApiResponse(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Chat.class)), responseCode = "200", description = "Successful operation")
   public void getChatById(
-          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the chat to retrieve", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest request,
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the chat to retrieve", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1"))
+          ServerRequest request,
           @Parameter(hidden = true) ServerResponse response
   ) {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
@@ -108,7 +113,9 @@ public class ChatService implements HttpService {
   @Operation(summary = "Insert a chat", description = "Inserts a chat into the database")
   @Consumes("application/json")
   @ApiResponse(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Chat.class)), responseCode = "201", description = "Chat inserted successfully")
-  public void insertChat(@RequestBody(required = true, content = @Content(schema = @Schema(implementation = Chat.class))) Chat chat, @Parameter(hidden = true) ServerResponse response) {
+  public void insertChat(
+          @RequestBody(required = true, content = @Content(schema = @Schema(implementation = Chat.class))) Chat chat,
+          @Parameter(hidden = true) ServerResponse response) {
     long insertedRows = dbClient.insertChat(chat);
     if (insertedRows <= 0) {
       ErrorUtils.send(response, Status.BAD_REQUEST_400, "Failed to insert chat");
@@ -129,7 +136,9 @@ public class ChatService implements HttpService {
   @Operation(summary = "Update a chat", description = "Updates a chat in the database")
   @Consumes("application/json")
   @ApiResponse(content = @Content(mediaType = "text/plain"), responseCode = "200", description = "Successful operation")
-  public void updateChat(@RequestBody(required = true, content = @Content(schema = @Schema(implementation = Chat.class))) Chat chat, @Parameter(hidden = true) ServerResponse response) {
+  public void updateChat(
+          @RequestBody(required = true, content = @Content(schema = @Schema(implementation = Chat.class))) Chat chat,
+          @Parameter(hidden = true) ServerResponse response) {
     long updatedRows = dbClient.updateChat(chat);
     if (updatedRows <= 0) {
       ErrorUtils.send(response, Status.BAD_REQUEST_400, "Failed to update chat");
@@ -150,7 +159,8 @@ public class ChatService implements HttpService {
   @Operation(summary = "Delete a chat by ID", description = "Deletes a chat by its ID")
   @ApiResponse(content = @Content(mediaType = "text/plain"), responseCode = "200", description = "Successful operation")
   public void deleteChatById(
-          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the chat to delete", schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest request,
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the chat to delete", schema = @Schema(type = "integer", description = "Chat ID", example = "1"))
+          ServerRequest request,
           @Parameter(hidden = true) ServerResponse response
   ) {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)

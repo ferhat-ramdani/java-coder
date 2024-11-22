@@ -3,7 +3,6 @@ package fr.esiee.app.services;
 import fr.esiee.app.Main;
 import fr.esiee.app.utils.ErrorUtils;
 import io.helidon.common.context.Contexts;
-
 import io.helidon.http.Status;
 import io.helidon.webserver.WebServer;
 import io.helidon.webserver.http.HttpRules;
@@ -40,7 +39,7 @@ public class ApiRoutingService implements HttpService {
     httpRules.register("/llm", new LLMService())
             .register("/chat", new ChatService())
             .register("/gen", new GeneratorService())
-      .register("/prompt", new PromptService());
+            .register("/prompt", new PromptService());
 
     if (Main.isDebugMode()) {
       httpRules.get("/stop", (req, res) -> {
