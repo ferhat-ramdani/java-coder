@@ -3,10 +3,10 @@ package fr.esiee.app;
 import fr.esiee.app.config.LLMConfig;
 import fr.esiee.app.config.mapper.LLMConfigMapper;
 import fr.esiee.app.db.DbManager;
-import fr.esiee.app.utils.ErrorUtils;
 import fr.esiee.app.exception.RestApiException;
 import fr.esiee.app.llms.OllamaSetupManager;
 import fr.esiee.app.services.ApiRoutingService;
+import fr.esiee.app.utils.ErrorUtils;
 import io.helidon.common.context.Contexts;
 import io.helidon.config.Config;
 import io.helidon.cors.CrossOriginConfig;
@@ -41,6 +41,12 @@ public class Main {
     return Config.global().get("debug").asBoolean().orElse(false);
   }
 
+  /**
+   * Creates and starts a new WebServer instance.
+   *
+   * @param config the configuration to use for the WebServer
+   * @return the created WebServer instance
+   */
   private static WebServer createWebServer(Config config) {
     return WebServer.builder()
             .mediaContext(it -> it
@@ -56,7 +62,7 @@ public class Main {
    * The main method that serves as the entry point for the application.
    *
    * @param args the command line arguments
-   * @throws IOException if an I/O error occurs
+   * @throws IOException          if an I/O error occurs
    * @throws InterruptedException if the thread is interrupted
    */
   public static void main(String[] args) throws IOException, InterruptedException {
@@ -75,7 +81,8 @@ public class Main {
     var server = createWebServer(config);
 
     Contexts.globalContext().register(server);
-    LOGGER.info("WEB server is up! {}://{}:{}", server.hasTls() ? "https" : "http",server.prototype().host(), server.port());
+    LOGGER.info("WEB server is up! {}://{}:{}", server.hasTls() ? "https" : "http", server.prototype().host(),
+            server.port());
   }
 
   /**
@@ -97,13 +104,13 @@ public class Main {
       routing.register("/api", new ApiRoutingService());
     }
     routing.error(NotFoundException.class, (_, res, exception) -> {
-                      ErrorUtils.send(res, Status.BAD_REQUEST_400, exception.getMessage());
-                      LOGGER.error("A NotFoundException occurred: ", exception);
-                    })
+              ErrorUtils.send(res, Status.BAD_REQUEST_400, exception.getMessage());
+              LOGGER.error("A NotFoundException occurred: ", exception);
+            })
             .error(RestApiException.class, (_, res, exception) -> {
-                      ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, exception.getMessage());
-                      LOGGER.error("A RestApiException occurred: ", exception);
-                    });
+              ErrorUtils.send(res, Status.INTERNAL_SERVER_ERROR_500, exception.getMessage());
+              LOGGER.error("A RestApiException occurred: ", exception);
+            });
     registerFrontEndRoutes(routing);
   }
 

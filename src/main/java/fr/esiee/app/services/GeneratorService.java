@@ -8,19 +8,23 @@ import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.service.AiServices;
-import fr.esiee.app.db.DbManager;
-import fr.esiee.app.db.entities.Chat;
-import fr.esiee.app.utils.ErrorUtils;
-import fr.esiee.app.utils.CompileAndExecUtils;
 import fr.esiee.app.config.LLMConfig;
+import fr.esiee.app.db.DbManager;
 import fr.esiee.app.db.entities.AuthorType;
+import fr.esiee.app.db.entities.Chat;
 import fr.esiee.app.db.entities.LLM;
 import fr.esiee.app.db.entities.Prompt;
 import fr.esiee.app.exception.RestApiException;
+import fr.esiee.app.utils.CompileAndExecUtils;
+import fr.esiee.app.utils.ErrorUtils;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
 import io.helidon.http.sse.SseEvent;
-import io.helidon.webserver.http.*;
+import io.helidon.webserver.http.Handler;
+import io.helidon.webserver.http.HttpRules;
+import io.helidon.webserver.http.HttpService;
+import io.helidon.webserver.http.ServerRequest;
+import io.helidon.webserver.http.ServerResponse;
 import io.helidon.webserver.sse.SseSink;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,7 +33,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +46,9 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
+/**
+ * A service class that provides endpoints to use the generator.
+ */
 @Tag(name = "Generator", description = "endpoints to use generator")
 @Path("/api/gen")
 public class GeneratorService implements HttpService {
@@ -57,27 +63,62 @@ public class GeneratorService implements HttpService {
    * An interface to represent the assistant.
    */
   private interface Assistant {
+
+    /**
+     * Sends a chat message to the assistant and returns the response.
+     *
+     * @param userMessage the message from the user
+     * @return the response from the assistant
+     */
     String chat(@dev.langchain4j.service.UserMessage String userMessage);
   }
 
   /**
    * A record to store the generated source code and whether it was compiled successfully.
    */
-  private record SourceCode(String code, boolean compiled) {}
+  private record SourceCode(String code, boolean compiled) {
+  }
 
   /**
    * A record to store the response from the LLM model.
    */
   private record LLMResponse(LLMResponseStatus status, String content, Prompt prompt) {
+
+    /**
+     * Creates an LLMResponse with a GENERATING status.
+     *
+     * @param content the content of the response
+     * @return an LLMResponse with GENERATING status
+     */
     public static LLMResponse generating(String content) {
       return new LLMResponse(LLMResponseStatus.GENERATING, content, null);
     }
+
+    /**
+     * Creates an LLMResponse with an ERROR status.
+     *
+     * @param prompt the prompt that caused the error
+     * @return an LLMResponse with ERROR status
+     */
     public static LLMResponse error(Prompt prompt) {
       return new LLMResponse(LLMResponseStatus.ERROR, null, prompt);
     }
+
+    /**
+     * Creates an LLMResponse with a SUCCESS status.
+     *
+     * @param prompt the prompt that was successfully processed
+     * @return an LLMResponse with SUCCESS status
+     */
     public static LLMResponse done(Prompt prompt) {
       return new LLMResponse(LLMResponseStatus.SUCCESS, null, prompt);
     }
+
+    /**
+     * Creates an LLMResponse with a FINISH status.
+     *
+     * @return an LLMResponse with FINISH status
+     */
     public static LLMResponse finish() {
       return new LLMResponse(LLMResponseStatus.FINISH, null, null);
     }
@@ -91,10 +132,17 @@ public class GeneratorService implements HttpService {
   /**
    * A record to store the model configuration.
    */
-  private record ModelConfig(OllamaChatModel model, Assistant assistant) {}
+  private record ModelConfig(OllamaChatModel model, Assistant assistant) {
+  }
 
+  /**
+   * Constructs a new GeneratorService instance.
+   * Initializes the DbManager and LLMConfig from the global context.
+   * Throws NoSuchElementException if DbManager is not found in the context.
+   */
   public GeneratorService() {
-    this.dbService = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found."));
+    this.dbService = Contexts.globalContext().get(DbManager.class)
+            .orElseThrow(() -> new NoSuchElementException("DbManager not found."));
     this.llmConfig = Contexts.globalContext().get(LLMConfig.class).orElse(LLMConfig.defaultConfig());
   }
 
@@ -114,8 +162,8 @@ public class GeneratorService implements HttpService {
    * Receives a prompt from the front-end and stores it in the database.
    *
    * @param prompt the prompt to store
-   * @param res the server response - the response will contain the id
-   *            of the prompt that was registered to the database.
+   * @param res    the server response - the response will contain the id
+   *               of the prompt that was registered to the database.
    */
   @POST
   @Path("/class")
@@ -146,8 +194,10 @@ public class GeneratorService implements HttpService {
   @GET
   @Path("/stream/{promptId}")
   @Operation(summary = "stream generation info", description = "Streams message about the generation.")
-  public void streamLLMResponse(@Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the prompt containing front request", required = true, schema = @Schema(type = "integer", description = "Prompt ID", example = "1")) ServerRequest req,
-                                @Parameter(hidden = true) ServerResponse res) {
+  public void streamLLMResponse(
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the prompt containing front request", required = true, schema = @Schema(type = "integer", description = "Prompt ID", example = "1"))
+          ServerRequest req,
+          @Parameter(hidden = true) ServerResponse res) {
     int promptId = req.path()
             .pathParameters()
             .first("promptId")
@@ -167,6 +217,17 @@ public class GeneratorService implements HttpService {
     }
   }
 
+  /**
+   * Handles the generation of a class from the LLM model and updates the database with the generated code.
+   *
+   * @param prompt  the prompt containing the request text
+   * @param newLLM  the LLM model to use for generation
+   * @param chat    the chat associated with the prompt
+   * @param sseSink the server-sent event sink to emit messages
+   * @throws IOException          if an I/O error occurs
+   * @throws InterruptedException if the thread is interrupted
+   * @throws ExecutionException   if an execution error occurs
+   */
   private void handleLLMGeneration(Prompt prompt, LLM newLLM, Chat chat, SseSink sseSink)
           throws IOException, InterruptedException, ExecutionException {
     var generatedCode = generateClassFromLLM(newLLM, chat.id(), prompt.message(), sseSink);
@@ -179,6 +240,13 @@ public class GeneratorService implements HttpService {
     sseSink.emit(SseEvent.create(LLMResponse.done(registeredPrompt)));
   }
 
+  /**
+   * Handles exceptions that occur during the generation and streaming of responses.
+   *
+   * @param sseSink the server-sent event sink to emit messages
+   * @param e       the exception that occurred
+   * @param chatId  the ID of the chat where the error occurred
+   */
   private void handleGenerationException(SseSink sseSink, Exception e, int chatId) {
     LOGGER.error("Error occurred while generating and streaming response to front:", e);
     var prompt = new Prompt(0, "Error while generating class.", AuthorType.SYSTEM, chatId, false);
@@ -193,7 +261,7 @@ public class GeneratorService implements HttpService {
    * It checks if the class is compiled before execution.
    *
    * @param promptId the ID of the prompt to execute
-   * @param res the server response to send the execution output
+   * @param res      the server response to send the execution output
    */
   @POST
   @Path("/exec")
@@ -211,7 +279,8 @@ public class GeneratorService implements HttpService {
     try {
       LOGGER.info("Executing class, promptId : {}", promptId);
       output = CompileAndExecUtils.processText(prompt.message(), CompileAndExecUtils.Operation.EXECUTE);
-    } catch (IOException | InterruptedException | ExecutionException e) { // Catch is necessary because whe are in a BiConsumer lambda
+    } catch (IOException | InterruptedException |
+             ExecutionException e) { // Catch is necessary because whe are in a BiConsumer lambda
       throw new RestApiException(e);
     }
     res.status(Status.OK_200).send(output);
@@ -220,13 +289,13 @@ public class GeneratorService implements HttpService {
   /**
    * Generates a class from the LLM model.
    *
-   * @param llm the LLM model to use
-   * @param chatId the chat ID
+   * @param llm         the LLM model to use
+   * @param chatId      the chat ID
    * @param requestText the request text
-   * @param sseSink the server-sent event sink
+   * @param sseSink     the server-sent event sink
    * @return the generated source code
-   * @throws IOException if an I/O error occurs
-   * @throws ExecutionException if an execution error occurs
+   * @throws IOException          if an I/O error occurs
+   * @throws ExecutionException   if an execution error occurs
    * @throws InterruptedException if the thread is interrupted
    */
   private SourceCode generateClassFromLLM(LLM llm, int chatId, String requestText, SseSink sseSink)
@@ -255,7 +324,18 @@ public class GeneratorService implements HttpService {
     return new SourceCode(code, false);
   }
 
-  private String generateResponse(ModelConfig modelConfig, String requestText, String errorsText, int attempt) throws IOException {
+  /**
+   * Generates a response from the assistant model.
+   *
+   * @param modelConfig the configuration of the model
+   * @param requestText the initial request text
+   * @param errorsText  the text containing errors to be corrected
+   * @param attempt     the current attempt number
+   * @return the generated response from the assistant
+   * @throws IOException if an I/O error occurs
+   */
+  private String generateResponse(ModelConfig modelConfig, String requestText, String errorsText, int attempt)
+          throws IOException {
     try {
       return modelConfig.assistant.chat(attempt == 1 ? requestText : errorsText);
     } catch (RuntimeException e) {
@@ -263,7 +343,18 @@ public class GeneratorService implements HttpService {
     }
   }
 
-  private boolean isCodeValid(String code, SseSink sseSink) throws ExecutionException, InterruptedException, IOException {
+  /**
+   * Validates the generated source code by attempting to compile it.
+   *
+   * @param code    the generated source code to validate
+   * @param sseSink the server-sent event sink to emit messages
+   * @return true if the code is valid and compiles without errors, false otherwise
+   * @throws ExecutionException   if an execution error occurs during compilation
+   * @throws InterruptedException if the thread is interrupted during compilation
+   * @throws IOException          if an I/O error occurs during compilation
+   */
+  private boolean isCodeValid(String code, SseSink sseSink)
+          throws ExecutionException, InterruptedException, IOException {
     var errors = CompileAndExecUtils.processText(code, CompileAndExecUtils.Operation.COMPILE);
     if (errors.isEmpty()) {
       logAndEmit(sseSink, "No errors found in generated code");
@@ -272,21 +363,39 @@ public class GeneratorService implements HttpService {
     return false;
   }
 
-  private String logAndEmitErrors(String code, SseSink sseSink) throws IOException, ExecutionException, InterruptedException {
+  /**
+   * Logs and emits errors found in the generated code.
+   *
+   * @param code    the generated source code
+   * @param sseSink the server-sent event sink
+   * @return the compilation errors
+   * @throws IOException          if an I/O error occurs
+   * @throws ExecutionException   if an execution error occurs
+   * @throws InterruptedException if the thread is interrupted
+   */
+  private String logAndEmitErrors(String code, SseSink sseSink)
+          throws IOException, ExecutionException, InterruptedException {
     var errors = CompileAndExecUtils.processText(code, CompileAndExecUtils.Operation.COMPILE);
     LOGGER.info("Errors found in generated code:\n{}", errors);
     logAndEmit(sseSink, "Errors found in generated code");
     return errors;
   }
 
+  /**
+   * Logs a message and emits it as an SSE event.
+   *
+   * @param sseSink the server-sent event sink
+   * @param message the message to log and emit
+   */
   private void logAndEmit(SseSink sseSink, String message) {
     LOGGER.info(message);
     sseSink.emit(SseEvent.create(LLMResponse.generating(message)));
   }
+
   /**
    * Updates the model settings.
    *
-   * @param llm the LLM model
+   * @param llm    the LLM model
    * @param chatId the chat ID
    */
   private ModelConfig updateModelSettings(LLM llm, int chatId) {
@@ -335,7 +444,7 @@ public class GeneratorService implements HttpService {
    * Updates the chat memory with the previous prompts.
    *
    * @param chatMemory the chat memory
-   * @param chatId the chat ID
+   * @param chatId     the chat ID
    */
   private void updateMemoryWithPreviousPrompts(ChatMemory chatMemory, int chatId) {
     var prevPrompts = dbService.getPromptsByChatId(chatId);

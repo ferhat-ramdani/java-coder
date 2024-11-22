@@ -21,10 +21,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
 import java.util.NoSuchElementException;
 
-
+/**
+ * A service class that provides endpoints to manipulate prompts.
+ */
 @Tag(name = "Prompts", description = "endpoints to manipulate prompts")
 @Path("/api/prompt/")
 public class PromptService implements HttpService {
@@ -38,7 +45,8 @@ public class PromptService implements HttpService {
    * @throws NoSuchElementException if DbManager is not found in the global context.
    */
   public PromptService() {
-    this.dbClient = Contexts.globalContext().get(DbManager.class).orElseThrow(() -> new NoSuchElementException("DbManager not found."));
+    this.dbClient = Contexts.globalContext().get(DbManager.class)
+            .orElseThrow(() -> new NoSuchElementException("DbManager not found."));
   }
 
   /**
@@ -67,7 +75,8 @@ public class PromptService implements HttpService {
   @javax.ws.rs.Path("/")
   @Operation(summary = "List all prompts", description = "Retrieves a list of all prompts")
   @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = Prompt.class)), mediaType = "application/json"), responseCode = "200", description = "Successful operation")
-  public void listPrompts(@Parameter(hidden = true) ServerRequest request, @Parameter(hidden = true) ServerResponse response) {
+  public void listPrompts(@Parameter(hidden = true) ServerRequest request,
+                          @Parameter(hidden = true) ServerResponse response) {
     response.status(Status.OK_200).send(dbClient.listPrompts());
   }
 
@@ -125,7 +134,8 @@ public class PromptService implements HttpService {
   @Operation(summary = "Delete a prompt by ID", description = "Deletes a prompt by its ID")
   @ApiResponse(content = @Content(mediaType = "text/plain"), responseCode = "200", description = "Successful operation")
   public void deletePromptById(
-          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the prompt to delete", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest request,
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the prompt to delete", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1"))
+          ServerRequest request,
           @Parameter(hidden = true) ServerResponse response
   ) {
     int promptId = request.path().pathParameters().first("id").map(Integer::parseInt)
@@ -146,7 +156,8 @@ public class PromptService implements HttpService {
   @Operation(summary = "Get prompt by ID", description = "Retrieves a prompt by its ID")
   @ApiResponse(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Prompt.class)), responseCode = "200", description = "Successful operation")
   public void getPromptById(
-          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the prompt to retrieve", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest request,
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the prompt to retrieve", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1"))
+          ServerRequest request,
           @Parameter(hidden = true) ServerResponse response
   ) {
     int promptId = request.path().pathParameters().first("id").map(Integer::parseInt)
@@ -167,7 +178,8 @@ public class PromptService implements HttpService {
   @Operation(summary = "List prompts by chat ID", description = "Retrieves a list of prompts by chat ID")
   @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = Prompt.class)), mediaType = "application/json"), responseCode = "200", description = "Successful operation")
   public void getPromptsByChatId(
-          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the chat used to retrieve prompts", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest request,
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the chat used to retrieve prompts", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1"))
+          ServerRequest request,
           @Parameter(hidden = true) ServerResponse response
   ) {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)
@@ -188,7 +200,8 @@ public class PromptService implements HttpService {
   @Operation(summary = "Get first prompt by chat ID", description = "Retrieves the first prompt by chat ID")
   @ApiResponse(content = @Content(mediaType = "application/json", schema = @Schema(implementation = Prompt.class)), responseCode = "200", description = "Successful operation")
   public void getFirstPromptByChatId(
-          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the chat used to retrieve first prompt", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1")) ServerRequest request,
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the chat used to retrieve first prompt", required = true, schema = @Schema(type = "integer", description = "Chat ID", example = "1"))
+          ServerRequest request,
           @Parameter(hidden = true) ServerResponse response
   ) {
     int chatId = request.path().pathParameters().first("id").map(Integer::parseInt)

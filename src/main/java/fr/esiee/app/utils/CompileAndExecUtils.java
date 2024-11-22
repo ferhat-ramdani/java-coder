@@ -19,16 +19,26 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Utility class for compiling and executing Java code.
+ */
 public class CompileAndExecUtils {
 
   // We don't have injection, so we need to use this declaration.
   private static final Logger LOGGER = LoggerFactory.getLogger(CompileAndExecUtils.class);
   static final int EXEC_TIMEOUT_SEC = 5;
 
+  /**
+   * Represents the operation to perform on the Java code.
+   */
   public enum Operation {
     COMPILE, EXECUTE
   }
@@ -36,12 +46,12 @@ public class CompileAndExecUtils {
   /**
    * Processes the given Java code by either compiling or executing it based on the specified operation.
    *
-   * @param code the Java code to process
+   * @param code      the Java code to process
    * @param operation the operation to perform (either COMPILE or EXECUTE)
    * @return the result of the operation (compilation errors or execution output)
-   * @throws IOException if an I/O error occurs
+   * @throws IOException          if an I/O error occurs
    * @throws InterruptedException if the execution is interrupted
-   * @throws ExecutionException if an error occurs during execution
+   * @throws ExecutionException   if an error occurs during execution
    */
   public static String processText(String code, Operation operation)
           throws IOException, InterruptedException, ExecutionException {
@@ -70,8 +80,8 @@ public class CompileAndExecUtils {
   /**
    * Compiles the given Java code and returns the compilation errors.
    *
-   * @param javaCode the Java code to compile
-   * @param className the name of the class to compile
+   * @param javaCode     the Java code to compile
+   * @param className    the name of the class to compile
    * @param javaFilePath the path to the Java file to be compiled
    * @return the compilation errors, or an empty string if the compilation was successful
    * @throws IOException if an I/O error occurs
@@ -90,17 +100,18 @@ public class CompileAndExecUtils {
    * <code>EXEC_TIMEOUT_SEC</code> seconds, the execution is stopped (and a message
    * is appended to the output).
    *
-   * @param javaCode the Java code to compile and execute
-   * @param className the name of the class to compile and execute
-   * @param targetDir the directory to store the compiled files
-   * @param javaFilePath the path to the Java file to be compiled
+   * @param javaCode      the Java code to compile and execute
+   * @param className     the name of the class to compile and execute
+   * @param targetDir     the directory to store the compiled files
+   * @param javaFilePath  the path to the Java file to be compiled
    * @param classFilePath the path to the compiled class file
    * @return the output of the executed class
-   * @throws IOException if an I/O error occurs
+   * @throws IOException          if an I/O error occurs
    * @throws InterruptedException if the execution is interrupted
-   * @throws ExecutionException if an error occurs during execution
+   * @throws ExecutionException   if an error occurs during execution
    */
-  private static String compileAndExecuteJavaCode(String javaCode, String className, Path targetDir, Path javaFilePath, Path classFilePath)
+  private static String compileAndExecuteJavaCode(String javaCode, String className, Path targetDir, Path javaFilePath,
+                                                  Path classFilePath)
           throws IOException, InterruptedException, ExecutionException {
     Objects.requireNonNull(javaCode);
     Objects.requireNonNull(className);
@@ -110,7 +121,7 @@ public class CompileAndExecUtils {
     if (!compileErrors.isEmpty()) {
       return compileErrors;
     }
-    if(isPosixFamily()) {
+    if (isPosixFamily()) {
       addExecutePermission(classFilePath);
     }
     return executeClassFile(targetDir, className);
@@ -131,11 +142,11 @@ public class CompileAndExecUtils {
    * is appended to the output).
    *
    * @param classDirectory the directory containing the compiled class file
-   * @param className the name of the class to execute
+   * @param className      the name of the class to execute
    * @return the output of the executed class
-   * @throws IOException if an I/O error occurs
+   * @throws IOException          if an I/O error occurs
    * @throws InterruptedException if the execution is interrupted
-   * @throws ExecutionException if an error occurs during execution
+   * @throws ExecutionException   if an error occurs during execution
    */
   static String executeClassFile(Path classDirectory, String className)
           throws IOException, InterruptedException, ExecutionException {
@@ -157,13 +168,30 @@ public class CompileAndExecUtils {
     }
   }
 
+  /**
+   * Creates a new process to execute the compiled Java class.
+   *
+   * @param classDirectory the directory containing the compiled class file
+   * @param className      the name of the class to execute
+   * @return the created process
+   * @throws IOException if an I/O error occurs
+   */
   private static Process createProcess(Path classDirectory, String className) throws IOException {
     return new ProcessBuilder("java", "-cp", classDirectory.toString(), className)
             .redirectErrorStream(true)
             .start();
   }
 
-  private static Future<?> captureProcessOutput(Process process, ExecutorService executor, ByteArrayOutputStream outputStream) {
+  /**
+   * Captures the output of the given process and writes it to the provided output stream.
+   *
+   * @param process      the process whose output is to be captured
+   * @param executor     the executor service to manage the output capturing task
+   * @param outputStream the output stream to write the process output to
+   * @return a Future representing the result of the output capturing task
+   */
+  private static Future<?> captureProcessOutput(Process process, ExecutorService executor,
+                                                ByteArrayOutputStream outputStream) {
     return executor.submit(() -> {
       try (var processOutput = process.getInputStream()) {
         processOutput.transferTo(outputStream);
@@ -173,15 +201,35 @@ public class CompileAndExecUtils {
     });
   }
 
+  /**
+   * Waits for the process to complete within the specified timeout.
+   *
+   * @param process the process to wait for
+   * @return true if the process completed within the timeout, false if the timeout was reached
+   * @throws InterruptedException if the current thread is interrupted while waiting
+   */
   private static boolean awaitProcessCompletion(Process process) throws InterruptedException {
     return process.waitFor(EXEC_TIMEOUT_SEC, TimeUnit.SECONDS);
   }
 
+  /**
+   * Handles the timeout of a process execution.
+   *
+   * @param process   the process that timed out
+   * @param className the name of the class being executed
+   */
   private static void handleTimeout(Process process, String className) {
     LOGGER.warn("Execution of class {} timed out after {} seconds", className, EXEC_TIMEOUT_SEC);
     process.destroy();
   }
 
+  /**
+   * Finalizes the output of the executed class by appending a timeout message if the execution timed out.
+   *
+   * @param outputStream the output stream containing the class output
+   * @param timedOut     true if the execution timed out, false otherwise
+   * @return the finalized output
+   */
   private static String finalizeOutput(ByteArrayOutputStream outputStream, boolean timedOut) {
     var output = outputStream.toString(StandardCharsets.UTF_8);
     if (timedOut) {
@@ -189,6 +237,7 @@ public class CompileAndExecUtils {
     }
     return output;
   }
+
   /**
    * Compiles the Java file at the specified path.
    *
@@ -238,7 +287,7 @@ public class CompileAndExecUtils {
   private static void deleteFile(Path filePath) throws IOException {
     Objects.requireNonNull(filePath);
     if (Files.exists(filePath)) {
-        Files.delete(filePath);
+      Files.delete(filePath);
     }
   }
 
@@ -270,7 +319,9 @@ public class CompileAndExecUtils {
       firstDelimiter = text.indexOf("```");
       offset = 3;
     }
-    if (firstDelimiter == -1) return text;
+    if (firstDelimiter == -1) {
+      return text;
+    }
 
     int newLineOffsetStart = text.charAt(firstDelimiter + offset) == '\n' ? 1 : 0;
     text = text.substring(firstDelimiter + offset + newLineOffsetStart);
@@ -281,13 +332,14 @@ public class CompileAndExecUtils {
 
 
   /**
- * Extracts the class name from the given Java code.
- *
- * @param code the Java code to extract the class name from
- * @return an Optional containing the class name if found, otherwise an empty Optional
- */
+   * Extracts the class name from the given Java code.
+   *
+   * @param code the Java code to extract the class name from
+   * @return an Optional containing the class name if found, otherwise an empty Optional
+   */
   static Optional<String> extractClassName(String code) {
-    String regex = "public\\s+(?:\\w+\\s+)*(?:class|record)\\s+(\\w+)(?:\\s*<.*?>)?\\s*(?:extends\\s+\\w+)?\\s*(?:implements\\s+[\\w,\\s]+)?";
+    String regex =
+            "public\\s+(?:\\w+\\s+)*(?:class|record)\\s+(\\w+)(?:\\s*<.*?>)?\\s*(?:extends\\s+\\w+)?\\s*(?:implements\\s+[\\w,\\s]+)?";
     Pattern pattern = Pattern.compile(regex);
     Matcher matcher = pattern.matcher(code);
     return Optional.ofNullable(matcher.find() ? matcher.group(1) : null);
