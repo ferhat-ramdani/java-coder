@@ -13,6 +13,7 @@ import io.helidon.webclient.sse.SseSource;
 import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.testing.junit5.RoutingTest;
 import io.helidon.webserver.testing.junit5.SetUpRoute;
+import org.apache.commons.lang3.SystemUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -33,6 +34,12 @@ public class GeneratorServiceTest {
   private final Http1Client client;
 
   public GeneratorServiceTest(Http1Client client) throws IOException, InterruptedException {
+    System.out.println("TMP24: " + SystemUtils.OS_NAME);
+    System.out.println("TMP24: " + SystemUtils.OS_ARCH);
+    System.out.println("TMP24: " + SystemUtils.USER_HOME);
+    System.out.println("TMP24: " + SystemUtils.OS_VERSION);
+    System.out.println("TMP24: " + SystemUtils.USER_NAME);
+    System.out.println("TMP24: " + SystemUtils.USER_COUNTRY);
     DbUtils.resetDb();
     DbUtils.initializeLLM();
     this.client = client;
