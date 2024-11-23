@@ -1,9 +1,9 @@
 package fr.esiee.app.config;
 
-public record LLMConfig(String url, int port) {
+public record LLMConfig(String url, int port, String version) {
 
   public static LLMConfig defaultConfig() {
-    return new LLMConfig("127.0.0.1", 14454);
+    return new LLMConfig("127.0.0.1", 14454, "v0.4.1");
   }
 
   /**

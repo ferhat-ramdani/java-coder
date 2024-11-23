@@ -2,6 +2,7 @@ package fr.esiee.app.services;
 
 import fr.esiee.app.db.DbManager;
 import fr.esiee.app.db.entities.Chat;
+import fr.esiee.tests.DbUtils;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.NotFoundException;
 import io.helidon.http.Status;
@@ -28,8 +29,10 @@ public class ChatServiceTest {
   private final DbManager dbManager;
   private final Http1Client client;
 
-  public ChatServiceTest(Http1Client client) {
+  public ChatServiceTest(Http1Client client) throws IOException {
     this.client = client;
+    DbUtils.resetDb();
+    DbUtils.initializeRealLLM();
     dbManager = Contexts.globalContext().get(DbManager.class).orElseThrow();
   }
 
