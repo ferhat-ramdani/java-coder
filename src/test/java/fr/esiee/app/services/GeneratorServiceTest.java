@@ -13,6 +13,8 @@ import io.helidon.webclient.sse.SseSource;
 import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.testing.junit5.RoutingTest;
 import io.helidon.webserver.testing.junit5.SetUpRoute;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
@@ -35,11 +37,20 @@ public class GeneratorServiceTest {
   private final Http1Client client;
 
   public GeneratorServiceTest(Http1Client client) throws IOException, InterruptedException {
-    DbUtils.resetDb();
-    DbUtils.initializeLLM();
     this.client = client;
     dbManager = Contexts.globalContext().get(DbManager.class).orElseThrow();
+  }
+
+  @BeforeAll
+  static void beforeAll() throws IOException, InterruptedException {
+    DbUtils.resetDb();
+    DbUtils.initializeLLM();
     OllamaSetupManager.setupAndStartOllama();
+  }
+
+  @AfterAll
+  static void afterAll() throws IOException, InterruptedException {
+    OllamaSetupManager.stopOllama();
   }
 
   @SetUpRoute

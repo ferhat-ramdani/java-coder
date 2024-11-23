@@ -1,5 +1,8 @@
 image: maven:3.9.9-amazoncorretto-23-debian
 
+before_script:
+  - apt-get update
+  - apt-get install -y psmisc
 
 stages:
   - build

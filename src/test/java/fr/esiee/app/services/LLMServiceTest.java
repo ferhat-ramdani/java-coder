@@ -9,6 +9,7 @@ import io.helidon.webclient.http1.Http1Client;
 import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.testing.junit5.RoutingTest;
 import io.helidon.webserver.testing.junit5.SetUpRoute;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -25,9 +26,14 @@ class LLMServiceTest {
   private final DbManager dbManager;
   private final Http1Client client;
 
-  public LLMServiceTest(Http1Client client) throws IOException {
+
+  @BeforeAll
+  static void beforeAll() throws IOException {
     DbUtils.resetDb();
     DbUtils.initializeRealLLM();
+  }
+
+  public LLMServiceTest(Http1Client client) throws IOException {
     this.client = client;
     dbManager = Contexts.globalContext().get(DbManager.class).orElseThrow();
   }

@@ -1,6 +1,7 @@
 package fr.esiee.app.services;
 
 import fr.esiee.app.Main;
+import fr.esiee.app.llms.OllamaSetupManager;
 import fr.esiee.app.utils.ErrorUtils;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
@@ -10,6 +11,10 @@ import io.helidon.webserver.http.HttpService;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.servers.Server;
+import org.apache.commons.lang3.exception.UncheckedInterruptedException;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
 
 /**
  * This class defines the API routing service for the application.
@@ -49,5 +54,16 @@ public class ApiRoutingService implements HttpService {
     }
 
     httpRules.any((_, res) -> ErrorUtils.send(res, Status.BAD_REQUEST_400, "Invalid endpoint"));
+  }
+
+  @Override
+  public void afterStop() {
+    try {
+      OllamaSetupManager.stopOllama();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    } catch (InterruptedException e) {
+      throw new UncheckedInterruptedException(e);
+    }
   }
 }
