@@ -89,7 +89,7 @@ public class OllamaSetupManager {
   private static Config getConfig() {
     var localPath = Path.of(SystemUtils.USER_HOME, ".chatgptfordev");
     if (SystemUtils.IS_OS_LINUX) {
-      return new Config(localPath, "ollama-linux-" + SystemUtils.OS_ARCH + ".tgz", "tar -xzf %src% -C %dest%", "", "bin/ollama", "pkill ollama");
+      return new Config(localPath, "ollama-linux-" + SystemUtils.OS_ARCH + ".tgz", "tar -xzf %src% -C %dest%", "", "bin/ollama", "killall ollama");
     } else if (SystemUtils.IS_OS_WINDOWS) {
       return new Config(localPath, "ollama-windows-" + SystemUtils.OS_ARCH + ".zip", "powershell -command \"Expand-Archive -Path '%src%' -DestinationPath '%dest%' -Force\"", "cmd /c ", "ollama.exe", "taskkill /F /IM ollama.exe");
     } else if (SystemUtils.IS_OS_MAC) {
