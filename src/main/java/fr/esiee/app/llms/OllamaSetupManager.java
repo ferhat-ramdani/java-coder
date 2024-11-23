@@ -34,7 +34,7 @@ public class OllamaSetupManager {
    * @param cmdPrefix the prefix for the command to execute
    * @param cmd the command to execute
    */
-  private record Config(Path ollamaPath, String file, String extractCmd, String cmdPrefix, String cmd) {
+  private record Config(Path ollamaPath, String file, String extractCmd, String cmdPrefix, String cmd, String killCmd) {
 
     /**
      * Adjusts the command to include the command prefix and the resolved path to the Ollama.
@@ -89,14 +89,11 @@ public class OllamaSetupManager {
   private static Config getConfig() {
     var localPath = Path.of(SystemUtils.USER_HOME, ".chatgptfordev");
     if (SystemUtils.IS_OS_LINUX) {
-      return new Config(localPath, "ollama-linux-" + SystemUtils.OS_ARCH + ".tgz", "tar -xzf %src% -C %dest%", "", "bin/ollama"
-      );
+      return new Config(localPath, "ollama-linux-" + SystemUtils.OS_ARCH + ".tgz", "tar -xzf %src% -C %dest%", "", "bin/ollama", "killall ollama");
     } else if (SystemUtils.IS_OS_WINDOWS) {
-      return new Config(localPath, "ollama-windows-" + SystemUtils.OS_ARCH + ".zip", "powershell -command \"Expand-Archive -Path '%src%' -DestinationPath '%dest%' -Force\"", "cmd /c ", "ollama.exe"
-      );
+      return new Config(localPath, "ollama-windows-" + SystemUtils.OS_ARCH + ".zip", "powershell -command \"Expand-Archive -Path '%src%' -DestinationPath '%dest%' -Force\"", "cmd /c ", "ollama.exe", "taskkill /F /IM ollama.exe");
     } else if (SystemUtils.IS_OS_MAC) {
-      return new Config(localPath, "ollama-darwin", "mv %src% %dest%", "", "ollama"
-      );
+      return new Config(localPath, "ollama-darwin", "mv %src% %dest%", "", "ollama", "killall ollama");
     } else {
       LOGGER.error("Unsupported OS: {}", SystemUtils.OS_NAME);
       throw new UnsupportedOperationException("Unsupported OS: " + SystemUtils.OS_NAME);
@@ -244,6 +241,7 @@ public class OllamaSetupManager {
   private static boolean extractOllama(Path file, Config config) throws IOException, InterruptedException {
     LOGGER.info("Extracting file : {}", file.getFileName());
     var dest = config.ollamaPath();
+    Files.createDirectories(dest);
     var cmd = config.extractCmd()
             .replace("%src%", file.toString())
             .replace("%dest%", dest.toString());
@@ -322,5 +320,11 @@ public class OllamaSetupManager {
     env.put("OLLAMA_MODELS", config.ollamaPath.resolve("models").toString());
     env.put("OLLAMA_HOST", url);
     return processBuilder;
+  }
+
+
+  public static void stopOllama() throws IOException, InterruptedException {
+    var config = getConfig();
+    executeCMD(config.killCmd(), CMDType.RUN, false, config);
   }
 }
