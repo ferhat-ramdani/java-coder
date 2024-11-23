@@ -81,7 +81,7 @@ public class DbManager {
    */
   public static void initialize() throws IOException {
     if (Contexts.globalContext().get(DbManager.class).isPresent()) {
-      LOGGER.info("DbManager already setupialized");
+      LOGGER.info("DbManager already initialized");
       return;
     }
 
