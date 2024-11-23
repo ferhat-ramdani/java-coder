@@ -2,6 +2,7 @@ package fr.esiee.app.services;
 
 import fr.esiee.app.db.DbManager;
 import fr.esiee.app.llms.LLMDTO;
+import fr.esiee.tests.DbUtils;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
 import io.helidon.webclient.http1.Http1Client;
@@ -24,7 +25,9 @@ class LLMServiceTest {
   private final DbManager dbManager;
   private final Http1Client client;
 
-  public LLMServiceTest(Http1Client client) {
+  public LLMServiceTest(Http1Client client) throws IOException {
+    DbUtils.resetDb();
+    DbUtils.initializeRealLLM();
     this.client = client;
     dbManager = Contexts.globalContext().get(DbManager.class).orElseThrow();
   }

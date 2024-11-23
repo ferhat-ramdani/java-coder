@@ -5,6 +5,7 @@ server:
 provider:
   url: "127.0.0.1"
   port: 14464
+  version: "v0.4.1"
 
 db:
   source: jdbc

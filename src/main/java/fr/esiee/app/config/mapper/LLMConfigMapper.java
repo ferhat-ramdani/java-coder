@@ -18,6 +18,6 @@ public class LLMConfigMapper implements Function<Config, LLMConfig> {
    */
   @Override
   public LLMConfig apply(Config config) {
-    return new LLMConfig(config.get("url").asString().get(), config.get("port").asInt().get());
+    return new LLMConfig(config.get("url").asString().get(), config.get("port").asInt().get(), config.get("version").asString().get());
   }
 }

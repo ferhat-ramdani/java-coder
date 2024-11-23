@@ -4,16 +4,17 @@ import fr.esiee.app.config.LLMConfig;
 import fr.esiee.app.db.DbManager;
 import io.helidon.common.context.Contexts;
 import org.apache.commons.lang3.SystemUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.Map;
 import java.util.NoSuchElementException;
 
 /**
@@ -24,146 +25,244 @@ public class OllamaSetupManager {
   // We don't have injection, so we need to use this declaration.
   private static final Logger LOGGER = LoggerFactory.getLogger(OllamaSetupManager.class);
 
-  // Just for simplify the code, and to avoid repeating the same values. we need to use all these constants.
-  private static final String LOCAL_PATH = SystemUtils.USER_HOME + "/.chatgptfordev";
-  private static final String LINUX_OLLAMA_PATH = LOCAL_PATH + "/bin";
+  /**
+   * Record to hold the configuration for Ollama.
+   *
+   * @param ollamaPath the path where Ollama is installed
+   * @param file the file name of the Ollama package
+   * @param extractCmd the command to extract the Ollama package
+   * @param cmdPrefix the prefix for the command to execute
+   * @param cmd the command to execute
+   */
+  private record Config(Path ollamaPath, String file, String extractCmd, String cmdPrefix, String cmd) {
 
-  private static final String OLLAMA_VERSION = "v0.4.1";
-
-  private static final String WINDOWS_FILE = "ollama-windows-" + SystemUtils.OS_ARCH + ".zip";
-  private static final String LINUX_FILE = "ollama-linux-" + SystemUtils.OS_ARCH + ".tgz";
-
-  private static final String WINDOWS_URL =
-          "https://github.com/ollama/ollama/releases/download/" + OLLAMA_VERSION + "/" + WINDOWS_FILE;
-  private static final String LINUX_URL =
-          "https://github.com/ollama/ollama/releases/download/" + OLLAMA_VERSION + "/" + LINUX_FILE;
-
-  private static final String MAC_CMD = "brew install ollama";
-
-  private static final String WINDOWS_CMD_PREFIX = "cmd /c ";
-
-  private static final String CMD_PREFIX = "ollama";
-  private static final String SHOW_CMD = CMD_PREFIX + " show";
-  private static final String SERVE_CMD = CMD_PREFIX + " serve";
-  private static final String PULL_CMD = CMD_PREFIX + " pull";
-
+    /**
+     * Adjusts the command to include the command prefix and the resolved path to the Ollama.
+     *
+     * @param cmd the command to adjust
+     * @return the adjusted command string
+     */
+    public String adjustCmd(String cmd) {
+      return cmdPrefix + ollamaPath.resolve(this.cmd) + " " + cmd;
+    }
+  }
 
   /**
-   * Sets up Ollama and LLMs (Language Learning Models).
-   * <p>
-   * This method performs the following steps:
-   * 1. Checks if Ollama is installed.
-   * 2. If not installed, installs Ollama.
-   * 3. Starts the Ollama service.
-   * 4. Pulls the LLMs.
+   * Sets up and starts the Ollama service.
    *
-   * @throws IOException          if an I/O error occurs during the setup process.
-   * @throws InterruptedException if the thread is interrupted while waiting for a command to execute.
+   * This method performs the following steps:
+   * 1. Retrieves the configuration for Ollama.
+   * 2. Checks if Ollama is installed. If not, it installs Ollama.
+   * 3. Starts the Ollama service.
+   * 4. Pulls the LLMs and ensures they are ready.
+   *
+   * @throws IOException if an I/O error occurs during the setup process.
+   * @throws InterruptedException if the current thread is interrupted while waiting.
    */
-  public static void setupOllamaAndLLMs() throws IOException, InterruptedException {
-    if (!IsOllamaInstalled()) {
+  public static void setupAndStartOllama() throws IOException, InterruptedException {
+    Config config = getConfig();
+
+    if (!IsOllamaInstalled(config)) {
       LOGGER.info("Installing Ollama...");
-      installOllama();
-      LOGGER.info("Ollama installed successfully.");
+      if(!installOllama(config)) {
+        LOGGER.error("Error installing Ollama.");
+        throw new UnsupportedOperationException("Error installing Ollama.");
+      }
     } else {
       LOGGER.info("Ollama is already installed.");
     }
-    startOllama();
-    pullLLMS();
-  }
 
-  /**
-   * Checks if Ollama is installed by verifying the existence and executability of the Ollama binary.
-   *
-   * @return true if Ollama is installed, false otherwise
-   */
-  private static boolean IsOllamaInstalled() {
-    var strPath =
-            SystemUtils.IS_OS_WINDOWS ? LOCAL_PATH + "/" + CMD_PREFIX + ".exe" : LINUX_OLLAMA_PATH + "/" + CMD_PREFIX;
-    var path = Paths.get(strPath);
-    return Files.exists(path) && Files.isRegularFile(path) && Files.isExecutable(path);
-  }
-
-  /**
-   * Installs Ollama based on the current operating system.
-   *
-   * @throws IOException          if an I/O error occurs during the installation process
-   * @throws InterruptedException if the thread is interrupted while waiting for the command to execute
-   */
-  private static void installOllama() throws IOException, InterruptedException {
-    if (SystemUtils.IS_OS_MAC) {
-      executeCMD(MAC_CMD, CMDType.OTHER, true);
-      return;
-    }
-
-    var osConfig = switch (getOS()) {
-      case LINUX -> Map.of("url", LINUX_URL, "file", LINUX_FILE);
-      case WINDOWS -> Map.of("url", WINDOWS_URL, "file", WINDOWS_FILE);
-      default -> throw new UnsupportedOperationException("Unsupported OS.");
-    };
-
-    var tempPath = createTempPath();
-    var filePath = tempPath.resolve(osConfig.get("file"));
-    downloadOllama(osConfig.get("url"), filePath);
-    extractOllama(filePath, Paths.get(LOCAL_PATH));
-  }
-
-  /**
-   * Downloads the Ollama archive from the specified URL to the given destination path.
-   *
-   * @param url         the URL to download the Ollama archive from
-   * @param destination the path where the downloaded archive will be saved
-   * @throws IOException if an I/O error occurs during the download
-   */
-  private static void downloadOllama(String url, Path destination) throws IOException {
-    LOGGER.info("Downloading Ollama from: {}", url);
-    try (var in = URI.create(url).toURL().openStream()) {
-      Files.copy(in, destination, StandardCopyOption.REPLACE_EXISTING);
-    }
-    LOGGER.info("Ollama downloaded: {}", destination.getFileName());
-  }
-
-  /**
-   * Extracts the Ollama archive file to the specified destination directory.
-   *
-   * @param file the path to the archive file to extract
-   * @param dest the destination directory where the archive will be extracted
-   * @throws IOException          if an I/O error occurs during extraction
-   * @throws InterruptedException if the thread is interrupted while waiting for the command to execute
-   */
-  private static void extractOllama(Path file, Path dest) throws IOException, InterruptedException {
-    LOGGER.info("Extracting file : {}", file.getFileName());
-    Files.createDirectories(dest);
-    var cmd = "tar -xzf " + file + " -C " + dest;
-    if (SystemUtils.IS_OS_WINDOWS) {
-      cmd = "powershell -command \"Expand-Archive -Path '" + file + "' -DestinationPath '" + dest + "' -Force\"";
-    }
-
-    var exitCode = executeCMD(cmd, CMDType.OTHER, false);
-    if (exitCode) {
-      LOGGER.info("File successfully extracted to {}.", dest);
+    if(startOllama(config) && pullLLMS(config)) {
+      LOGGER.info("Ollama and LLMs are ready.");
     } else {
-      LOGGER.error("Error extracting file.");
+      LOGGER.error("Error setting up Ollama and LLMs.");
+      throw new UnsupportedOperationException("Error setting up Ollama and LLMs.");
     }
   }
+
+  /**
+   * Retrieves the configuration for Ollama based on the operating system.
+   *
+   * @return the configuration for Ollama
+   * @throws UnsupportedOperationException if the operating system is not supported
+   */
+  private static Config getConfig() {
+    var localPath = Path.of(SystemUtils.USER_HOME, ".chatgptfordev");
+    if (SystemUtils.IS_OS_LINUX) {
+      return new Config(localPath, "ollama-linux-" + SystemUtils.OS_ARCH + ".tgz", "tar -xzf %src% -C %dest%", "", "bin/ollama"
+      );
+    } else if (SystemUtils.IS_OS_WINDOWS) {
+      return new Config(localPath, "ollama-windows-" + SystemUtils.OS_ARCH + ".zip", "powershell -command \"Expand-Archive -Path '%src%' -DestinationPath '%dest%' -Force\"", "cmd /c ", "ollama.exe"
+      );
+    } else if (SystemUtils.IS_OS_MAC) {
+      return new Config(localPath, "ollama-darwin", "mv %src% %dest%", "", "ollama"
+      );
+    } else {
+      LOGGER.error("Unsupported OS: {}", SystemUtils.OS_NAME);
+      throw new UnsupportedOperationException("Unsupported OS: " + SystemUtils.OS_NAME);
+    }
+  }
+
 
   /**
    * Starts the Ollama service.
    *
-   * @throws IOException          if an I/O error occurs.
-   * @throws InterruptedException if the thread is interrupted while waiting for the command to execute.
+   * @param config the configuration for Ollama
+   * @return true if Ollama started successfully, false otherwise
+   * @throws IOException if an I/O error occurs
+   * @throws InterruptedException if the current thread is interrupted while waiting
    */
-  private static void startOllama() throws IOException, InterruptedException {
-    LOGGER.info("Starting Ollama.");
-    executeCMD(SERVE_CMD, CMDType.RUN_OLLAM_NO_WAIT, false);
-    LOGGER.info("Ollama started successfully.");
+  private static boolean startOllama(Config config) throws IOException, InterruptedException {
+    LOGGER.info("Starting Ollama...");
+    var sucess = executeCMD(config.adjustCmd("serve"), CMDType.RUN_NO_WAIT, false, config);
+    if (sucess) {
+      LOGGER.info("Ollama started successfully.");
+    } else {
+      LOGGER.error("Error starting Ollama.");
+    }
+    return sucess;
+  }
+
+  /**
+   * Pulls the LLMs from the database and ensures they are present.
+   *
+   * @param config the configuration for Ollama
+   * @return true if all LLMs are successfully pulled or already present, false otherwise
+   * @throws IOException if an I/O error occurs
+   * @throws InterruptedException if the current thread is interrupted while waiting
+   */
+  private static boolean pullLLMS(Config config) throws IOException, InterruptedException {
+    var llmList = Contexts.globalContext()
+            .get(DbManager.class)
+            .orElseThrow(() -> new NoSuchElementException("DbManager not found."))
+            .listLLMs();
+    LOGGER.info("Waiting for {} LLMs to be pulled.", llmList.size());
+
+    for (int i = 0; i < llmList.size(); i++) {
+      var llm = llmList.get(i);
+      LOGGER.info("Checking if LLM is present: {} - {}/{}", llm.model(), i + 1, llmList.size());
+      if (!isLLMPresent(config, llm.model())) {
+        LOGGER.info("Pulling LLM: {}", llm.model());
+        if (!executeCMD(config.adjustCmd("pull " + llm.model()), CMDType.RUN, true, config)) {
+          LOGGER.error("Error pulling LLM: {}", llm.model());
+          return false;
+        }
+      } else {
+        LOGGER.info("LLM {} is already present. Skipping...", llm.model());
+      }
+    }
+    LOGGER.info("LLMs checked.");
+    return true;
+  }
+
+  /**
+   * Checks if a specific LLM (Language Learning Model) is present.
+   *
+   * @param config the configuration for Ollama
+   * @param model the name of the LLM model to check
+   * @return true if the LLM is present, false otherwise
+   * @throws IOException if an I/O error occurs
+   * @throws InterruptedException if the current thread is interrupted while waiting
+   */
+  private static boolean isLLMPresent(Config config, String model) throws IOException, InterruptedException {
+    return executeCMD(config.adjustCmd("show " + model), CMDType.RUN, false, config);
+  }
+
+  /**
+   * Checks if Ollama is installed by executing a command.
+   *
+   * @param config the configuration for Ollama
+   * @return true if Ollama is installed, false otherwise
+   * @throws InterruptedException if the current thread is interrupted while waiting
+   */
+  private static boolean IsOllamaInstalled(Config config) throws InterruptedException {
+    try {
+      return executeCMD(config.adjustCmd(""), CMDType.RUN, false, config);
+    } catch (IOException e) {
+      if (e.getMessage().contains("error=2")) {
+        return false;
+      }
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Installs Ollama by downloading and extracting the necessary files.
+   *
+   * @param config the configuration for Ollama
+   * @return true if the installation was successful, false otherwise
+   * @throws IOException if an I/O error occurs
+   * @throws InterruptedException if the current thread is interrupted while waiting
+   */
+  private static boolean installOllama(Config config) throws IOException, InterruptedException {
+    var llmConfig = Contexts.globalContext().get(LLMConfig.class).orElse(LLMConfig.defaultConfig());
+    var url = "https://github.com/ollama/ollama/releases/download/" + llmConfig.version() + "/" + config.file;
+
+    var tempPath = createTempPath();
+    var filePath = tempPath.resolve(config.file);
+    return downloadOllama(url, filePath) && extractOllama(filePath, config);
+  }
+
+  /**
+   * Downloads the Ollama file from the specified URL to the given destination path.
+   *
+   * @param url the URL to download the Ollama file from
+   * @param destination the path to save the downloaded file
+   * @return true if the download was successful, false otherwise
+   * @throws IOException if an I/O error occurs
+   * @throws InterruptedException if the current thread is interrupted while waiting
+   */
+  private static boolean downloadOllama(String url, Path destination) throws IOException, InterruptedException {
+    LOGGER.info("Downloading Ollama from: {}", url);
+    try (var client = HttpClient.newBuilder()
+            .followRedirects(HttpClient.Redirect.ALWAYS)
+            .build()) {
+      var request = HttpRequest.newBuilder()
+              .uri(URI.create(url))
+              .build();
+
+      var response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+      if (response.statusCode() != 200) {
+        LOGGER.error("Error downloading Ollama: {}", response.statusCode());
+        return false;
+      }
+      Files.write(destination, response.body());
+      LOGGER.info("Ollama downloaded: {}", destination.getFileName());
+      return true;
+    }
+  }
+
+  /**
+   * Extracts the downloaded Ollama file to the specified destination.
+   *
+   * @param file the path to the downloaded file
+   * @param config the configuration for Ollama
+   * @return true if the extraction was successful, false otherwise
+   * @throws IOException if an I/O error occurs
+   * @throws InterruptedException if the current thread is interrupted while waiting
+   */
+  private static boolean extractOllama(Path file, Config config) throws IOException, InterruptedException {
+    LOGGER.info("Extracting file : {}", file.getFileName());
+    var dest = config.ollamaPath();
+    var cmd = config.extractCmd()
+            .replace("%src%", file.toString())
+            .replace("%dest%", dest.toString());
+
+    var success = executeCMD(cmd, CMDType.RUN, false, config);
+
+    if (success) {
+      LOGGER.info("File successfully extracted to {}.", dest);
+    } else {
+      LOGGER.error("Error extracting file: {}", file.getFileName());
+    }
+    return success;
   }
 
   /**
    * Creates a temporary directory for the Ollama installation process.
    * The directory will be automatically deleted on exit.
    *
-   * @return the path to the created temporary directory
+   * @return the path to the temporary directory
    * @throws IOException if an I/O error occurs
    */
   private static Path createTempPath() throws IOException {
@@ -173,51 +272,27 @@ public class OllamaSetupManager {
   }
 
   /**
-   * Adjusts the given command for the current operating system.
-   *
-   * @param cmd  the command to adjust
-   * @param type the type of command to execute
-   * @return the adjusted command string
+   * Enum representing the types of command execution.
    */
-  private static String adjustCMDForOS(String cmd, CMDType type) {
-    if (type == CMDType.OTHER) {
-      return cmd;
-    }
-
-    return switch (getOS()) {
-      case WINDOWS -> WINDOWS_CMD_PREFIX + cmd;
-      case LINUX -> LINUX_OLLAMA_PATH + "/" + cmd;
-      default -> cmd;
-    };
+  private enum CMDType {
+    RUN, RUN_NO_WAIT
   }
 
   /**
-   * Executes a command in the system's command line.
+   * Executes a command using a ProcessBuilder.
    *
-   * @param cmd       the command to execute
-   * @param type      the type of command to execute
+   * @param cmd the command to execute
+   * @param type the type of command execution
    * @param inheritIO whether to inherit IO streams
+   * @param config the configuration for Ollama
    * @return true if the command executed successfully, false otherwise
-   * @throws IOException          if an I/O error occurs
-   * @throws InterruptedException if the thread is interrupted while waiting for the command to execute
+   * @throws IOException if an I/O error occurs
+   * @throws InterruptedException if the current thread is interrupted while waiting
    */
-  private static boolean executeCMD(String cmd, CMDType type, boolean inheritIO)
-          throws IOException, InterruptedException {
-    cmd = adjustCMDForOS(cmd, type);
-    var processBuilder = new ProcessBuilder(cmd.split(" "));
-    if (inheritIO) {
-      processBuilder.inheritIO();
-    }
-    var env = processBuilder.environment();
-    var url = Contexts.globalContext().get(LLMConfig.class).orElse(LLMConfig.defaultConfig()).urlAndPort();
-    switch (getOS()) {
-      case WINDOWS -> env.put("Path", env.get("Path") + ";" + LOCAL_PATH + "/");
-      case LINUX -> env.put("PATH", env.get("PATH") + ":" + LINUX_OLLAMA_PATH + "/");
-    }
-    env.put("OLLAMA_MODELS", LOCAL_PATH + "/models");
-    env.put("OLLAMA_HOST", url);
+  private static boolean executeCMD(String cmd, CMDType type, boolean inheritIO, Config config) throws IOException, InterruptedException {
+    var processBuilder = getProcessBuilder(cmd, inheritIO, config);
     var process = processBuilder.start();
-    if (type == CMDType.RUN_OLLAM_NO_WAIT) {
+    if (type == CMDType.RUN_NO_WAIT) {
       return true;
     }
     if (process.waitFor() == 0) {
@@ -229,68 +304,23 @@ public class OllamaSetupManager {
   }
 
   /**
-   * Checks if the LLM is present in the Ollama models.
+   * Creates a ProcessBuilder for executing a command.
    *
-   * @param model the model to check
-   * @return true if the model is present, false otherwise
-   * @throws IOException          if an I/O error occurs.
-   * @throws InterruptedException if the thread is interrupted while waiting for the command to execute.
+   * @param cmd the command to execute
+   * @param inheritIO whether to inherit IO streams
+   * @param config the configuration for Ollama
+   * @return the configured ProcessBuilder
    */
-  private static boolean isLLMPresent(String model) throws IOException, InterruptedException {
-    return executeCMD(SHOW_CMD + " " + model, CMDType.RUN_OLLAMA, false);
-  }
-
-  /**
-   * Pulls the latest LLMs (Language Learning Models) from the database.
-   *
-   * @throws IOException          if an I/O error occurs.
-   * @throws InterruptedException if the thread is interrupted while waiting for the command to execute.
-   */
-  private static void pullLLMS() throws IOException, InterruptedException {
-    var llmList = Contexts.globalContext()
-            .get(DbManager.class)
-            .orElseThrow(() -> new NoSuchElementException("DbManager not found."))
-            .listLLMs();
-    LOGGER.info("Waiting for {} LLMs to be pulled.", llmList.size());
-    for (int i = 0; i < llmList.size(); i++) {
-      var llm = llmList.get(i);
-      LOGGER.info("Checking if LLM is present: {} - {}/{}", llm.model(), i + 1, llmList.size());
-      if (!isLLMPresent(llm.model())) {
-        executeCMD(PULL_CMD + " " + llm.model(), CMDType.RUN_OLLAMA, true);
-      } else {
-        LOGGER.info("LLM {} is already present. Skipping...", llm.model());
-      }
+  private static ProcessBuilder getProcessBuilder(String cmd, boolean inheritIO, Config config) {
+    var processBuilder = new ProcessBuilder(cmd.split(" "));
+    if (inheritIO) {
+      processBuilder.inheritIO();
     }
-    LOGGER.info("LLMs checked and pulled successfully.");
-  }
+    var env = processBuilder.environment();
+    var url = Contexts.globalContext().get(LLMConfig.class).orElse(LLMConfig.defaultConfig()).urlAndPort();
 
-  /**
-   * Enum representing the supported operating systems.
-   */
-  private enum OS { LINUX, WINDOWS, MAC, UNKNOWN }
-
-  /**
-   * Determines the current operating system.
-   *
-   * @return the current operating system as an OS enum value.
-   */
-  private static OS getOS() {
-    if (SystemUtils.IS_OS_LINUX) {
-      return OS.LINUX;
-    }
-    if (SystemUtils.IS_OS_WINDOWS) {
-      return OS.WINDOWS;
-    }
-    if (SystemUtils.IS_OS_MAC) {
-      return OS.MAC;
-    }
-    return OS.UNKNOWN;
-  }
-
-  /**
-   * Enum representing the types of commands that can be executed.
-   */
-  private enum CMDType {
-    RUN_OLLAMA, RUN_OLLAM_NO_WAIT, OTHER
+    env.put("OLLAMA_MODELS", config.ollamaPath.resolve("models").toString());
+    env.put("OLLAMA_HOST", url);
+    return processBuilder;
   }
 }

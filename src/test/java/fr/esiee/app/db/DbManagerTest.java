@@ -1,10 +1,10 @@
 package fr.esiee.app.db;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.esiee.app.db.entities.AuthorType;
 import fr.esiee.app.db.entities.Chat;
 import fr.esiee.app.db.entities.LLM;
 import fr.esiee.app.db.entities.Prompt;
+import fr.esiee.tests.DbUtils;
 import io.helidon.common.context.Contexts;
 import io.helidon.config.Config;
 import io.helidon.dbclient.DbClient;
@@ -18,7 +18,6 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -30,26 +29,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DbManagerTest {
 
-  private final List<LLM> llms =
-          List.of(new ObjectMapper().readValue(DbManagerTest.class.getResourceAsStream("/llms_test.json"),
-                  LLM[].class));
-  private final List<Chat> chats =
-          List.of(new ObjectMapper().readValue(DbManagerTest.class.getResourceAsStream("/chats.json"), Chat[].class));
-  private final List<Prompt> prompts =
-          List.of(new ObjectMapper().readValue(DbManagerTest.class.getResourceAsStream("/prompts.json"),
-                  Prompt[].class));
   private DbClient dbClient;
   private DbManager dbManager;
 
-  DbManagerTest() throws IOException {
-  }
-
   @BeforeAll
   static void cleanDB() {
-    var config = Config.global().get("db");
-    try(var dbClient = DbClient.builder(config).build()) {
-      dbClient.execute().delete("DROP ALL OBJECTS");
-    }
+    DbUtils.resetDb();
   }
 
   @AfterAll
@@ -70,36 +55,10 @@ class DbManagerTest {
     dbManager.setupSchema();
   }
 
-  private void initializeLLM() {
-    for (var llm : llms) {
-      dbClient.execute().createInsert(
-                      "INSERT INTO llm(id, name, model, system_prompt, characteristics, temp, seed, timeout_sec) VALUES(?, ?, ?, ?, ?, ?, ?, ?)")
-              .addParam(llm.id()).addParam(llm.name()).addParam(llm.model()).addParam(llm.systemPrompt())
-              .addParam(llm.characteristics()).addParam(llm.temp()).addParam(llm.seed()).addParam(llm.timeoutSec()).execute();
-    }
-  }
-
-  private void initializeChat() {
-    for (var chat : chats) {
-      dbClient.execute().createInsert("INSERT INTO Chat(id, title, last_activity, llm_id) VALUES(?, ?, ?, ?)")
-              .addParam(chat.id()).addParam(chat.title()).addParam(chat.lastActivity()).addParam(chat.llmId())
-              .execute();
-    }
-  }
-
-  private void initializePrompt() {
-    for (var prompt : prompts) {
-      dbClient.execute()
-              .createInsert("INSERT INTO Prompt(id, message, author_type, chat_id, compile) VALUES(?, ?, ?, ?, ?)")
-              .addParam(prompt.id()).addParam(prompt.message()).addParam(prompt.authorType().name())
-              .addParam(prompt.chatId()).addParam(prompt.compile()).execute();
-    }
-  }
-
   @AfterEach
   void closeDBManager() {
-    dbClient.execute().delete("DROP ALL OBJECTS");
     dbClient.close();
+    DbUtils.resetDb();
   }
 
   @Test
@@ -127,44 +86,44 @@ class DbManagerTest {
 
 
   @Test
-  void testListChats() {
-    initializeLLM();
-    initializeChat();
+  void testListChats() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
     var chats = dbManager.listChats();
     assertEquals(3, chats.size());
   }
 
   @Test
-  void testListPrompts() {
-    initializeLLM();
-    initializeChat();
-    initializePrompt();
+  void testListPrompts() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    DbUtils.initializePrompts();
     var prompts = dbManager.listPrompts();
     assertEquals(18, prompts.size());
   }
 
   @Test
-  void testGetPromptByIdExists() {
-    initializeLLM();
-    initializeChat();
-    initializePrompt();
+  void testGetPromptByIdExists() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    DbUtils.initializePrompts();
     var prompt = dbManager.getPromptById(2);
-    assertEquals(prompts.get(1), prompt);
+    assertEquals(DbUtils.prompts().get(1), prompt);
   }
 
   @Test
-  void testGetPromptByIdNotExists() {
-    initializeLLM();
-    initializeChat();
-    initializePrompt();
+  void testGetPromptByIdNotExists() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    DbUtils.initializePrompts();
     assertThrows(NotFoundException.class, () -> dbManager.getPromptById(100));
   }
 
 
   @Test
-  void testInsertPrompt() {
-    initializeLLM();
-    initializeChat();
+  void testInsertPrompt() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
     var prompt = new Prompt(1, "Test", AuthorType.SYSTEM, 1, false);
     dbManager.insertPrompt(prompt);
     var prompts = dbManager.listPrompts();
@@ -172,21 +131,21 @@ class DbManagerTest {
   }
 
   @Test
-  void testUpdateChatLastActivity() {
-    initializeLLM();
-    initializeChat();
-    var chat = chats.getFirst();
+  void testUpdateChatLastActivity() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    var chat = DbUtils.chats().getFirst();
     dbManager.updateChatLastActivity(chat.id());
     var updatedChat = dbManager.listChats().getFirst();
     assertTrue(updatedChat.lastActivity().getTime() > chat.lastActivity().getTime());
   }
 
   @Test
-  void testUpdatePrompt() {
-    initializeLLM();
-    initializeChat();
-    initializePrompt();
-    var prompt = prompts.getFirst();
+  void testUpdatePrompt() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    DbUtils.initializePrompts();
+    var prompt = DbUtils.prompts().getFirst();
     var newPrompt = new Prompt(prompt.id(), "Test", AuthorType.USER, 1, false);
     dbManager.updatePrompt(newPrompt);
     var updatedPrompt = dbManager.listPrompts().getFirst();
@@ -195,11 +154,11 @@ class DbManagerTest {
   }
 
   @Test
-  void testDeletePromptById() {
-    initializeLLM();
-    initializeChat();
-    initializePrompt();
-    var prompt = prompts.getFirst();
+  void testDeletePromptById() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    DbUtils.initializePrompts();
+    var prompt = DbUtils.prompts().getFirst();
     dbManager.deletePromptById(prompt.id());
     var prompts = dbManager.listPrompts();
 
@@ -207,18 +166,18 @@ class DbManagerTest {
   }
 
   @Test
-  void testGetPromptsByChatId() {
-    initializeLLM();
-    initializeChat();
-    initializePrompt();
+  void testGetPromptsByChatId() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    DbUtils.initializePrompts();
     var chatId = 1;
     var prompts = dbManager.getPromptsByChatId(chatId);
     assertEquals(6, prompts.size());
   }
 
   @Test
-  void testInsertChat() {
-    initializeLLM();
+  void testInsertChat() throws IOException {
+    DbUtils.initializeLLM();
     var chat = new Chat(1, "Test", Timestamp.valueOf("2024-10-31 22:50:25"), 1);
     dbManager.insertChat(chat);
     var chats = dbManager.listChats();
@@ -227,72 +186,72 @@ class DbManagerTest {
   }
 
   @Test
-  void testGetChatByParams() {
-    initializeLLM();
-    initializeChat();
-    var chat = chats.getFirst();
+  void testGetChatByParams() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    var chat = DbUtils.chats().getFirst();
     var chatParams = dbManager.getChatByParams(chat);
     assertEquals(chat, chatParams);
   }
 
   @Test
-  void testGetPromptByPromptInfo() {
-    initializeLLM();
-    initializeChat();
-    initializePrompt();
-    var prompt = prompts.getFirst();
+  void testGetPromptByPromptInfo() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    DbUtils.initializePrompts();
+    var prompt = DbUtils.prompts().getFirst();
     var promptInfo = dbManager.getPromptByPromptInfo(prompt);
     assertEquals(prompt, promptInfo);
   }
 
   @Test
-  void testChatExists() {
-    initializeLLM();
-    initializeChat();
-    var chat = chats.getFirst();
+  void testChatExists() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    var chat = DbUtils.chats().getFirst();
     assertTrue(dbManager.chatExists(chat.id()));
   }
 
   @Test
-  void testChatNotExists() {
-    initializeLLM();
-    initializeChat();
+  void testChatNotExists() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
     var chat = new Chat(100, "Test", Timestamp.from(Instant.now()), 1);
     assertFalse(dbManager.chatExists(chat.id()));
   }
 
   @Test
-  void testPromptExists() {
-    initializeLLM();
-    initializeChat();
-    initializePrompt();
-    var prompt = prompts.getLast();
+  void testPromptExists() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    DbUtils.initializePrompts();
+    var prompt = DbUtils.prompts().getLast();
     assertTrue(dbManager.promptExists(prompt.id()));
   }
 
   @Test
-  void testPromptNotExists() {
-    initializeLLM();
-    initializeChat();
-    initializePrompt();
+  void testPromptNotExists() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    DbUtils.initializePrompts();
     var prompt = new Prompt(100, "Test", AuthorType.USER, 1, false);
     assertFalse(dbManager.promptExists(prompt.id()));
   }
 
   @Test
-  void testGetChatById() {
-    initializeLLM();
-    initializeChat();
-    var chat = chats.getLast();
+  void testGetChatById() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    var chat = DbUtils.chats().getLast();
     var chatById = dbManager.getChatById(chat.id());
     assertEquals(chat, chatById);
   }
 
   @Test
-  void testUpdateChat() {
-    initializeLLM();
-    initializeChat();
-    var chat = chats.getLast();
+  void testUpdateChat() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    var chat = DbUtils.chats().getLast();
     var newChat = new Chat(chat.id(), "Test", Timestamp.valueOf("2024-12-24 12:32:59"), 1);
     dbManager.updateChat(newChat);
     var updatedChat = dbManager.getChatById(chat.id());
@@ -301,10 +260,10 @@ class DbManagerTest {
   }
 
   @Test
-  void testDeleteChatById() {
-    initializeLLM();
-    initializeChat();
-    var chat = chats.getLast();
+  void testDeleteChatById() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    var chat = DbUtils.chats().getLast();
     dbManager.deleteChatById(chat.id());
     var chatsDb = dbManager.listChats();
 
@@ -313,41 +272,43 @@ class DbManagerTest {
   }
 
   @Test
-  void testListLLMs() {
-    initializeLLM();
+  void testListLLMs() throws IOException {
+    DbUtils.initializeLLM();
     var llms = dbManager.listLLMs();
     assertEquals(2, llms.size());
   }
 
   @Test
-  void testGetFirstLLM() {
-    initializeLLM();
-    var llm = llms.getFirst();
+  void testGetFirstLLM() throws IOException {
+    DbUtils.initializeLLM();
+    var llm = DbUtils.llms().getFirst();
     var firstLLM = dbManager.getFirstLLM();
     assertEquals(llm, firstLLM);
   }
 
   @Test
-  void testGetLLMByIdExists() {
-    initializeLLM();
-    var llm = llms.getFirst();
+  void testGetLLMByIdExists() throws IOException {
+    DbUtils.initializeLLM();
+    var llm = DbUtils.llms().getFirst();
     var llmById = dbManager.getLLMById(llm.id());
     assertEquals(llm, llmById);
   }
 
   @Test
-  void testGetLLMByIdNotExists() {
-    initializeLLM();
+  void testGetLLMByIdNotExists() throws IOException {
+    DbUtils.initializeLLM();
     assertThrows(NotFoundException.class, () -> dbManager.getLLMById(100));
   }
 
   @Test
-  void testGetFirstPromptByChatId() {
-    initializeLLM();
-    initializeChat();
-    initializePrompt();
+  void testGetFirstPromptByChatId() throws IOException {
+    DbUtils.initializeLLM();
+    DbUtils.initializeChats();
+    DbUtils.initializePrompts();
+
     var chatId = 1;
     var prompt = dbManager.getFirstPromptByChatId(chatId);
+    var prompts = DbUtils.prompts();
 
     assertAll(() -> assertEquals(prompts.getFirst(), prompt), () -> assertNotEquals(prompts.getLast(), prompt));
   }
@@ -364,8 +325,8 @@ class DbManagerTest {
 
 
   @Test
-  void testBugTitileChat() {
-    initializeLLM();
+  void testBugTitileChat() throws IOException {
+    DbUtils.initializeLLM();
     var title = "MgFxgoN1xkZHMCzuFAdDtF9wOyoxrze2v4veXkQsd0BgorAyzt8SWn0s6BTa52MvYsRspPF0tYGBy985FKp2FaRJVDHdtTjChVW4MgFxgoN1xkZHMCzuFAdDtF9wOyoxrze2v4veXkQsd0BgorAyzt8SWn0s6BTa52MvYsRspPF0tYGBy985FKp2FaRJVDHdtTjChVW4";
     var chat = new Chat(1, title, Timestamp.valueOf("2024-10-31 22:50:25"), 1);
     var titleTruncate = DbManager.truncate(title, 100);

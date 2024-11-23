@@ -157,14 +157,18 @@ public class CompileAndExecUtils {
     try (var executor = Executors.newSingleThreadExecutor();
          var outputStream = new ByteArrayOutputStream()) {
       var outputFuture = captureProcessOutput(process, executor, outputStream);
+      boolean timeOut;
 
       if (!awaitProcessCompletion(process)) {
         handleTimeout(process, className);
+        timeOut = true;
       } else {
         outputFuture.get();
+        timeOut = process.isAlive();
       }
 
-      return finalizeOutput(outputStream, process.isAlive());
+
+      return finalizeOutput(outputStream, timeOut);
     }
   }
 

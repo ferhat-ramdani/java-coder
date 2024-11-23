@@ -81,7 +81,7 @@ public class DbManager {
    */
   public static void initialize() throws IOException {
     if (Contexts.globalContext().get(DbManager.class).isPresent()) {
-      LOGGER.info("DbManager already setupialized");
+      LOGGER.info("DbManager already initialized");
       return;
     }
 
@@ -118,7 +118,7 @@ public class DbManager {
    */
   private static void setupLLMs(DbExecute exec) throws IOException {
     var llms = new ObjectMapper().readTree(DbManager.class.getResourceAsStream("/llms.json"));
-    for (JsonNode llm : llms) {
+    for (var llm : llms) {
       exec.namedInsert("insert-llm",
               llm.get("name").asText(),
               llm.get("model").asText(),

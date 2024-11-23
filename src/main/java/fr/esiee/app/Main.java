@@ -76,7 +76,7 @@ public class Main {
     DbManager.initialize();
     var llmConfig = config.get("provider").as(LLMConfig.class).orElse(LLMConfig.defaultConfig());
     Contexts.globalContext().register(llmConfig);
-    OllamaSetupManager.setupOllamaAndLLMs();
+    OllamaSetupManager.setupAndStartOllama();
 
     var server = createWebServer(config);
 

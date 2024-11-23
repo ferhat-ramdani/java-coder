@@ -4,6 +4,7 @@ import fr.esiee.app.db.DbManager;
 import fr.esiee.app.db.entities.AuthorType;
 import fr.esiee.app.db.entities.Chat;
 import fr.esiee.app.db.entities.Prompt;
+import fr.esiee.tests.DbUtils;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.NotFoundException;
 import io.helidon.http.Status;
@@ -11,6 +12,8 @@ import io.helidon.webclient.http1.Http1Client;
 import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.testing.junit5.RoutingTest;
 import io.helidon.webserver.testing.junit5.SetUpRoute;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -35,8 +38,10 @@ public class PromptServiceTest {
           (p1, p2) -> p1.message().equals(p2.message()) && p1.authorType() == p2.authorType() &&
                   p1.chatId() == p2.chatId() && p1.compile() == p2.compile();
 
-  public PromptServiceTest(Http1Client client) {
+  public PromptServiceTest(Http1Client client) throws IOException {
     this.client = client;
+    DbUtils.resetDb();
+    DbUtils.initializeRealLLM();
     dbManager = Contexts.globalContext().get(DbManager.class).orElseThrow();
   }
 
