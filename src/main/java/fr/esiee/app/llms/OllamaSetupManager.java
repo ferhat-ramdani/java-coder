@@ -15,6 +15,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.NoSuchElementException;
 
 /**
@@ -218,12 +219,11 @@ public class OllamaSetupManager {
               .uri(URI.create(url))
               .build();
 
-      var response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+      var response = client.send(request, HttpResponse.BodyHandlers.ofFile(destination));
       if (response.statusCode() != 200) {
         LOGGER.error("Error downloading Ollama: {}", response.statusCode());
         return false;
       }
-      Files.write(destination, response.body());
       LOGGER.info("Ollama downloaded: {}", destination.getFileName());
       return true;
     }

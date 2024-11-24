@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @RoutingTest
-@DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 public class GeneratorServiceTest {
 
   private final DbManager dbManager;
