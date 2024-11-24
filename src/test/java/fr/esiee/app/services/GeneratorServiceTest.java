@@ -16,7 +16,6 @@ import io.helidon.webserver.testing.junit5.SetUpRoute;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -30,13 +29,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @RoutingTest
-@DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 public class GeneratorServiceTest {
 
   private final DbManager dbManager;
   private final Http1Client client;
 
-  public GeneratorServiceTest(Http1Client client) throws IOException, InterruptedException {
+  public GeneratorServiceTest(Http1Client client){
     this.client = client;
     dbManager = Contexts.globalContext().get(DbManager.class).orElseThrow();
   }
@@ -83,7 +81,7 @@ public class GeneratorServiceTest {
     var chatId = dbManager.getChatByParams(chat).id();
     Prompt prompt =
             new Prompt(1, "Generate a Java class that computes big prime numbers.", AuthorType.USER, chatId, true);
-    int registeredPromptId = 1;
+    int registeredPromptId;
     try (var response = client.post("/class").submit(prompt)) {
       registeredPromptId = response.as(Integer.class);
       assertAll(

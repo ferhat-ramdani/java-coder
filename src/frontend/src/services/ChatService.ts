@@ -28,15 +28,7 @@ class ChatService {
 
         await Utils.showErrorToast(response, "Error during chat creation.");
 
-        return await response.json();;
-    }
-
-    async updateChat(chat: Chat){
-        const response = await fetch(`${this.apiUrl}/chat`, Utils.createRequestInit(chat, 'PUT'));
-
-        if (!response.ok) {
-            throw new Error(`Error during PUT query : ${response.statusText}`);
-        }
+        return await response.json();
     }
 
     async deleteChat(id: number) {

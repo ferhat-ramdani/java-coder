@@ -3,7 +3,6 @@ import {A} from "@solidjs/router";
 import {useAppContext} from "../Context";
 import {Link, MetaProvider, Title} from "@solidjs/meta";
 
-
 const TopBar: Component = () => {
 
     const THEME_KEY = "user-theme";

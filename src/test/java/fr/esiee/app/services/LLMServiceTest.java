@@ -33,7 +33,7 @@ class LLMServiceTest {
     DbUtils.initializeRealLLM();
   }
 
-  public LLMServiceTest(Http1Client client) throws IOException {
+  public LLMServiceTest(Http1Client client) {
     this.client = client;
     dbManager = Contexts.globalContext().get(DbManager.class).orElseThrow();
   }

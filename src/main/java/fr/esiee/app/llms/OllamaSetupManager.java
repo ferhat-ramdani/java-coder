@@ -4,7 +4,6 @@ import fr.esiee.app.config.LLMConfig;
 import fr.esiee.app.db.DbManager;
 import io.helidon.common.context.Contexts;
 import org.apache.commons.lang3.SystemUtils;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -218,12 +217,11 @@ public class OllamaSetupManager {
               .uri(URI.create(url))
               .build();
 
-      var response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+      var response = client.send(request, HttpResponse.BodyHandlers.ofFile(destination));
       if (response.statusCode() != 200) {
         LOGGER.error("Error downloading Ollama: {}", response.statusCode());
         return false;
       }
-      Files.write(destination, response.body());
       LOGGER.info("Ollama downloaded: {}", destination.getFileName());
       return true;
     }

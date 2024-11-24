@@ -1,8 +1,6 @@
 import {Accessor, Component, createSignal, Setter} from "solid-js";
 import promptService from "../services/PromptService";
 import {createPrompt, Prompt} from "../interfaces/Prompt";
-import {Chat} from "../interfaces/Chat";
-import chatService from "../services/ChatService";
 import {useAppContext} from "../Context";
 import {AuthorType} from "../interfaces/AuthorType";
 import generatorService from "../services/GeneratorService";
@@ -39,21 +37,9 @@ function processLLMResponseStatus(
             eventSource.close();
             Utils.showToast(`Error`, "Internal server error occurred", "danger", "bi-exclamation-triangle");
             break;
-        case "TIMEOUT":
-            setSendDisabled(false);
-            eventSource.close();
-            content = llmResponse.content!;
-            Utils.showToast(`Error`, "Timeout error occurred", "danger", "bi-exclamation-triangle");
-            break;
         case "GENERATING":
             setSendDisabled(true);
             content = llmResponse.content!;
-            break;
-        case "FINISH" :
-            setSendDisabled(false);
-            content = "Closing communication with server";
-            prompt = null;
-            eventSource.close();
             break;
     }
 
