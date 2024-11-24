@@ -58,7 +58,7 @@ public class CompileAndExecUtils {
     Objects.requireNonNull(code);
     var classNameOpt = extractClassName(code);
     if (classNameOpt.isEmpty()) {
-      throw new RestApiException("no class name could be extracted");
+      throw new IOException("no class name could be extracted");
     }
 
     var className = classNameOpt.get();
@@ -343,7 +343,7 @@ public class CompileAndExecUtils {
    */
   static Optional<String> extractClassName(String code) {
     String regex =
-            "public\\s+(?:\\w+\\s+)*(?:class|record)\\s+(\\w+)(?:\\s*<.*?>)?\\s*(?:extends\\s+\\w+)?\\s*(?:implements\\s+[\\w,\\s]+)?";
+            "public\\s+(?:\\w+\\s+)*(?:class|record)\\s+([\\p{L}\\w]+)(?:\\s*<.*?>)?\\s*(?:extends\\s+\\w+)?\\s*(?:implements\\s+[\\w,\\s]+)?";
     Pattern pattern = Pattern.compile(regex);
     Matcher matcher = pattern.matcher(code);
     return Optional.ofNullable(matcher.find() ? matcher.group(1) : null);

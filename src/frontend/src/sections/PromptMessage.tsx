@@ -60,9 +60,7 @@ const PromptMessage: Component<PromptProps> = (props) => {
     let codeRef: HTMLPreElement | undefined;
 
     createEffect(() => {
-        if (codeRef) {
-            hljs.highlightElement(codeRef);
-        }
+        if (codeRef) hljs.highlightElement(codeRef);
     });
 
     const [seconds, setSeconds] = createSignal(0);

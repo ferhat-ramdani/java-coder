@@ -1,6 +1,5 @@
 package fr.esiee.app.db;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.esiee.app.db.entities.Chat;
 import fr.esiee.app.db.entities.LLM;
@@ -192,7 +191,7 @@ public class DbManager {
   }
 
   /**
-   * Retrieves a prompts from the databas by id.
+   * Retrieves a prompts from the database by id.
    *
    * @return a Prompt object representing the prompt in the database.
    */
@@ -374,7 +373,7 @@ public class DbManager {
               .addParam(chat.llmId()).execute();
       transaction.commit();
     } catch (DbClientException t) {
-      LOGGER.error("Exception occured while trying to insert a chat to database : ", t);
+      LOGGER.error("Exception occurred while trying to insert a chat to database : ", t);
       transaction.rollback();
       throw t;
     }

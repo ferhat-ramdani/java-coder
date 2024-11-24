@@ -113,21 +113,12 @@ public class GeneratorService implements HttpService {
     public static LLMResponse done(Prompt prompt) {
       return new LLMResponse(LLMResponseStatus.SUCCESS, null, prompt);
     }
-
-    /**
-     * Creates an LLMResponse with a FINISH status.
-     *
-     * @return an LLMResponse with FINISH status
-     */
-    public static LLMResponse finish() {
-      return new LLMResponse(LLMResponseStatus.FINISH, null, null);
-    }
   }
 
   /**
    * An enum to represent the status of the LLM response.
    */
-  private enum LLMResponseStatus { GENERATING, ERROR, SUCCESS, FINISH }
+  private enum LLMResponseStatus { GENERATING, ERROR, SUCCESS }
 
   /**
    * A record to store the model configuration.
@@ -233,10 +224,10 @@ public class GeneratorService implements HttpService {
     var generatedCode = generateClassFromLLM(newLLM, chat.id(), prompt.message(), sseSink);
     LOGGER.info("Class generated successfully.");
 
-    Prompt aiPrompt = new Prompt(0, generatedCode.code, AuthorType.AI, chat.id(), generatedCode.compiled);
+    var aiPrompt = new Prompt(0, generatedCode.code, AuthorType.AI, chat.id(), generatedCode.compiled);
     dbService.insertPrompt(aiPrompt);
 
-    Prompt registeredPrompt = dbService.getPromptByPromptInfo(aiPrompt);
+    var registeredPrompt = dbService.getPromptByPromptInfo(aiPrompt);
     sseSink.emit(SseEvent.create(LLMResponse.done(registeredPrompt)));
   }
 

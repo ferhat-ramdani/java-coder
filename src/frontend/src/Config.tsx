@@ -2,7 +2,7 @@ import defaultConfig from './configuration/config.json';
 
 class Config {
   private static instance: Config;
-  private backendUrl: string;
+  private readonly backendUrl: string;
 
   private constructor() {
     this.backendUrl = process.env.BACKEND_URL || defaultConfig.backendUrl || 'http://localhost:8080';

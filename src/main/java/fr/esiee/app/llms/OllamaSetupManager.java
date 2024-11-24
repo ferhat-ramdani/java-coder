@@ -4,7 +4,6 @@ import fr.esiee.app.config.LLMConfig;
 import fr.esiee.app.db.DbManager;
 import io.helidon.common.context.Contexts;
 import org.apache.commons.lang3.SystemUtils;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +14,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.NoSuchElementException;
 
 /**

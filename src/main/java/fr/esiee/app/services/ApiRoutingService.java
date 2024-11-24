@@ -47,7 +47,7 @@ public class ApiRoutingService implements HttpService {
             .register("/prompt", new PromptService());
 
     if (Main.isDebugMode()) {
-      httpRules.get("/stop", (req, res) -> {
+      httpRules.get("/stop", (_, res) -> {
         res.send("Stopping server...");
         Contexts.globalContext().get(WebServer.class).orElseThrow().stop();
       });
