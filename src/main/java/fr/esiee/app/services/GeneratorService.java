@@ -309,7 +309,7 @@ public class GeneratorService implements HttpService {
       if (isCodeValid(code, sseSink)) {
         return new SourceCode(code, true);
       } else {
-        errorsText = "Here are the compilation errors, correct them." + logAndEmitErrors(code, sseSink);
+        errorsText = "There are some compilation errors, can you try to fix them please, here's more information. " + logAndEmitErrors(code, sseSink);
       }
     }
     return new SourceCode(code, false);

@@ -259,9 +259,8 @@ public class CompileAndExecUtils {
 
     if (!success) {
       for (var diagnostic : diagnostics.getDiagnostics()) {
-        var error = String.format("Error on line %d in %s%n%s",
+        var error = String.format("Error on line %d%n%s",
                 diagnostic.getLineNumber(),
-                diagnostic.getSource().getName(),
                 diagnostic.getMessage(Locale.ROOT));
         errors.add(error);
       }

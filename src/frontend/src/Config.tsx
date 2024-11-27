@@ -11,7 +11,6 @@ class Config {
     if (!Config.instance) {
       Config.instance = new Config();
     }
-    console.log(Config.instance.getBackendUrl())
     return Config.instance;
   }
 
