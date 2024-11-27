@@ -12,7 +12,7 @@
     </parent>
 
     <groupId>fr.esiee.app</groupId>
-    <artifactId>chatgpt_for_dev</artifactId>
+    <artifactId>java_coder</artifactId>
     <version>1.0-ALPHA</version>
 
     <properties>

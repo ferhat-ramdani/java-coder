@@ -86,7 +86,7 @@ public class OllamaSetupManager {
    * @throws UnsupportedOperationException if the operating system is not supported
    */
   private static Config getConfig() {
-    var localPath = Path.of(SystemUtils.USER_HOME, ".chatgptfordev");
+    var localPath = Path.of(SystemUtils.USER_HOME, ".javacoder");
     if (SystemUtils.IS_OS_LINUX) {
       return new Config(localPath, "ollama-linux-" + SystemUtils.OS_ARCH + ".tgz", "tar -xzf %src% -C %dest%", "", "bin/ollama", "killall ollama");
     } else if (SystemUtils.IS_OS_WINDOWS) {
