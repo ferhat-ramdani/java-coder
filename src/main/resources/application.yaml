@@ -15,7 +15,7 @@ provider:
 db:
   source: jdbc
   connection:
-    url: "jdbc:h2:~/.chatgptfordev/database/db"
+    url: "jdbc:h2:~/.javacoder/database/db"
     username: "gptfordev" #Default value, to change, add an environment variable `db_connection_username` or change here.
     password: "gptfordev" #Default value, to change, add an environment variable `db_connection_password` or change here.
     poolName: h2

@@ -54,7 +54,7 @@ const TopBar: Component = () => {
             </MetaProvider>
             <nav class="navbar navbar-expand-sm border-bottom">
                 <div class="container-fluid">
-                <A href={`/`} class={`navbar-brand`}>LLM's Chat</A>
+                <A href={`/`} class={`navbar-brand`}>Java Coder</A>
                     <button class="navbar-toggler" type="button"
                             data-bs-target="#navbarNav" aria-controls="navbarNav"
                             aria-label="Toggle navigation" onClick={toggleNavbar}>
