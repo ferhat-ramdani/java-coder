@@ -324,7 +324,7 @@
                 <version>${swagger-maven-plugin.version}</version>
                 <configuration>
                     <outputFileName>openapi</outputFileName>
-                    <outputPath>src/main/resources/swagger-ui</outputPath>
+                    <outputPath>src/main/resources/META-INF</outputPath>
                     <outputFormat>JSONANDYAML</outputFormat>
                     <resourcePackages>
                         <package>fr.esiee.app</package>

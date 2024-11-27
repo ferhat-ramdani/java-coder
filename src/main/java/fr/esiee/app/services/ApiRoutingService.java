@@ -24,12 +24,7 @@ import java.io.UncheckedIOException;
 @OpenAPIDefinition(
         info = @Info(
                 title = "GPT for dev API",
-                description = "Services for manipulating chats, prompts and llms"),
-        servers = {
-                @Server(
-                        description = "localhost",
-                        url = "http://localhost:8080")
-        }
+                description = "Services for manipulating chats, prompts and llms")
 )
 public class ApiRoutingService implements HttpService {
 

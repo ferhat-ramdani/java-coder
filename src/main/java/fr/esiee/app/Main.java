@@ -48,12 +48,13 @@ public class Main {
    * @return the created WebServer instance
    */
   private static WebServer createWebServer(Config config) {
+
     return WebServer.builder()
             .mediaContext(it -> it
                     .mediaSupportsDiscoverServices(false)
                     .addMediaSupport(JacksonSupport.create(config))
                     .build())
-            .addFeature(OpenApiFeature.create(config.get("openapi")))
+            .addFeature(OpenApiFeature.builder().build())
             .config(config.get("server"))
             .routing(Main::routing).build().start();
   }

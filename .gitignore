@@ -42,5 +42,6 @@ nb-configuration.xml
 
 src/main/resources/app.properties
 src/main/resources/swagger-ui
-
+openapi.json
+openapi.yaml
 src/main/resources/spare_llms.json
