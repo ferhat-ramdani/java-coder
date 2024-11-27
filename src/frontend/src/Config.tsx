@@ -5,12 +5,13 @@ class Config {
   private readonly backendUrl: string;
 
   private constructor() {
-    this.backendUrl = process.env.BACKEND_URL || defaultConfig.backendUrl || 'http://localhost:8080';
+    this.backendUrl = process.env.BACKEND_URL || defaultConfig.backendUrl || '';
   }
   public static getInstance(): Config {
     if (!Config.instance) {
       Config.instance = new Config();
     }
+    console.log(Config.instance.getBackendUrl())
     return Config.instance;
   }
 

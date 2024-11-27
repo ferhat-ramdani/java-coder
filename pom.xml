@@ -277,7 +277,7 @@
                     <npmVersion>${npm.version}</npmVersion>
                     <environmentVariables>
                         <FRONT_OUTPUT_DIR>${project.build.outputDirectory}/static</FRONT_OUTPUT_DIR>
-                        <BACKEND_URL>http://localhost:8080</BACKEND_URL>
+<!--                        <BACKEND_URL>http://localhost:8080</BACKEND_URL>-->
                     </environmentVariables>
                 </configuration>
                 <executions>
