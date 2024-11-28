@@ -46,7 +46,7 @@ const ChatUI: Component = () => {
     return (<>
             <div class={`container-fluid d-flex flex-column flex-grow-1 overflow-hidden`}>
                 <div ref={containerRef} class="flex-grow-1 overflow-auto p-3 border rounded my-3">
-                    <For each={chatPrompts.accessor()} fallback={`Prompt Example`}>
+                    <For each={chatPrompts.accessor()}>
                         {(prompt) => <PromptMessage prompt={prompt}/>}
                     </For>
                 </div>
