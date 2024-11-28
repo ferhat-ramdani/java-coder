@@ -1,12 +1,10 @@
 import {Accessor, Component, createSignal, Setter} from "solid-js";
 import promptService from "../services/PromptService";
 import {createPrompt, Prompt} from "../interfaces/Prompt";
-import {useAppContext} from "../Context";
 import {AuthorType} from "../interfaces/AuthorType";
 import generatorService from "../services/GeneratorService";
 import {Utils} from "../services/Utils";
 import {LLMResponse, LLMResponseStatus} from "../interfaces/LLMResponse";
-import {LLM} from "../interfaces/LLM";
 
 type PromptAccessorSetter = { accessor: Accessor<Prompt[]>; setter: Setter<Prompt[]> };
 
@@ -123,13 +121,12 @@ const handleSendMessage = async (
     message: Accessor<string>,
     setMessage: Setter<string>,
     curChatId: number,
-    selectedLLM: Accessor<LLM | null>,
     curChatPrompts: PromptAccessorSetter,
     setSendDisabled: Setter<boolean>,
 ) => {
     if (!message().trim()) return;
 
-    if (!curChatId && !selectedLLM()) {
+    if (!curChatId && !localStorage.getItem('default-llm')) {
         Utils.showToast("Error", "Please select an LLM Model", "danger", "bi-exclamation-triangle");
     } else {
         setSendDisabled(true);
@@ -139,13 +136,12 @@ const handleSendMessage = async (
 };
 
 const TextInput: Component<TextInputProps> = (props) => {
-    const [{selectedLLM}] = useAppContext();
     const [message, setMessage] = createSignal("");
     const [sendDisabled, setSendDisabled] = createSignal(false);
 
 
     const handleSend = async () => {
-        await handleSendMessage(message, setMessage, props.chatId, selectedLLM.accessor, props.prompts, setSendDisabled);
+        await handleSendMessage(message, setMessage, props.chatId, props.prompts, setSendDisabled);
     };
 
     return (

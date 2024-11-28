@@ -15,7 +15,7 @@ const ChatUI: Component = () => {
 
     const navigate = useNavigate();
     const [curChatPrompts, setCurChatPrompts] = createSignal<Prompt[]>([]);
-    const [{pageTitle, selectedLLM}] = useAppContext();
+    const [{pageTitle}] = useAppContext();
 
     const chatPrompts = { accessor: curChatPrompts, setter: setCurChatPrompts };
 
@@ -34,8 +34,6 @@ const ChatUI: Component = () => {
             const llm = await llmService.getLlmById(chat.llmId);
             chatPrompts.setter(prompts);
             pageTitle.setter(`LLM: ${llm.name}`);
-
-            selectedLLM.setter(llm);
 
             scrollToBottom();
         } catch (error) {

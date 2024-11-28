@@ -7,7 +7,6 @@ const TopBar: Component = () => {
 
     const THEME_KEY = "user-theme";
 
-
     const [isNavCollapsed, setIsNavCollapsed] = createSignal(true);
     const [isDarkMode, setIsDarkMode] = createSignal(false);
     const [{pageTitle}] = useAppContext();

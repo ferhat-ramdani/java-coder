@@ -1,12 +1,12 @@
-import {createContext, Setter, Accessor, useContext, Resource} from 'solid-js';
+import {createContext, Setter, Accessor, useContext, Resource, createEffect} from 'solid-js';
 import { createSignal, createResource } from 'solid-js';
 import {createStore, SetStoreFunction} from "solid-js/store"
-import { LLM } from './interfaces/LLM';
 import {Chat} from "./interfaces/Chat";
 import chatService from "./services/ChatService";
+import llmService from "./services/LLMService";
+import {Utils} from "./services/Utils";
 
 type myStorage = {
-    selectedLLM: { accessor: Accessor<LLM | null>, setter: Setter<LLM | null> };
     chats: { resource: Resource<Chat[]>, mutator: Setter<Chat[] | undefined>, refetcher:  () => any};
     pageTitle: {accessor: Accessor<string>, setter: Setter<string>};
 };
@@ -21,12 +21,10 @@ const fetchChats = async (): Promise<Chat[]> => {
 };
 
 function createStorage(): myStorage {
-    const [selectedLLM, setSelectedLLM] = createSignal<LLM | null>(null);
     const [chats, { mutate: setChats, refetch: refetchChats }] = createResource<Chat[]>(fetchChats);
     const [pageTitle, setPageTitle] = createSignal("");
 
     return {
-        selectedLLM: { accessor: selectedLLM, setter: setSelectedLLM },
         chats: { resource: chats, mutator: setChats, refetcher: refetchChats},
         pageTitle: { accessor: pageTitle, setter: setPageTitle }
     };
@@ -37,6 +35,23 @@ const AppContext = createContext<[myStorage, SetStoreFunction<myStorage>]>();
 export function ContextProvider(props: { children: any }) {
     const storageObject = createStorage();
     const [appStorage, setAppStorage] = createStore(storageObject);
+
+    createEffect(() => {
+    const storeDefaultLLM = async () => {
+        try {
+            const storedLLM = localStorage.getItem('default-llm');
+            if (!storedLLM) {
+                const llms = await llmService.getLLMS();
+                if (llms.length > 0) {
+                    localStorage.setItem('default-llm', JSON.stringify(llms[0].id));
+                }
+            }
+        } catch (error) {
+            Utils.showToast("Error", "Error while saving default llm local storage", "danger", "bi-exclamation-triangle");
+        }
+    };
+    storeDefaultLLM();
+}, []);
 
     return (
         <AppContext.Provider value={[appStorage, setAppStorage]}>
