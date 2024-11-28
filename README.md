@@ -21,7 +21,7 @@ mvn clean package
 
 3. Run the following command to execute the program
 ```bash
-java -jar JavaCoder-3.0.0-RELEASE.jar
+java -jar java_coder.jar
 ```
 
 ## UI Pages
