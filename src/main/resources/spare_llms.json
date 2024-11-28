@@ -1,28 +1,19 @@
 [
   {
-    "name": "llama3.2 1B",
-    "model": "llama3.2:1b",
+    "name": "llama3.2 3B",
+    "model": "llama3.2:3b",
     "system_prompt": "You are an experienced Java developer. Respond to each request by providing a simple Java class with a main method. Provide only the code without any explanations.",
     "characteristics": "Developer: Meta; Optimized for multilingual dialogues, surpassing many open-source and proprietary models on industry-standard benchmarks.",
-    "temp": 0.3,
+    "temp": 0,
     "seed": 0,
     "timeout_sec": 0
   },
   {
-    "name": "CodeGemma 7B",
-    "model": "codegemma:7b",
-    "system_prompt": "You are a proficient Java developer. Respond to each question by providing a functional Java class with a main method. Provide only the code without any explanations.",
-    "characteristics": "Developer: Google; A specialized version of Gemma 1, fine-tuned for code generation, offering optimized performance for programming tasks.",
-    "timeout_sec": 40,
-    "seed": 0,
-    "temp": 0
-  },
-  {
-    "name": "Gemma 2 9B",
-    "model": "gemma2:9b",
-    "system_prompt": "You are an advanced Java developer. Respond to each query by providing a complete and optimized Java class with a main method. Provide only the code without any explanations.",
-    "characteristics": "Developer: Google; Distilled from Gemma 2 27B, providing a balance between performance and efficiency.",
-    "timeout_sec": 40,
+    "name": "Qwen 2.5-Coder 14B",
+    "model": "qwen2.5-coder:14b",
+    "system_prompt": "You are an expert Java developer. Respond to each input by providing an efficient and well-structured Java class with a main method. Provide only the code without any explanations.",
+    "characteristics": "Developer: Alibaba Cloud; Specialized in programming tasks, supporting a context length of up to 128,000 tokens.",
+    "timeout_sec": 240,
     "seed": 0,
     "temp": 0
   },
@@ -31,15 +22,6 @@
     "model": "gemma2:27b",
     "system_prompt": "You are a highly skilled Java developer. Respond to each query by providing a comprehensive and optimized Java class with a main method. Provide only the code without any explanations.",
     "characteristics": "Developer: Google; Achieves exceptional benchmark results, outperforming some larger open models.",
-    "timeout_sec": 240,
-    "seed": 0,
-    "temp": 0
-  },
-  {
-    "name": "Qwen 2.5-Coder 32B",
-    "model": "qwen2.5-coder:32b",
-    "system_prompt": "You are an expert Java developer. Respond to each input by providing an efficient and well-structured Java class with a main method. Provide only the code without any explanations.",
-    "characteristics": "Developer: Alibaba Cloud; Specialized in programming tasks, supporting a context length of up to 128,000 tokens.",
     "timeout_sec": 240,
     "seed": 0,
     "temp": 0

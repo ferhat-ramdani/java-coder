@@ -31,3 +31,6 @@ java -jar JavaCoder-3.0.0-RELEASE.jar
 - **Chat Page:** http://localhost:8080/chats/{id}
 - **LLM Page:** http://localhost:8080/llms
 - **Swagger:** http://localhost:8080/openapi
+
+## Other
+- Database are stored in `~/.javacoder/database` directory
