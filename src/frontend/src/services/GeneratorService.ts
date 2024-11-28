@@ -18,8 +18,6 @@ class GeneratorService {
         let index = -1;
 
         eventSource.onmessage = (event) => {
-            console.log("Received event from event source");
-            console.log(event.data);
             const llmResponse: LLMResponse = JSON.parse(event.data);
             const systemPrompt: Prompt = createPrompt("", AuthorType.SYSTEM, prompt.chatId, false, true);
             index = responseHandler(llmResponse, eventSource, systemPrompt, index);

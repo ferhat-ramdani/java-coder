@@ -1,33 +1,32 @@
-import {Component, createResource, For, onMount} from "solid-js";
+import {Component, createEffect, createResource, createSignal, For, onMount} from "solid-js";
 import llmService from "../services/LLMService";
 import {useAppContext} from "../Context";
 import {Spinner} from "./Spinner";
-import {useNavigate} from "@solidjs/router";
+import {LLM} from "../interfaces/LLM";
 
 const fetchLLM = async () => await llmService.getLLMS();
 
 const LLMsUI: Component = () => {
-    const [{selectedLLM, pageTitle}] = useAppContext();
+    const [{pageTitle}] = useAppContext();
     const [llms] = createResource(fetchLLM);
 
-    const navigate = useNavigate();
     const handleLLMChange = (llmId: number) => {
         const llm = llms()?.find((llm) => llm.id === llmId);
         if (llm) {
-            selectedLLM.setter(llm);
+            localStorage.setItem('default-llm', JSON.stringify(llm.id))
+            setDefaultLLM(llm);
         }
     };
 
-    onMount(() => {
-        if(selectedLLM.accessor() === null) {
-            const firstLLM = llms()?.[0];
-            if (firstLLM) {
-                selectedLLM.setter(firstLLM);
-            } else {
-                navigate("/")
-            }
+    const [defaultLLM, setDefaultLLM] = createSignal<LLM | null>(null);
+    onMount(async () => {
+        pageTitle.setter("List of LLMs");
+        const storedLLMId = localStorage.getItem('default-llm');
+        if (storedLLMId) {
+            const llm = await llmService.getLlmById(JSON.parse(storedLLMId));
+            setDefaultLLM(llm);
         }
-        pageTitle.setter("LLM's List");
+        pageTitle.setter("List of LLMs");
     });
 
     return (<>
@@ -37,7 +36,7 @@ const LLMsUI: Component = () => {
                     {(item) => (
                         <label class="list-group-item d-flex gap-2 hover-darken" onClick={() => handleLLMChange(item.id)}>
                             <input class="form-check-input flex-shrink-0" type="radio"
-                                   checked={selectedLLM.accessor()?.id === item.id}/>
+                                   checked={defaultLLM()?.id === item.id}/>
                             <div>
                                 <span class={`fw-bold`}>{item.name}</span>
                                 <For each={item.characteristics.split(";")}>

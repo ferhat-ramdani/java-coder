@@ -1,4 +1,4 @@
-import {Component, For, onMount, Show} from "solid-js";
+import {Component, createSignal, For, onMount, Show} from "solid-js";
 import ChatItem from "./ChatItem";
 import {useAppContext} from "../Context";
 import {Spinner, SpinnerSmall} from "./Spinner";
@@ -18,20 +18,27 @@ const fetchFirstLLM = async (): Promise<LLM|null> => {
 }
 
 const ChatsUI: Component = () => {
-    const [{selectedLLM, chats, pageTitle}] = useAppContext();
+    const [{chats, pageTitle}] = useAppContext();
     const navigate = useNavigate();
+    const [selectedLLM, setSelectedLLM] = createSignal<LLM | null>(null);
 
     onMount(async () => {
-        if(selectedLLM.accessor() === null) {
-            const llm = await fetchFirstLLM();
-            selectedLLM.setter(llm);
-        }
-        pageTitle.setter("Chats list");
-        chats.refetcher();
-    });
+    let storedLLMId = localStorage.getItem('default-llm');
+    if (storedLLMId === null) {
+        const llm = await fetchFirstLLM();
+        storedLLMId = llm!.id.toString();
+        localStorage.setItem('default-llm', storedLLMId);
+        setSelectedLLM(llm);
+    } else {
+        const llm = await llmService.getLlmById(JSON.parse(storedLLMId));
+        setSelectedLLM(llm);
+    }
+    pageTitle.setter("List of chats");
+    chats.refetcher();
+});
 
     const createNewChat = async () => {
-        const newChat: Chat = { id: 0, title: "", lastActivity: Date.now(), llmId: selectedLLM.accessor()!.id };
+        const newChat: Chat = { id: 0, title: "", lastActivity: Date.now(), llmId: selectedLLM()!.id };
         try {
             const createdChat = await chatService.createChat(newChat);
             navigate(`/chats/${createdChat.id}`);
@@ -42,10 +49,10 @@ const ChatsUI: Component = () => {
 
 
     return (
-        <Show when={selectedLLM.accessor()} fallback={<Spinner text={`Loading Chats`}/>}>
+        <Show when={selectedLLM()} fallback={<Spinner text={`Loading Chats`}/>}>
             <div class="container mt-3">
                 <div class="d-flex justify-content-between align-items-center align-content-center mb-1">
-                    <h2 class={`m-0`}>Current llm: {selectedLLM.accessor()?.name}</h2>
+                    <h2 class={`m-0`}>Current llm: {selectedLLM()?.name}</h2>
                     <button type="button" class="btn btn-success btn-sm" onClick={createNewChat}><i class="bi bi-plus-lg fs-5"></i></button>
                 </div>
                 <ul class="list-group">
