@@ -9,14 +9,12 @@ import fr.esiee.app.services.ApiRoutingService;
 import fr.esiee.app.utils.ErrorUtils;
 import io.helidon.common.context.Contexts;
 import io.helidon.config.Config;
-import io.helidon.cors.CrossOriginConfig;
 import io.helidon.http.NotFoundException;
 import io.helidon.http.Status;
 import io.helidon.http.media.jackson.JacksonSupport;
 import io.helidon.logging.common.LogConfig;
 import io.helidon.openapi.OpenApiFeature;
 import io.helidon.webserver.WebServer;
-import io.helidon.webserver.cors.CorsSupport;
 import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.staticcontent.StaticContentService;
 import org.slf4j.Logger;
@@ -92,18 +90,7 @@ public class Main {
    * @param routing the HttpRouting.Builder to configure the routes with
    */
   public static void routing(HttpRouting.Builder routing) {
-    if (isDebugMode()) {
-      var corsSupport = CorsSupport.builder()
-              .addCrossOrigin(CrossOriginConfig.builder()
-                      .allowOrigins("*")
-                      .allowMethods("*")
-                      .build())
-              .addCrossOrigin(CrossOriginConfig.create())
-              .build();
-      routing.register("/api", corsSupport, new ApiRoutingService());
-    } else {
-      routing.register("/api", new ApiRoutingService());
-    }
+    routing.register("/api", new ApiRoutingService());
     routing.error(NotFoundException.class, (_, res, exception) -> {
               ErrorUtils.send(res, Status.BAD_REQUEST_400, exception.getMessage());
               LOGGER.error("A NotFoundException occurred: ", exception);
