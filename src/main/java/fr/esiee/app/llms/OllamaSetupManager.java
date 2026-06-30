@@ -152,19 +152,20 @@ public class OllamaSetupManager {
   }
 
   /**
-   * Pulls a single LLM and ensures it is present.
+   * Pulls a single LLM and ensures it is present, with optional output streaming.
    *
    * @param model the name of the LLM model to pull
+   * @param lineConsumer a consumer to stream process output
    * @return true if the LLM is successfully pulled or already present, false otherwise
    * @throws IOException if an I/O error occurs
    * @throws InterruptedException if the current thread is interrupted while waiting
    */
-  public static boolean pullSingleLLM(String model) throws IOException, InterruptedException {
+  public static boolean pullSingleLLM(String model, java.util.function.Consumer<String> lineConsumer) throws IOException, InterruptedException {
     Config config = getConfig();
     LOGGER.info("Checking if LLM is present: {}", model);
     if (!isLLMPresent(config, model)) {
       LOGGER.info("Pulling LLM: {}", model);
-      if (!executeCMD(config.adjustCmd("pull " + model), CMDType.RUN, true, config)) {
+      if (!executeCMD(config.adjustCmd("pull " + model), CMDType.RUN, lineConsumer, config)) {
         LOGGER.error("Error pulling LLM: {}", model);
         return false;
       }
@@ -309,8 +310,38 @@ public class OllamaSetupManager {
    * @throws InterruptedException if the current thread is interrupted while waiting
    */
   private static boolean executeCMD(String cmd, CMDType type, boolean inheritIO, Config config) throws IOException, InterruptedException {
+    return executeCMD(cmd, type, null, inheritIO, config);
+  }
+
+  /**
+   * Executes a command using a ProcessBuilder and streams output to a consumer.
+   *
+   * @param cmd the command to execute
+   * @param type the type of command execution
+   * @param lineConsumer consumer for process output
+   * @param config the configuration for Ollama
+   * @return true if the command executed successfully, false otherwise
+   * @throws IOException if an I/O error occurs
+   * @throws InterruptedException if the current thread is interrupted while waiting
+   */
+  private static boolean executeCMD(String cmd, CMDType type, java.util.function.Consumer<String> lineConsumer, Config config) throws IOException, InterruptedException {
+    return executeCMD(cmd, type, lineConsumer, false, config);
+  }
+
+  private static boolean executeCMD(String cmd, CMDType type, java.util.function.Consumer<String> lineConsumer, boolean inheritIO, Config config) throws IOException, InterruptedException {
     var processBuilder = getProcessBuilder(cmd, inheritIO, config);
+    if (!inheritIO && lineConsumer == null) {
+      processBuilder.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+    }
     var process = processBuilder.start();
+
+    if (lineConsumer != null && !inheritIO) {
+      try (var scanner = new java.util.Scanner(process.getInputStream())) {
+        scanner.useDelimiter("[\\r\\n]+");
+        scanner.tokens().forEach(lineConsumer);
+      }
+    }
+
     if (type == CMDType.RUN_NO_WAIT) {
       return true;
     }
@@ -334,6 +365,8 @@ public class OllamaSetupManager {
     var processBuilder = new ProcessBuilder(cmd.split(" "));
     if (inheritIO) {
       processBuilder.inheritIO();
+    } else {
+      processBuilder.redirectErrorStream(true);
     }
     var env = processBuilder.environment();
     var url = Contexts.globalContext().get(LLMConfig.class).orElse(LLMConfig.defaultConfig()).urlAndPort();

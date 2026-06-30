@@ -33,7 +33,7 @@ function processLLMResponseStatus(
         case "ERROR":
             setSendDisabled(false);
             eventSource.close();
-            Utils.showToast(`Error`, "Internal server error occurred", "danger", "bi-exclamation-triangle");
+            Utils.showToast(`Error`, prompt?.message || "Internal server error occurred", "danger", "bi-exclamation-triangle", 4000);
             break;
         case "GENERATING":
             setSendDisabled(true);

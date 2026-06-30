@@ -24,12 +24,12 @@ db:
 
   statements:
     # Table creation
-    create-llm: "CREATE TABLE IF NOT EXISTS llm( id INTEGER NOT NULL PRIMARY KEY auto_increment, name VARCHAR(64) NOT NULL, model VARCHAR(128) NOT NULL, system_prompt VARCHAR NOT NULL, characteristics VARCHAR NOT NULL, temp DOUBLE NOT NULL, seed INTEGER NOT NULL, timeout_sec INTEGER NOT NULL)"
+    create-llm: "CREATE TABLE IF NOT EXISTS llm( id INTEGER NOT NULL PRIMARY KEY auto_increment, name VARCHAR(64) NOT NULL, model VARCHAR(128) NOT NULL, system_prompt VARCHAR NOT NULL, temp DOUBLE NOT NULL, seed INTEGER NOT NULL, timeout_sec INTEGER NOT NULL)"
     create-chat: "CREATE TABLE IF NOT EXISTS Chat( id INTEGER NOT NULL PRIMARY KEY auto_increment, title VARCHAR(128) NOT NULL, last_activity TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, llm_id INTEGER NOT NULL REFERENCES llm (id) ON DELETE CASCADE ON UPDATE CASCADE)"
     create-prompt: "CREATE TABLE IF NOT EXISTS Prompt( id INTEGER NOT NULL PRIMARY KEY auto_increment, message VARCHAR(1000000000) NOT NULL, author_type VARCHAR(10) NOT NULL CHECK (author_type IN ('SYSTEM', 'USER', 'AI')), chat_id INTEGER NOT NULL REFERENCES Chat (id) ON DELETE CASCADE ON UPDATE CASCADE, compile BOOL NOT NULL DEFAULT FALSE )"
 
     # Insert statements
-    insert-llm: "INSERT INTO llm(name, model, system_prompt, characteristics, temp, seed, timeout_sec) VALUES(?, ?, ?, ?, ?, ?, ?)"
+    insert-llm: "INSERT INTO llm(name, model, system_prompt, temp, seed, timeout_sec) VALUES(?, ?, ?, ?, ?, ?)"
     insert-chat: "INSERT INTO Chat(title, last_activity, llm_id) VALUES(?, ?, ?)"
     insert-prompt: "INSERT INTO Prompt(message, author_type, chat_id, compile) VALUES(?, ?, ?, ?)"
 
@@ -45,11 +45,11 @@ db:
     select-prompt-by-id: "SELECT * FROM Prompt WHERE id = :id"
 
     # Retrieve llm and Chat from Prompt (through foreign keys)
-    retrieve-llm-from-prompt: "SELECT llm.id, llm.name, llm.model, llm.system_prompt, llm.characteristics, llm.temp, llm.seed, llm.timeout_sec FROM llm JOIN Prompt ON llm.id = Prompt.llm_id WHERE Prompt.id = :promptId"
+    retrieve-llm-from-prompt: "SELECT llm.id, llm.name, llm.model, llm.system_prompt, llm.temp, llm.seed, llm.timeout_sec FROM llm JOIN Prompt ON llm.id = Prompt.llm_id WHERE Prompt.id = :promptId"
     retrieve-chat-from-prompt: "SELECT Chat.id, Chat.title, Chat.last_activity, Chat.llm_id FROM Chat JOIN Prompt ON Chat.id = Prompt.chat_id WHERE Prompt.id = :promptId"
 
     # Update statements
-    update-llm-by-id: "UPDATE llm SET name = :name, model = :model, system_prompt = systemPrompt, characteristics = :characteristics, temp = :temp, seed = :seed, timeout_sec = :timeoutSec WHERE id = :id"
+    update-llm-by-id: "UPDATE llm SET name = :name, model = :model, system_prompt = systemPrompt, temp = :temp, seed = :seed, timeout_sec = :timeoutSec WHERE id = :id"
     update-chat-by-id: "UPDATE Chat SET title = :title, last_activity = :lastActivity, llm_id = :llmId WHERE id = :id"
     update-prompt-by-id: "UPDATE Prompt SET message = :message, author_type = :authorType, chat_id = :chatId, compile = :compile WHERE id = :id"
 

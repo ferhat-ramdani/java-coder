@@ -51,7 +51,7 @@ const TopBar: Component = () => {
                 <Title>{pageTitle.accessor()}</Title>
                 <Link rel="stylesheet" href={`https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs${isDarkMode() ? "2015" : ""}.min.css`}/>
             </MetaProvider>
-            <nav class="navbar navbar-expand-sm border-bottom">
+            <nav class="navbar navbar-expand-sm border-bottom glass-header position-sticky top-0">
                 <div class="container-fluid">
                 <A href={`/`} class={`navbar-brand`}>Java Coder</A>
                     <button class="navbar-toggler" type="button"

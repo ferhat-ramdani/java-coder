@@ -33,29 +33,52 @@ const LLMsUI: Component = () => {
         name: "",
         model: "",
         systemPrompt: "You are an experienced Java developer. Respond to each request by providing a simple Java class with a main method. Provide only the code without any explanations.",
-        characteristics: "",
         temp: 0,
         seed: 0,
         timeoutSec: 0
     });
     const [isInstalling, setIsInstalling] = createSignal(false);
+    const [installError, setInstallError] = createSignal("");
+    const [installProgress, setInstallProgress] = createSignal<string[]>([]);
 
     const handleAddLLM = async (e: Event) => {
         e.preventDefault();
         setIsInstalling(true);
+        setInstallError("");
+        setInstallProgress([]);
         try {
-            await llmService.addLLM(newLLM());
-            refetch();
-            setNewLLM({
-                name: "",
-                model: "",
-                systemPrompt: "You are an experienced Java developer. Respond to each request by providing a simple Java class with a main method. Provide only the code without any explanations.",
-                characteristics: "",
-                temp: 0,
-                seed: 0,
-                timeoutSec: 0
-            });
-        } finally {
+            const addedLlm = await llmService.addLLM(newLLM());
+            const eventSource = new EventSource(llmService.getPullUrl(addedLlm.id));
+            
+            eventSource.onmessage = (event) => {
+                if (event.data === "DONE") {
+                    eventSource.close();
+                    refetch();
+                    setNewLLM({
+                        name: "",
+                        model: "",
+                        systemPrompt: "You are an experienced Java developer. Respond to each request by providing a simple Java class with a main method. Provide only the code without any explanations.",
+                        temp: 0,
+                        seed: 0,
+                        timeoutSec: 0
+                    });
+                    setIsInstalling(false);
+                } else if (event.data.startsWith("ERROR:")) {
+                    eventSource.close();
+                    setInstallError(event.data);
+                    setIsInstalling(false);
+                } else {
+                    setInstallProgress(prev => [...prev, event.data]);
+                }
+            };
+            
+            eventSource.onerror = () => {
+                eventSource.close();
+                setInstallError("Connection to the server was lost during installation.");
+                setIsInstalling(false);
+            };
+        } catch (error: any) {
+            setInstallError(error.message || "Failed to initiate installation.");
             setIsInstalling(false);
         }
     };
@@ -70,9 +93,6 @@ const LLMsUI: Component = () => {
                                    checked={defaultLLM()?.id === item.id}/>
                             <div>
                                 <span class={`fw-bold`}>{item.name}</span>
-                                <For each={item.characteristics.split(";")}>
-                                    {(characteristic) => <small class="d-block text-body-secondary">{characteristic.trim()}</small>}
-                                </For>
                             </div>
                         </label>)}
                 </For>
@@ -93,19 +113,29 @@ const LLMsUI: Component = () => {
                             <input type="text" class="form-control" required value={newLLM().model || ""} onInput={(e) => setNewLLM({...newLLM(), model: e.currentTarget.value})} />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Characteristics</label>
-                            <input type="text" class="form-control" value={newLLM().characteristics || ""} onInput={(e) => setNewLLM({...newLLM(), characteristics: e.currentTarget.value})} />
-                        </div>
-                        <div class="mb-3">
                             <label class="form-label">System Prompt</label>
                             <textarea class="form-control" rows={3} value={newLLM().systemPrompt || ""} onInput={(e) => setNewLLM({...newLLM(), systemPrompt: e.currentTarget.value})}></textarea>
                         </div>
+                        <Show when={installError()}>
+                            <div class="alert alert-danger py-2 d-flex align-items-center" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                                <small class="fw-semibold">{installError()}</small>
+                            </div>
+                        </Show>
                         <button type="submit" class="btn btn-primary" disabled={isInstalling()}>
                             <Show when={isInstalling()} fallback="Install Model">
                                 <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                 Installing (this may take a while)...
                             </Show>
                         </button>
+                        
+                        <Show when={isInstalling()}>
+                            <div class="mt-3 bg-dark text-light p-3 rounded shadow-sm" style="font-family: 'Courier New', Courier, monospace; max-height: 200px; overflow-y: auto;">
+                                <For each={installProgress()}>
+                                    {(line) => <div class="text-truncate"><small>{line}</small></div>}
+                                </For>
+                            </div>
+                        </Show>
                     </form>
                 </div>
             </div>

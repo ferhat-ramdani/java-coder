@@ -50,18 +50,26 @@ const ChatsUI: Component = () => {
 
     return (
         <Show when={selectedLLM()} fallback={<Spinner text={`Loading Chats`}/>}>
-            <div class="container mt-3">
-                <div class="d-flex justify-content-between align-items-center align-content-center mb-1">
-                    <h2 class={`m-0`}>Current llm: {selectedLLM()?.name}</h2>
-                    <button type="button" class="btn btn-success btn-sm" onClick={createNewChat}><i class="bi bi-plus-lg fs-5"></i></button>
+            <div class="chat-max-width fade-in mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-4 px-3">
+                    <h3 class={`m-0 fw-semibold text-main`}>
+                        <i class="bi bi-cpu me-2"></i>Active Model: <span class="text-primary">{selectedLLM()?.name}</span>
+                    </h3>
+                    <button type="button" class="btn btn-primary shadow-sm hover-lift" onClick={createNewChat}>
+                        <i class="bi bi-plus-lg me-1"></i> New Chat
+                    </button>
                 </div>
-                <ul class="list-group">
-                    <Show when={!chats.resource.loading} fallback={<SpinnerSmall text={`Loading chats`}/>}>
-                        <For each={chats.resource()} fallback={'No Chats'}>
-                            {chat => <ChatItem chat={chat}/>}
-                        </For>
-                    </Show>
-                </ul>
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush rounded">
+                            <Show when={!chats.resource.loading} fallback={<div class="p-4 text-center"><SpinnerSmall text={`Loading chats`}/></div>}>
+                                <For each={chats.resource()} fallback={<div class="p-4 text-center text-muted">No Chats Found. Start a new one!</div>}>
+                                    {chat => <ChatItem chat={chat}/>}
+                                </For>
+                            </Show>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </Show>
     );

@@ -1,5 +1,5 @@
 import {useNavigate, useParams} from "@solidjs/router";
-import {Component, createSignal, For, onMount} from "solid-js";
+import {Component, createEffect, createSignal, For, onMount} from "solid-js";
 import TextInput from "./TextInput";
 import PromptMessage from "./PromptMessage";
 import {Prompt} from "../interfaces/Prompt";
@@ -23,9 +23,15 @@ const ChatUI: Component = () => {
 
     const scrollToBottom = () => {
         if (containerRef) {
-            containerRef.scrollTop = containerRef.scrollHeight;
+            containerRef.scrollTo({ top: containerRef.scrollHeight, behavior: 'smooth' });
         }
     };
+
+    createEffect(() => {
+        chatPrompts.accessor();
+        // Use timeout to ensure DOM has updated before scrolling
+        setTimeout(scrollToBottom, 50);
+    });
 
     onMount(async () => {
         try {
@@ -35,17 +41,16 @@ const ChatUI: Component = () => {
             chatPrompts.setter(prompts);
             pageTitle.setter(`LLM: ${llm.name}`);
 
-            scrollToBottom();
+            setTimeout(scrollToBottom, 100);
         } catch (error) {
             Utils.showToast("Error", "Failed to fetch chat", "danger", "bi-exclamation-triangle");
             navigate("/chats");
         }
     });
 
-
     return (<>
-            <div class={`container-fluid d-flex flex-column flex-grow-1 overflow-hidden`}>
-                <div ref={containerRef} class="flex-grow-1 overflow-auto p-3 border rounded my-3">
+            <div class={`d-flex flex-column flex-grow-1 overflow-hidden chat-max-width fade-in`}>
+                <div ref={containerRef} class="flex-grow-1 overflow-auto p-3 border rounded my-3 shadow-sm bg-surface modern-scroll border-custom">
                     <For each={chatPrompts.accessor()}>
                         {(prompt) => <PromptMessage prompt={prompt}/>}
                     </For>

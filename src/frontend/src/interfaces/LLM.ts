@@ -2,5 +2,8 @@ export interface LLM {
     id: number;
     name: string;
     model: string;
-    characteristics: string;
+    systemPrompt: string;
+    temp: number;
+    seed: number;
+    timeoutSec: number;
 }

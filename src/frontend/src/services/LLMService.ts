@@ -8,6 +8,10 @@ class LLMService {
     private config: Config = Config.getInstance();
     private apiUrl: string = `${this.config.getBackendUrl()}/api/llm`;
     
+    getPullUrl(id: number): string {
+        return `${this.apiUrl}/pull/${id}`;
+    }
+    
     async getLLMS(): Promise<LLM[]> {
         const response = await fetch(`${this.apiUrl}`);
 

@@ -122,7 +122,6 @@ public class DbManager {
               llm.get("name").asText(),
               llm.get("model").asText(),
               llm.get("system_prompt").asText(""),
-              llm.get("characteristics").asText(""),
               llm.get("temp").asDouble(),
               llm.get("seed").asInt(),
               llm.get("timeout_sec").asInt());
@@ -518,7 +517,7 @@ public class DbManager {
     }
 
     if (count == 0) {
-      throw new NotFoundException("Chat.ts " + chatId + " not found");
+      throw new NotFoundException("Chat " + chatId + " not found");
     }
     return count;
   }
@@ -550,7 +549,6 @@ public class DbManager {
               .addParam(llm.name())
               .addParam(llm.model())
               .addParam(llm.systemPrompt())
-              .addParam(llm.characteristics())
               .addParam(llm.temp())
               .addParam(llm.seed())
               .addParam(llm.timeoutSec())

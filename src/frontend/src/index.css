@@ -1,13 +1,123 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+:root {
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  
+  /* Light Theme Colors */
+  --bg-main: #f8f9fa;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f1f3f5;
+  --text-main: #212529;
+  --text-muted: #6c757d;
+  --border-color: #dee2e6;
+  --primary-color: #0d6efd;
+  --primary-hover: #0b5ed7;
+  
+  /* Chat bubbles */
+  --chat-user-bg: #e3f2fd;
+  --chat-user-text: #084298;
+  --chat-ai-bg: #ffffff;
+  --chat-ai-text: #212529;
+  
+  --shadow-sm: 0 .125rem .25rem rgba(0,0,0,.075);
+  --shadow-md: 0 .5rem 1rem rgba(0,0,0,.15);
+  --shadow-lg: 0 1rem 3rem rgba(0,0,0,.175);
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+[data-bs-theme="dark"] {
+  /* Dark Theme Colors */
+  --bg-main: #121212;
+  --bg-surface: #1e1e1e;
+  --bg-surface-hover: #2d2d2d;
+  --text-main: #e0e0e0;
+  --text-muted: #a0a0a0;
+  --border-color: #333333;
+  --primary-color: #3b82f6;
+  --primary-hover: #60a5fa;
+
+  /* Chat bubbles */
+  --chat-user-bg: #1e3a8a;
+  --chat-user-text: #eff6ff;
+  --chat-ai-bg: #2d2d2d;
+  --chat-ai-text: #e0e0e0;
+  
+  --shadow-sm: 0 .125rem .25rem rgba(0,0,0,.5);
+  --shadow-md: 0 .5rem 1rem rgba(0,0,0,.5);
+  --shadow-lg: 0 1rem 3rem rgba(0,0,0,.5);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+code, pre {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* Glassmorphism */
+.glass-header {
+  background: rgba(var(--bg-surface-rgb), 0.7) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 1030;
+}
+/* Helper for calculating rgba from hex (Bootstrap provides --bs-body-bg-rgb usually, but we define custom) */
+:root { --bg-surface-rgb: 255, 255, 255; }
+[data-bs-theme="dark"] { --bg-surface-rgb: 30, 30, 30; }
+
+.chat-max-width {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.modern-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.modern-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.modern-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 100, 100, 0.2);
+  border-radius: 20px;
+}
+.modern-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 100, 100, 0.4);
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.bg-surface {
+  background-color: var(--bg-surface);
+}
+.bg-surface-hover:hover {
+  background-color: var(--bg-surface-hover);
+}
+.text-main {
+  color: var(--text-main);
+}
+.text-muted-custom {
+  color: var(--text-muted);
+}
+.border-custom {
+  border-color: var(--border-color) !important;
 }

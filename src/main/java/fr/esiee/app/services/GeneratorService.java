@@ -300,11 +300,11 @@ public class GeneratorService implements HttpService {
 
     int nbAttempts = 3;
     for (int attempt = 1; attempt <= nbAttempts; attempt++) {
-      logAndEmit(sseSink, "Attempting to generate class (attempt " + attempt + "/" + nbAttempts + ")");
+      logAndEmit(sseSink, "Analyzing request and generating solution (attempt " + attempt + "/" + nbAttempts + ")...");
       String response = generateResponse(modelConfig, requestText, errorsText, attempt);
 
       code = CompileAndExecUtils.extractCode(response);
-      logAndEmit(sseSink, "Code extracted from response");
+      logAndEmit(sseSink, "Compiling and validating code...");
 
       if (isCodeValid(code, sseSink)) {
         return new SourceCode(code, true);

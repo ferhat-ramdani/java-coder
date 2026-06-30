@@ -57,15 +57,15 @@ class Utils {
     static showNoActionModal(title: string, message: string) {
         const modalElement = document.createElement('div');
         modalElement.innerHTML = `
-            <div class="modal fade" tabindex="-1" aria-hidden="true">
-              <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title">${title}</h5>
+            <div class="modal fade" tabindex="-1" aria-hidden="true" style="backdrop-filter: blur(5px);">
+              <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content shadow-lg border-0 bg-surface">
+                  <div class="modal-header border-bottom-0 pb-3 pt-4 px-4 border-custom">
+                    <h5 class="modal-title fw-bold text-main"><i class="bi bi-terminal me-2 text-primary"></i>${title}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                   </div>
-                  <div class="modal-body">
-                    <pre>${message}</pre>
+                  <div class="modal-body p-4 pt-0">
+                    <pre class="bg-dark text-light p-4 rounded-3 shadow-sm modern-scroll m-0" style="font-family: 'Courier New', Courier, monospace; font-size: 0.9rem;">${message}</pre>
                   </div>
                 </div>
               </div>

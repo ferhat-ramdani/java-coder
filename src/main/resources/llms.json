@@ -3,7 +3,6 @@
     "name": "llama3.2 3B",
     "model": "llama3.2:3b",
     "system_prompt": "You are an experienced Java developer. Respond to each request by providing a simple Java class with a main method. Provide only the code without any explanations.",
-    "characteristics": "Developer: Meta; Optimized for multilingual dialogues, surpassing many open-source and proprietary models on industry-standard benchmarks.",
     "temp": 0,
     "seed": 0,
     "timeout_sec": 0

@@ -59,7 +59,6 @@ public class LLMMapperProvider implements DbMapperProvider {
                 row.column("NAME").getString(),
                 row.column("MODEL").getString(),
                 row.column("SYSTEM_PROMPT").getString(),
-                row.column("CHARACTERISTICS").getString(),
                 row.column("TEMP").getDouble(),
                 row.column("SEED").getInt(),
                 row.column("TIMEOUT_SEC").getInt()

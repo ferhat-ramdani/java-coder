@@ -2,17 +2,15 @@
   {
     "name": "llama3",
     "model": "llama3.2:3b",
-    "system_prompt": "You will generate a class written in java each time you are asked. Whatever the request is, very classy that you generate must have a main method. Use console prints rather. And java lib without terminal input.",
-    "characteristics": "- Specialized in programming\n- Knowledge in large range of programming languages",
-    "temp": 0.2,
+    "system_prompt": "You are an assistant. Provide the source code.",
+    "temp": 0.7,
     "seed": 65427929,
     "timeout_sec": 30
   },
   {
     "name": "Code Gemma",
     "model": "codegemma:7b",
-    "system_prompt": "You will generate a class written in java each time you are asked. Whatever the request is, very classy that you generate must have a main method. Use console prints rather. And java lib without terminal input.",
-    "characteristics": "- Specialized in programming\n- Knowledge in large range of programming languages",
+    "system_prompt": "You are a professional Java Developer. Provide the source code directly without any explanations.",
     "temp": 0.5,
     "seed": 1728808900,
     "timeout_sec": 30
@@ -21,7 +19,6 @@
     "name": "Gemma2",
     "model": "gemma2:9b",
     "system_prompt": "You will generate a class written in java each time you are asked. Whatever the request is, very classy that you generate must have a main method. Use console prints rather. And java lib without terminal input.",
-    "characteristics": "- Specialized in programming\n- Knowledge in large range of programming languages",
     "temp": 0.3,
     "seed": 840479760226,
     "timeout_sec": 30

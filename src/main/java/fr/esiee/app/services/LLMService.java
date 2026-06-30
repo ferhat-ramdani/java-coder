@@ -5,10 +5,12 @@ import fr.esiee.app.exception.RestApiException;
 import fr.esiee.app.llms.LLMDTO;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
+import io.helidon.http.sse.SseEvent;
 import io.helidon.webserver.http.HttpRules;
 import io.helidon.webserver.http.HttpService;
 import io.helidon.webserver.http.ServerRequest;
 import io.helidon.webserver.http.ServerResponse;
+import io.helidon.webserver.sse.SseSink;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -58,6 +60,7 @@ public class LLMService implements HttpService {
     httpRules.get("/", this::getListOfLLM)
             .post("/", this::addLLM)
             .get("/{id}", this::getLLMById)
+            .get("/pull/{id}", this::pullLLM)
             .get("/first/llm", this::getFirstLLM);
   }
 
@@ -111,6 +114,8 @@ public class LLMService implements HttpService {
     res.status(Status.OK_200).send(LLMDTO.copyOf(llm));
   }
 
+  public record NewLLMRequest(String name, String model, String systemPrompt, double temp, int seed, int timeoutSec) {}
+
   /**
    * Endpoint to add a new LLM and install it on the fly.
    *
@@ -119,20 +124,47 @@ public class LLMService implements HttpService {
    */
   @POST
   @javax.ws.rs.Path("/")
-  @Operation(summary = "add LLM", description = "Add a new LLM and pull it via Ollama")
+  @Operation(summary = "add LLM", description = "Add a new LLM to the database")
   public void addLLM(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
     try {
-      LLMDTO llmDto = req.content().as(LLMDTO.class);
-      LLM newLlm = new LLM(0, llmDto.name(), llmDto.model(), llmDto.systemPrompt(), llmDto.characteristics(), llmDto.temp(), llmDto.seed(), llmDto.timeoutSec());
-      long updatedRow = dbService.insertLLM(newLlm);
-      if(updatedRow > 0) {
-          OllamaSetupManager.pullSingleLLM(newLlm.model());
-      }
-      res.status(Status.CREATED_201).send(llmDto);
-    } catch (IOException | InterruptedException e) {
-      throw new RestApiException("Error while pulling model: " + e.getMessage());
+      var reqBody = req.content().as(NewLLMRequest.class);
+      var newLlm = new LLM(0, reqBody.name(), reqBody.model(), reqBody.systemPrompt(), reqBody.temp(), reqBody.seed(), reqBody.timeoutSec());
+      dbService.insertLLM(newLlm);
+      res.status(Status.CREATED_201).send(LLMDTO.copyOf(newLlm));
     } catch (Exception e) {
       throw new RestApiException("Invalid payload or db error: " + e.getMessage());
+    }
+  }
+
+  /**
+   * Endpoint to pull a LLM by its ID with streaming progress.
+   *
+   * @param req the server request containing the LLM ID
+   * @param res the server response
+   * @param sseSink the Server-Sent Events sink
+   */
+  @GET
+  @javax.ws.rs.Path("/pull/{id}")
+  @Operation(summary = "pull LLM", description = "Pull a LLM by its ID with streaming progress")
+  public void pullLLM(
+          @Parameter(name = "id", in = ParameterIn.PATH, description = "ID of the llm to pull", required = true)
+          ServerRequest req,
+          @Parameter(hidden = true) ServerResponse res
+  ) {
+    var llmId = req.path().pathParameters().first("id").map(Integer::parseInt)
+            .orElseThrow(() -> new RestApiException("LLM id is required"));
+
+    var llm = dbService.getLLMById(llmId);
+
+    try (var sseSink = res.sink(SseSink.TYPE)) {
+      try {
+        OllamaSetupManager.pullSingleLLM(llm.model(), line -> {
+          sseSink.emit(SseEvent.create(line));
+        });
+        sseSink.emit(SseEvent.create("DONE"));
+      } catch (Exception e) {
+        sseSink.emit(SseEvent.create("ERROR: " + e.getMessage()));
+      }
     }
   }
 }

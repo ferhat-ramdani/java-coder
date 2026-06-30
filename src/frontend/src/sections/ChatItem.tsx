@@ -30,28 +30,31 @@ const ChatItem: Component<{ chat: Chat }> = ({ chat }) => {
     }));
 
     return (
-        <li class="list-group-item d-flex justify-content-between align-items-center hover-darken">
+        <li class="list-group-item d-flex justify-content-between align-items-center bg-surface-hover hover-lift p-3 border-custom border-bottom">
             <A
                 href={`/chats/${chat.id}`}
-                class="no-decoration text-truncate w-100"
+                class="text-decoration-none text-truncate w-100 text-main"
                 activeClass="text-decoration-none"
                 inactiveClass="text-decoration-none"
                 end
             >
-                <div class="text-truncate">
-                    <h5 class="mb-1 text-truncate">{chat.title || "- No Prompt -"}</h5>
-                    <Show when={!fetchedLLM.loading} fallback={<SpinnerSmall text="LLM loading" />} keyed>
-                        <small class="text-body-secondary text-truncate">
-                            Date: {timestamp} | LLM: {fetchedLLM()?.name || "- No LLM -"}
-                        </small>
-                    </Show>
+                <div class="text-truncate d-flex align-items-center">
+                    <i class="bi bi-chat-left-text text-primary me-3 fs-5"></i>
+                    <div>
+                        <h5 class="mb-1 text-truncate fw-semibold text-main">{chat.title || "- New Chat -"}</h5>
+                        <Show when={!fetchedLLM.loading} fallback={<SpinnerSmall text="Loading info" />} keyed>
+                            <small class="text-muted-custom text-truncate d-block">
+                                <i class="bi bi-clock me-1"></i>{timestamp} <span class="mx-2">•</span> <i class="bi bi-robot me-1"></i>{fetchedLLM()?.name || "- No LLM -"}
+                            </small>
+                        </Show>
+                    </div>
                 </div>
             </A>
             <button
                 id={`${chat.id}-remove`}
                 type="button"
                 aria-label="Close"
-                class="btn-close"
+                class="btn-close ms-3"
                 onClick={() => deleteChat(chat, chats)}
             ></button>
         </li>

@@ -3,9 +3,8 @@
     "id": 1,
     "name": "llama3",
     "model": "llama3.2:1b",
-    "systemPrompt": "You will generate a class written in java each time you are asked. Whatever the request is, very classy that you generate must have a main method. Use console prints rather. And java lib without terminal input.",
-    "characteristics": "- Specialized in programming\n- Knowledge in large range of programming languages",
-    "temp": 0.2,
+    "systemPrompt": "You are an assistant. Provide the source code.",
+    "temp": 0.7,
     "seed": 65427929,
     "timeoutSec": 30
   },
@@ -13,8 +12,7 @@
     "id": 2,
     "name": "qwen2.5-coder",
     "model": "qwen2.5-coder:0.5b",
-    "systemPrompt": "You will generate a class written in java each time you are asked. Whatever the request is, very classy that you generate must have a main method. Use console prints rather. And java lib without terminal input.",
-    "characteristics": "- Specialized in programming\n- Knowledge in large range of programming languages",
+    "systemPrompt": "You are a professional Java Developer. Provide the source code directly without any explanations.",
     "temp": 0.5,
     "seed": 1728808900,
     "timeoutSec": 30

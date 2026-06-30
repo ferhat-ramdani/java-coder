@@ -63,9 +63,9 @@ public class DbUtils {
     try(var dbClient = DbClient.builder(config).build()) {
       for (var llm : llms()) {
         dbClient.execute().createInsert(
-                        "INSERT INTO llm(id, name, model, system_prompt, characteristics, temp, seed, timeout_sec) VALUES(?, ?, ?, ?, ?, ?, ?, ?)")
+                        "INSERT INTO llm(id, name, model, system_prompt, temp, seed, timeout_sec) VALUES(?, ?, ?, ?, ?, ?, ?)")
                 .addParam(llm.id()).addParam(llm.name()).addParam(llm.model()).addParam(llm.systemPrompt())
-                .addParam(llm.characteristics()).addParam(llm.temp()).addParam(llm.seed()).addParam(llm.timeoutSec()).execute();
+                .addParam(llm.temp()).addParam(llm.seed()).addParam(llm.timeoutSec()).execute();
       }
     }
   }
@@ -80,7 +80,6 @@ public class DbUtils {
                 llm.get("name").asText(),
                 llm.get("model").asText(),
                 llm.get("system_prompt").asText(""),
-                llm.get("characteristics").asText(""),
                 llm.get("temp").asDouble(),
                 llm.get("seed").asInt(),
                 llm.get("timeout_sec").asInt());
