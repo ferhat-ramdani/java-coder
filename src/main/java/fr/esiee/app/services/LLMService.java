@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.util.NoSuchElementException;
 import fr.esiee.app.db.entities.LLM;
 import fr.esiee.app.llms.OllamaSetupManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Class representing the LLMService.
@@ -36,6 +38,9 @@ import fr.esiee.app.llms.OllamaSetupManager;
 @ApiResponse(content = @Content(mediaType = "application/json", schema = @Schema(implementation = LLMDTO.class)), responseCode = "200", description = "Successful operation")
 @Path("/api/llm/")
 public class LLMService implements HttpService {
+
+  // We don't have injection, so we need to use this declaration.
+  private static final Logger LOGGER = LoggerFactory.getLogger(LLMService.class);
 
   private final DbManager dbService;
 
@@ -75,8 +80,27 @@ public class LLMService implements HttpService {
   @Operation(summary = "get LLMs", description = "Get list of all LLMs")
   @ApiResponse(content = @Content(array = @ArraySchema(schema = @Schema(implementation = LLMDTO.class))))
   public void getListOfLLM(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
-    var llmsToSend = dbService.listLLMs().stream().map(LLMDTO::copyOf).toList();
+    var llmsToSend = dbService.listLLMs().stream().map(llm -> LLMDTO.copyOf(llm, isInstalled(llm.model()))).toList();
     res.status(Status.OK_200).send(llmsToSend);
+  }
+
+  /**
+   * Checks whether a model is already downloaded locally, swallowing errors as "not installed".
+   *
+   * @param model the name of the LLM model to check
+   * @return true if the model is present locally, false otherwise (including on error)
+   */
+  private boolean isInstalled(String model) {
+    try {
+      return OllamaSetupManager.isModelInstalled(model);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      LOGGER.warn("Interrupted while checking install status of model {}", model, e);
+      return false;
+    } catch (IOException e) {
+      LOGGER.warn("Could not determine install status of model {}: {}", model, e.getMessage());
+      return false;
+    }
   }
 
   /**
@@ -90,7 +114,7 @@ public class LLMService implements HttpService {
   @Operation(summary = "get first LLM", description = "Get the first LLM of the list of supported LLMs")
   public void getFirstLLM(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
     var llm = dbService.getFirstLLM();
-    res.status(Status.OK_200).send(LLMDTO.copyOf(llm));
+    res.status(Status.OK_200).send(LLMDTO.copyOf(llm, isInstalled(llm.model())));
   }
 
   /**
@@ -111,7 +135,7 @@ public class LLMService implements HttpService {
     int llmId = req.path().pathParameters().first("id").map(Integer::parseInt)
             .orElseThrow(() -> new RestApiException("LLM id is required"));
     var llm = dbService.getLLMById(llmId);
-    res.status(Status.OK_200).send(LLMDTO.copyOf(llm));
+    res.status(Status.OK_200).send(LLMDTO.copyOf(llm, isInstalled(llm.model())));
   }
 
   public record NewLLMRequest(String name, String model, String systemPrompt, double temp, int seed, int timeoutSec) {}
@@ -130,7 +154,8 @@ public class LLMService implements HttpService {
       var reqBody = req.content().as(NewLLMRequest.class);
       var newLlm = new LLM(0, reqBody.name(), reqBody.model(), reqBody.systemPrompt(), reqBody.temp(), reqBody.seed(), reqBody.timeoutSec());
       dbService.insertLLM(newLlm);
-      res.status(Status.CREATED_201).send(LLMDTO.copyOf(newLlm));
+      var insertedLlm = dbService.getLLMByNameAndModel(newLlm.name(), newLlm.model());
+      res.status(Status.CREATED_201).send(LLMDTO.copyOf(insertedLlm, isInstalled(insertedLlm.model())));
     } catch (Exception e) {
       throw new RestApiException("Invalid payload or db error: " + e.getMessage());
     }

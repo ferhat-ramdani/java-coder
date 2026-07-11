@@ -7,7 +7,7 @@ import java.util.Objects;
 /**
  * A DTO for the LLM entity.
  */
-public record LLMDTO(int id, String name, String model) {
+public record LLMDTO(int id, String name, String model, boolean installed) {
 
   /**
    * Constructs an LLMDTO and validates the required fields.
@@ -15,6 +15,7 @@ public record LLMDTO(int id, String name, String model) {
    * @param id the unique identifier for the LLMDTO, must be non-negative
    * @param name the name of the LLMDTO, must not be null or blank
    * @param model the model of the LLMDTO, must not be null or blank
+   * @param installed whether the model has already been downloaded locally
    * @throws NullPointerException     if name or model are null
    * @throws IllegalArgumentException if name or model are blank, or if id is negative
    */
@@ -36,10 +37,11 @@ public record LLMDTO(int id, String name, String model) {
    * Creates a new LLMDTO from an existing LLM entity.
    *
    * @param llm the LLM entity to copy from
+   * @param installed whether the model has already been downloaded locally
    * @return a new LLMDTO with the same properties as the given LLM entity
    */
-  public static LLMDTO copyOf(LLM llm) {
-    return new LLMDTO(llm.id(), llm.name(), llm.model());
+  public static LLMDTO copyOf(LLM llm, boolean installed) {
+    return new LLMDTO(llm.id(), llm.name(), llm.model(), installed);
   }
 
 }

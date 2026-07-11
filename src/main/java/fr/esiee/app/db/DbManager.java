@@ -563,6 +563,25 @@ public class DbManager {
   }
 
   /**
+   * Retrieves an LLM from the database by its name and model, returning the most recently
+   * inserted match. Used to recover the generated id right after an insert.
+   *
+   * @param name  the name of the LLM to search for
+   * @param model the model of the LLM to search for
+   * @return the LLM object matching the provided name and model
+   * @throws NotFoundException if no LLM matching the provided name and model is found
+   */
+  public LLM getLLMByNameAndModel(String name, String model) {
+    return dbClient.execute()
+            .createNamedGet("select-llm-by-name-and-model")
+            .addParam("name", name)
+            .addParam("model", model)
+            .execute()
+            .orElseThrow(() -> new NotFoundException("LLM " + name + "/" + model + " not found"))
+            .as(LLM.class);
+  }
+
+  /**
    * Retrieves the first LLM from the database.
    *
    * @return the first LLM object found in the database

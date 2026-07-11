@@ -40,6 +40,7 @@ db:
 
     # Select entries by id
     select-llm-by-id: "SELECT * FROM llm WHERE id = :id"
+    select-llm-by-name-and-model: "SELECT * FROM llm WHERE name = :name AND model = :model ORDER BY id DESC LIMIT 1"
     select-chat-by-id: "SELECT * FROM Chat WHERE id = :id"
     select-chat-by-params: "SELECT * FROM Chat WHERE title = :title AND last_activity = :last_activity AND llm_id = :llm_id ORDER BY id DESC LIMIT 1"
     select-prompt-by-id: "SELECT * FROM Prompt WHERE id = :id"

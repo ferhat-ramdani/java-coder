@@ -1,7 +1,6 @@
 package fr.esiee.app.llms;
 
 import fr.esiee.app.config.LLMConfig;
-import fr.esiee.app.db.DbManager;
 import io.helidon.common.context.Contexts;
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
@@ -14,7 +13,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.NoSuchElementException;
 
 /**
  * A class that manages the setup of Ollama and LLMs (Language Learning Models).
@@ -53,7 +51,9 @@ public class OllamaSetupManager {
    * 1. Retrieves the configuration for Ollama.
    * 2. Checks if Ollama is installed. If not, it installs Ollama.
    * 3. Starts the Ollama service.
-   * 4. Pulls the LLMs and ensures they are ready.
+   *
+   * Models are intentionally NOT downloaded here: the user chooses and downloads
+   * models themselves from the LLMs page in the UI.
    *
    * @throws IOException if an I/O error occurs during the setup process.
    * @throws InterruptedException if the current thread is interrupted while waiting.
@@ -71,11 +71,11 @@ public class OllamaSetupManager {
       LOGGER.info("Ollama is already installed.");
     }
 
-    if(startOllama(config) && pullLLMS(config)) {
-      LOGGER.info("Ollama and LLMs are ready.");
+    if(startOllama(config)) {
+      LOGGER.info("Ollama is ready.");
     } else {
-      LOGGER.error("Error setting up Ollama and LLMs.");
-      throw new UnsupportedOperationException("Error setting up Ollama and LLMs.");
+      LOGGER.error("Error starting Ollama.");
+      throw new UnsupportedOperationException("Error starting Ollama.");
     }
   }
 
@@ -120,38 +120,6 @@ public class OllamaSetupManager {
   }
 
   /**
-   * Pulls the LLMs from the database and ensures they are present.
-   *
-   * @param config the configuration for Ollama
-   * @return true if all LLMs are successfully pulled or already present, false otherwise
-   * @throws IOException if an I/O error occurs
-   * @throws InterruptedException if the current thread is interrupted while waiting
-   */
-  private static boolean pullLLMS(Config config) throws IOException, InterruptedException {
-    var llmList = Contexts.globalContext()
-            .get(DbManager.class)
-            .orElseThrow(() -> new NoSuchElementException("DbManager not found."))
-            .listLLMs();
-    LOGGER.info("Waiting for {} LLMs to be pulled.", llmList.size());
-
-    for (int i = 0; i < llmList.size(); i++) {
-      var llm = llmList.get(i);
-      LOGGER.info("Checking if LLM is present: {} - {}/{}", llm.model(), i + 1, llmList.size());
-      if (!isLLMPresent(config, llm.model())) {
-        LOGGER.info("Pulling LLM: {}", llm.model());
-        if (!executeCMD(config.adjustCmd("pull " + llm.model()), CMDType.RUN, true, config)) {
-          LOGGER.error("Error pulling LLM: {}", llm.model());
-          return false;
-        }
-      } else {
-        LOGGER.info("LLM {} is already present. Skipping...", llm.model());
-      }
-    }
-    LOGGER.info("LLMs checked.");
-    return true;
-  }
-
-  /**
    * Pulls a single LLM and ensures it is present, with optional output streaming.
    *
    * @param model the name of the LLM model to pull
@@ -186,6 +154,18 @@ public class OllamaSetupManager {
    */
   private static boolean isLLMPresent(Config config, String model) throws IOException, InterruptedException {
     return executeCMD(config.adjustCmd("show " + model), CMDType.RUN, false, config);
+  }
+
+  /**
+   * Checks whether a given model has already been downloaded/pulled locally.
+   *
+   * @param model the name of the LLM model to check
+   * @return true if the model is present locally, false otherwise
+   * @throws IOException if an I/O error occurs
+   * @throws InterruptedException if the current thread is interrupted while waiting
+   */
+  public static boolean isModelInstalled(String model) throws IOException, InterruptedException {
+    return isLLMPresent(getConfig(), model);
   }
 
   /**

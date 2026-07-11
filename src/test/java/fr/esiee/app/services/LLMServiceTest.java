@@ -13,7 +13,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.List;
 
 import static io.helidon.http.HttpMediaTypes.JSON_PREDICATE;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -44,16 +43,29 @@ class LLMServiceTest {
     builder.register("/", new LLMService());
   }
 
+  /**
+   * The "installed" flag reflects whatever is actually present on disk for whoever runs the
+   * tests, so equality checks below only compare the static fields (id, name, model) instead of
+   * the full DTO.
+   */
+  private static void assertSameLLM(fr.esiee.app.db.entities.LLM expected, LLMDTO actual) {
+    assertAll(() -> assertEquals(expected.id(), actual.id()),
+            () -> assertEquals(expected.name(), actual.name()),
+            () -> assertEquals(expected.model(), actual.model()));
+  }
+
   @Test
   void testGetListOfLLM() {
     try (var response = client.get("/").request()) {
       var llmDtos = response.as(LLMDTO[].class);
-      var llmDtosFromDb = dbManager.listLLMs().stream().map(LLMDTO::copyOf).toList();
+      var llmsFromDb = dbManager.listLLMs();
 
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
               () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())),
-              () -> assertEquals(llmDtos.length, llmDtosFromDb.size()), () -> assertEquals(3, llmDtos.length),
-              () -> assertEquals(List.of(llmDtos), llmDtosFromDb));
+              () -> assertEquals(llmDtos.length, llmsFromDb.size()), () -> assertEquals(3, llmDtos.length));
+      for (int i = 0; i < llmsFromDb.size(); i++) {
+        assertSameLLM(llmsFromDb.get(i), llmDtos[i]);
+      }
     }
   }
 
@@ -61,11 +73,11 @@ class LLMServiceTest {
   void testGetFirstLLM() {
     try (var response = client.get("/first/llm").request()) {
       var llmDto = response.as(LLMDTO.class);
-      var llmDtoFromDb = LLMDTO.copyOf(dbManager.getFirstLLM());
+      var llmFromDb = dbManager.getFirstLLM();
 
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())),
-              () -> assertEquals(llmDto, llmDtoFromDb));
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())));
+      assertSameLLM(llmFromDb, llmDto);
     }
   }
 
@@ -73,11 +85,11 @@ class LLMServiceTest {
   void testGetLLMById() {
     try (var response = client.get("/1").request()) {
       var llmDto = response.as(LLMDTO.class);
-      var llmDtoFromDb = LLMDTO.copyOf(dbManager.getLLMById(1));
+      var llmFromDb = dbManager.getLLMById(1);
 
       assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())),
-              () -> assertEquals(llmDtoFromDb, llmDto));
+              () -> assertTrue(JSON_PREDICATE.test(response.headers().contentType().orElseThrow())));
+      assertSameLLM(llmFromDb, llmDto);
     }
   }
 }

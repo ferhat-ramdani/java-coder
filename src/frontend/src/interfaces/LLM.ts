@@ -6,4 +6,5 @@ export interface LLM {
     temp: number;
     seed: number;
     timeoutSec: number;
+    installed: boolean;
 }

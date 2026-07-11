@@ -6,7 +6,7 @@ import llmService from "../services/LLMService";
 import {LLM} from "../interfaces/LLM";
 import chatService from "../services/ChatService";
 import {Chat} from "../interfaces/Chat";
-import {useNavigate} from "@solidjs/router";
+import {A, useNavigate} from "@solidjs/router";
 
 const fetchFirstLLM = async (): Promise<LLM|null> => {
     try {
@@ -55,10 +55,16 @@ const ChatsUI: Component = () => {
                     <h3 class={`m-0 fw-semibold text-main`}>
                         <i class="bi bi-cpu me-2"></i>Active Model: <span class="text-primary">{selectedLLM()?.name}</span>
                     </h3>
-                    <button type="button" class="btn btn-primary shadow-sm hover-lift" onClick={createNewChat}>
+                    <button type="button" class="btn btn-primary shadow-sm hover-lift" onClick={createNewChat} disabled={!selectedLLM()?.installed}>
                         <i class="bi bi-plus-lg me-1"></i> New Chat
                     </button>
                 </div>
+                <Show when={!selectedLLM()?.installed}>
+                    <div class="alert alert-warning d-flex align-items-center mx-3" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                        <span>The active model isn't downloaded yet. Go to the <A href="/llms">LLMs page</A> to download it before starting a chat.</span>
+                    </div>
+                </Show>
                 <div class="card shadow-sm border-0">
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush rounded">
