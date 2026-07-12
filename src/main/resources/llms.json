@@ -7,23 +7,5 @@
     "temp": 0,
     "seed": 0,
     "timeout_sec": 0
-  },
-  {
-    "name": "Qwen 2.5-Coder 14B",
-    "model": "qwen2.5-coder:14b",
-    "system_prompt": "You are an expert Java developer. Respond to each input by providing an efficient and well-structured Java class with a main method. Provide only the code without any explanations.",
-    "characteristics": "Developer: Alibaba Cloud; Specialized in programming tasks, supporting a context length of up to 128,000 tokens.",
-    "timeout_sec": 120,
-    "seed": 0,
-    "temp": 0
-  },
-  {
-    "name": "Gemma 2 27B",
-    "model": "gemma2:27b",
-    "system_prompt": "You are a highly skilled Java developer. Respond to each query by providing a comprehensive and optimized Java class with a main method. Provide only the code without any explanations.",
-    "characteristics": "Developer: Google; Achieves exceptional benchmark results, outperforming some larger open models.",
-    "timeout_sec": 180,
-    "seed": 0,
-    "temp": 0
   }
 ]

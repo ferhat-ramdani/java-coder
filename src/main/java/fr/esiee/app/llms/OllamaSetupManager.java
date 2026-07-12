@@ -152,6 +152,29 @@ public class OllamaSetupManager {
   }
 
   /**
+   * Pulls a single LLM and ensures it is present.
+   *
+   * @param model the name of the LLM model to pull
+   * @return true if the LLM is successfully pulled or already present, false otherwise
+   * @throws IOException if an I/O error occurs
+   * @throws InterruptedException if the current thread is interrupted while waiting
+   */
+  public static boolean pullSingleLLM(String model) throws IOException, InterruptedException {
+    Config config = getConfig();
+    LOGGER.info("Checking if LLM is present: {}", model);
+    if (!isLLMPresent(config, model)) {
+      LOGGER.info("Pulling LLM: {}", model);
+      if (!executeCMD(config.adjustCmd("pull " + model), CMDType.RUN, true, config)) {
+        LOGGER.error("Error pulling LLM: {}", model);
+        return false;
+      }
+    } else {
+      LOGGER.info("LLM {} is already present. Skipping...", model);
+    }
+    return true;
+  }
+
+  /**
    * Checks if a specific LLM (Language Learning Model) is present.
    *
    * @param config the configuration for Ollama

@@ -19,8 +19,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import java.io.IOException;
 import java.util.NoSuchElementException;
+import fr.esiee.app.db.entities.LLM;
+import fr.esiee.app.llms.OllamaSetupManager;
 
 /**
  * Class representing the LLMService.
@@ -52,6 +56,7 @@ public class LLMService implements HttpService {
   @Override
   public void routing(HttpRules httpRules) {
     httpRules.get("/", this::getListOfLLM)
+            .post("/", this::addLLM)
             .get("/{id}", this::getLLMById)
             .get("/first/llm", this::getFirstLLM);
   }
@@ -104,5 +109,30 @@ public class LLMService implements HttpService {
             .orElseThrow(() -> new RestApiException("LLM id is required"));
     var llm = dbService.getLLMById(llmId);
     res.status(Status.OK_200).send(LLMDTO.copyOf(llm));
+  }
+
+  /**
+   * Endpoint to add a new LLM and install it on the fly.
+   *
+   * @param req the server request
+   * @param res the server response
+   */
+  @POST
+  @javax.ws.rs.Path("/")
+  @Operation(summary = "add LLM", description = "Add a new LLM and pull it via Ollama")
+  public void addLLM(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
+    try {
+      LLMDTO llmDto = req.content().as(LLMDTO.class);
+      LLM newLlm = new LLM(0, llmDto.name(), llmDto.model(), llmDto.systemPrompt(), llmDto.characteristics(), llmDto.temp(), llmDto.seed(), llmDto.timeoutSec());
+      long updatedRow = dbService.insertLLM(newLlm);
+      if(updatedRow > 0) {
+          OllamaSetupManager.pullSingleLLM(newLlm.model());
+      }
+      res.status(Status.CREATED_201).send(llmDto);
+    } catch (IOException | InterruptedException e) {
+      throw new RestApiException("Error while pulling model: " + e.getMessage());
+    } catch (Exception e) {
+      throw new RestApiException("Invalid payload or db error: " + e.getMessage());
+    }
   }
 }

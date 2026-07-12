@@ -31,6 +31,20 @@ class LLMService {
 
         return await response.json();
     }
+
+    async addLLM(llm: Partial<LLM>): Promise<LLM> {
+        const response = await fetch(`${this.apiUrl}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(llm)
+        });
+
+        await Utils.showErrorToast(response, "Error adding new LLM.");
+
+        return await response.json();
+    }
 }
 
 const llmService = new LLMService();

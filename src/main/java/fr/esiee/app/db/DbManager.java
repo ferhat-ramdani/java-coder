@@ -536,6 +536,35 @@ public class DbManager {
   }
 
   /**
+   * Inserts a new LLM into the database.
+   *
+   * @param llm the LLM object to be inserted
+   * @return the number of rows updated
+   * @throws DbClientException if there is an error during the database operation
+   */
+  public long insertLLM(LLM llm) {
+    var transaction = dbClient.transaction();
+    long updatedRow;
+    try {
+      updatedRow = transaction.createNamedInsert("insert-llm")
+              .addParam(llm.name())
+              .addParam(llm.model())
+              .addParam(llm.systemPrompt())
+              .addParam(llm.characteristics())
+              .addParam(llm.temp())
+              .addParam(llm.seed())
+              .addParam(llm.timeoutSec())
+              .execute();
+      transaction.commit();
+    } catch (DbClientException t) {
+      LOGGER.error("Exception occurred while trying to insert a LLM to database : ", t);
+      transaction.rollback();
+      throw t;
+    }
+    return updatedRow;
+  }
+
+  /**
    * Retrieves the first LLM from the database.
    *
    * @return the first LLM object found in the database
