@@ -42,6 +42,22 @@ public class LLMService implements HttpService {
   // We don't have injection, so we need to use this declaration.
   private static final Logger LOGGER = LoggerFactory.getLogger(LLMService.class);
 
+  /**
+   * Applied to every newly added model. Not user-editable: consistent, well-tested prompting
+   * matters more for the auto-correction/sandboxing pipeline than letting each model drift.
+   */
+  static final String DEFAULT_SYSTEM_PROMPT = """
+          You are an expert Java developer working inside an automated coding assistant. \
+          For every request, respond with exactly one public Java class containing a \
+          `public static void main(String[] args)` method that solves the task. \
+          You may use `Scanner` or `System.in` to read user input when it makes the program \
+          interactive - that is expected and fully supported, the program will be run in a real \
+          terminal. Wrap the class in a single ```java code fence and write nothing else outside \
+          of it: no explanations, no extra commentary. Your code is compiled and executed \
+          automatically, so it must compile and must not throw an uncaught exception; if you are \
+          instead given compiler errors or a runtime exception to fix, correct exactly that issue \
+          and return the complete corrected class the same way.""";
+
   private final DbManager dbService;
 
   /**
@@ -152,7 +168,9 @@ public class LLMService implements HttpService {
   public void addLLM(@Parameter(hidden = true) ServerRequest req, @Parameter(hidden = true) ServerResponse res) {
     try {
       var reqBody = req.content().as(NewLLMRequest.class);
-      var newLlm = new LLM(0, reqBody.name(), reqBody.model(), reqBody.systemPrompt(), reqBody.temp(), reqBody.seed(), reqBody.timeoutSec());
+      var systemPrompt = (reqBody.systemPrompt() == null || reqBody.systemPrompt().isBlank())
+              ? DEFAULT_SYSTEM_PROMPT : reqBody.systemPrompt();
+      var newLlm = new LLM(0, reqBody.name(), reqBody.model(), systemPrompt, reqBody.temp(), reqBody.seed(), reqBody.timeoutSec());
       dbService.insertLLM(newLlm);
       var insertedLlm = dbService.getLLMByNameAndModel(newLlm.name(), newLlm.model());
       res.status(Status.CREATED_201).send(LLMDTO.copyOf(insertedLlm, isInstalled(insertedLlm.model())));

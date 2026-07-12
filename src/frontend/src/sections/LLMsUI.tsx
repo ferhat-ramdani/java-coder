@@ -6,8 +6,6 @@ import {LLM} from "../interfaces/LLM";
 
 const fetchLLM = async () => await llmService.getLLMS();
 
-const DEFAULT_SYSTEM_PROMPT = "You are an experienced Java developer. Respond to each request by providing a simple Java class with a main method. Provide only the code without any explanations.";
-
 type DownloadState = {
     llmId: number;
     progress: number;
@@ -59,7 +57,6 @@ const LLMsUI: Component = () => {
     const [newLLM, setNewLLM] = createSignal<Partial<LLM>>({
         name: "",
         model: "",
-        systemPrompt: DEFAULT_SYSTEM_PROMPT,
         temp: 0,
         seed: 0,
         timeoutSec: 0
@@ -71,7 +68,6 @@ const LLMsUI: Component = () => {
         setNewLLM({
             name: "",
             model: "",
-            systemPrompt: DEFAULT_SYSTEM_PROMPT,
             temp: 0,
             seed: 0,
             timeoutSec: 0
@@ -189,10 +185,6 @@ const LLMsUI: Component = () => {
                             <label class="form-label">Model ID (e.g., qwen2.5:0.5b)</label>
                             <input type="text" class="form-control" required value={newLLM().model || ""} onInput={(e) => setNewLLM({...newLLM(), model: e.currentTarget.value})} />
                             <div class="form-text">Browse available models at <a href="https://ollama.com/library" target="_blank" rel="noopener noreferrer">ollama.com/library</a>.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">System Prompt</label>
-                            <textarea class="form-control" rows={3} value={newLLM().systemPrompt || ""} onInput={(e) => setNewLLM({...newLLM(), systemPrompt: e.currentTarget.value})}></textarea>
                         </div>
                         <Show when={addError()}>
                             <div class="alert alert-danger py-2 d-flex align-items-center" role="alert">

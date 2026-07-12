@@ -15,8 +15,8 @@ import fr.esiee.app.db.entities.Chat;
 import fr.esiee.app.db.entities.LLM;
 import fr.esiee.app.db.entities.Prompt;
 import fr.esiee.app.exception.RestApiException;
+import fr.esiee.app.sandbox.SandboxExecutor;
 import fr.esiee.app.utils.CompileAndExecUtils;
-import fr.esiee.app.utils.ErrorUtils;
 import io.helidon.common.context.Contexts;
 import io.helidon.http.Status;
 import io.helidon.http.sse.SseEvent;
@@ -56,6 +56,8 @@ public class GeneratorService implements HttpService {
   // We don't have injection, so we need to use this declaration.
   private static final Logger LOGGER = LoggerFactory.getLogger(GeneratorService.class);
 
+  private static final int MAX_ATTEMPTS = 3;
+
   private final DbManager dbService;
   private final LLMConfig llmConfig;
 
@@ -74,51 +76,53 @@ public class GeneratorService implements HttpService {
   }
 
   /**
-   * A record to store the generated source code and whether it was compiled successfully.
+   * A record to store the generated source code and whether it was verified to compile and run
+   * without throwing.
    */
   private record SourceCode(String code, boolean compiled) {
   }
 
   /**
-   * A record to store the response from the LLM model.
+   * The overall status of a streamed generation update.
    */
-  private record LLMResponse(LLMResponseStatus status, String content, Prompt prompt) {
-
-    /**
-     * Creates an LLMResponse with a GENERATING status.
-     *
-     * @param content the content of the response
-     * @return an LLMResponse with GENERATING status
-     */
-    public static LLMResponse generating(String content) {
-      return new LLMResponse(LLMResponseStatus.GENERATING, content, null);
-    }
-
-    /**
-     * Creates an LLMResponse with an ERROR status.
-     *
-     * @param prompt the prompt that caused the error
-     * @return an LLMResponse with ERROR status
-     */
-    public static LLMResponse error(Prompt prompt) {
-      return new LLMResponse(LLMResponseStatus.ERROR, null, prompt);
-    }
-
-    /**
-     * Creates an LLMResponse with a SUCCESS status.
-     *
-     * @param prompt the prompt that was successfully processed
-     * @return an LLMResponse with SUCCESS status
-     */
-    public static LLMResponse done(Prompt prompt) {
-      return new LLMResponse(LLMResponseStatus.SUCCESS, null, prompt);
-    }
-  }
+  private enum LLMResponseStatus { PROGRESS, ERROR, SUCCESS }
 
   /**
-   * An enum to represent the status of the LLM response.
+   * Which step of the generate/compile/verify pipeline a PROGRESS update refers to.
    */
-  private enum LLMResponseStatus { GENERATING, ERROR, SUCCESS }
+  private enum GenPhase { GENERATING, COMPILING, VALIDATING, RETRY, DONE }
+
+  /**
+   * A single update streamed to the front-end about an in-flight generation.
+   *
+   * @param status      the overall status of this update
+   * @param phase       which pipeline step this update is about
+   * @param attempt     the current attempt number (1-based)
+   * @param maxAttempts the maximum number of attempts allowed
+   * @param message     a short, human-readable status line
+   * @param detail      optional longer detail (compiler errors, a stack trace, ...) that the UI
+   *                    can show behind a "view details" toggle
+   * @param prompt      set only on the terminal SUCCESS/ERROR update: the persisted prompt
+   */
+  private record LLMResponse(LLMResponseStatus status, GenPhase phase, int attempt, int maxAttempts,
+                              String message, String detail, Prompt prompt) {
+
+    static LLMResponse progress(GenPhase phase, int attempt, String message) {
+      return new LLMResponse(LLMResponseStatus.PROGRESS, phase, attempt, MAX_ATTEMPTS, message, null, null);
+    }
+
+    static LLMResponse retry(int attempt, String message, String detail) {
+      return new LLMResponse(LLMResponseStatus.PROGRESS, GenPhase.RETRY, attempt, MAX_ATTEMPTS, message, detail, null);
+    }
+
+    static LLMResponse error(Prompt prompt) {
+      return new LLMResponse(LLMResponseStatus.ERROR, GenPhase.DONE, 0, MAX_ATTEMPTS, null, null, prompt);
+    }
+
+    static LLMResponse done(Prompt prompt) {
+      return new LLMResponse(LLMResponseStatus.SUCCESS, GenPhase.DONE, 0, MAX_ATTEMPTS, null, null, prompt);
+    }
+  }
 
   /**
    * A record to store the model configuration.
@@ -145,8 +149,7 @@ public class GeneratorService implements HttpService {
   @Override
   public void routing(HttpRules rules) {
     rules.post("/class", Handler.create(Prompt.class, this::receivePrompt))
-            .get("/stream/{promptId}", this::streamLLMResponse)
-            .post("/exec", Handler.create(Integer.class, this::executeClass));
+            .get("/stream/{promptId}", this::streamLLMResponse);
   }
 
   /**
@@ -222,7 +225,7 @@ public class GeneratorService implements HttpService {
   private void handleLLMGeneration(Prompt prompt, LLM newLLM, Chat chat, SseSink sseSink)
           throws IOException, InterruptedException, ExecutionException {
     var generatedCode = generateClassFromLLM(newLLM, chat.id(), prompt.message(), sseSink);
-    LOGGER.info("Class generated successfully.");
+    LOGGER.info("Class generation finished, compiled+verified={}", generatedCode.compiled);
 
     var aiPrompt = new Prompt(0, generatedCode.code, AuthorType.AI, chat.id(), generatedCode.compiled);
     dbService.insertPrompt(aiPrompt);
@@ -240,7 +243,9 @@ public class GeneratorService implements HttpService {
    */
   private void handleGenerationException(SseSink sseSink, Exception e, int chatId) {
     LOGGER.error("Error occurred while generating and streaming response to front:", e);
-    var prompt = new Prompt(0, "Error while generating class.", AuthorType.SYSTEM, chatId, false);
+    var cause = rootCause(e);
+    var reason = cause.getMessage() != null && !cause.getMessage().isBlank() ? cause.getMessage() : cause.getClass().getSimpleName();
+    var prompt = new Prompt(0, "Generation failed: " + reason, AuthorType.SYSTEM, chatId, false);
     dbService.insertPrompt(prompt);
     var registeredErrorPrompt = dbService.getPromptByPromptInfo(prompt);
     sseSink.emit(SseEvent.create(LLMResponse.error(registeredErrorPrompt)));
@@ -248,37 +253,33 @@ public class GeneratorService implements HttpService {
   }
 
   /**
-   * This method executes a Java class based on the provided prompt ID and returns the output.
-   * It checks if the class is compiled before execution.
+   * Walks a cause chain down to the deepest (root) throwable, which usually carries the actually
+   * useful message (e.g. the raw error from the LLM backend or the sandbox), instead of a
+   * generic wrapper message.
    *
-   * @param promptId the ID of the prompt to execute
-   * @param res      the server response to send the execution output
+   * @param t the throwable to unwrap
+   * @return the deepest cause, or {@code t} itself if it has none
    */
-  @POST
-  @Path("/exec")
-  @Operation(summary = "Execute a class", description = "Executes a java class and returns the output")
-  @Consumes("text/plain")
-  @ApiResponse(content = @Content(mediaType = "text/plain"), responseCode = "200", description = "Class execution output")
-  public void executeClass(int promptId, @Parameter(hidden = true) ServerResponse res) {
-    var prompt = dbService.getPromptById(promptId);
-    if (!prompt.compile()) {
-      LOGGER.error("Front is trying to execute a class that does not compile");
-      ErrorUtils.send(res, Status.NOT_ACCEPTABLE_406, "Prompt not supposed to be compiled.");
-      return;
+  private static Throwable rootCause(Throwable t) {
+    var current = t;
+    while (current.getCause() != null && current.getCause() != current) {
+      current = current.getCause();
     }
-    String output;
-    try {
-      LOGGER.info("Executing class, promptId : {}", promptId);
-      output = CompileAndExecUtils.processText(prompt.message(), CompileAndExecUtils.Operation.EXECUTE);
-    } catch (IOException | InterruptedException |
-             ExecutionException e) { // Catch is necessary because whe are in a BiConsumer lambda
-      throw new RestApiException(e);
-    }
-    res.status(Status.OK_200).send(output);
+    return current;
   }
 
   /**
-   * Generates a class from the LLM model.
+   * Generates a class from the LLM model, driving it through generate -&gt; compile -&gt; verify
+   * -&gt; (retry with real feedback) until it produces code that compiles, exposes a main method,
+   * and runs inside the sandbox without throwing (or is legitimately waiting on user input) - or
+   * until the attempt budget is exhausted.
+   * <p>
+   * This is one continuous conversation, not independent isolated attempts: {@code modelConfig}
+   * (and the {@link ChatMemory} it wraps) is created once and reused for every attempt in the
+   * loop, so each retry message is appended to - and answered with full knowledge of - the prior
+   * turns (the original request, the model's previous flawed answer, and the exact compiler/
+   * runtime error it caused). The model is literally being told "here is what you wrote and here
+   * is why it failed, fix it" rather than being asked to solve the problem from scratch again.
    *
    * @param llm         the LLM model to use
    * @param chatId      the chat ID
@@ -295,21 +296,68 @@ public class GeneratorService implements HttpService {
     Objects.requireNonNull(requestText);
 
     var modelConfig = updateModelSettings(llm, chatId);
-    String errorsText = null;
+    String feedback = null;
     String code = null;
+    var skipSandboxChecks = false;
 
-    int nbAttempts = 3;
-    for (int attempt = 1; attempt <= nbAttempts; attempt++) {
-      logAndEmit(sseSink, "Analyzing request and generating solution (attempt " + attempt + "/" + nbAttempts + ")...");
-      String response = generateResponse(modelConfig, requestText, errorsText, attempt);
-
+    for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      emit(sseSink, LLMResponse.progress(GenPhase.GENERATING, attempt, "Generating a solution..."));
+      var response = generateResponse(modelConfig, requestText, feedback, attempt);
       code = CompileAndExecUtils.extractCode(response);
-      logAndEmit(sseSink, "Compiling and validating code...");
 
-      if (isCodeValid(code, sseSink)) {
-        return new SourceCode(code, true);
-      } else {
-        errorsText = "There are some compilation errors, can you try to fix them please, here's more information. " + logAndEmitErrors(code, sseSink);
+      emit(sseSink, LLMResponse.progress(GenPhase.COMPILING, attempt, "Compiling the generated code..."));
+      CompileAndExecUtils.CompilationResult compilation;
+      try {
+        compilation = CompileAndExecUtils.compile(code);
+      } catch (IOException e) {
+        // A single malformed response (e.g. no class found in the reply) must not abort the
+        // whole generation: it's just as correctable as a compiler error, so feed it back and
+        // keep the conversation going instead of failing the request outright.
+        feedback = "Your response did not contain a valid public Java class. Return ONLY the "
+                + "complete class definition, wrapped in a single ```java code fence, with no other text.";
+        emit(sseSink, LLMResponse.retry(attempt, "No valid Java class found in the response, asking the model to fix it...", e.getMessage()));
+        continue;
+      }
+      try {
+        if (!compilation.success()) {
+          feedback = "The code does not compile. Fix these compiler errors:\n" + compilation.errors();
+          emit(sseSink, LLMResponse.retry(attempt, "Compilation failed, asking the model to fix it...", compilation.errors()));
+          continue;
+        }
+
+        if (!CompileAndExecUtils.hasMainMethod(compilation.classDir(), compilation.className())) {
+          feedback = "The class has no `public static void main(String[] args)` method. Add one as the program's entry point.";
+          emit(sseSink, LLMResponse.retry(attempt, "No main method found, asking the model to fix it...", feedback));
+          continue;
+        }
+
+        if (skipSandboxChecks) {
+          return new SourceCode(code, true);
+        }
+
+        emit(sseSink, LLMResponse.progress(GenPhase.VALIDATING, attempt, "Running the code in a sandbox to check for errors..."));
+        var smokeTest = SandboxExecutor.runSmokeTest(compilation.classDir(), compilation.className());
+        switch (smokeTest.outcome()) {
+          case OK -> {
+            emit(sseSink, LLMResponse.progress(GenPhase.VALIDATING, attempt, "The code ran successfully with no errors."));
+            return new SourceCode(code, true);
+          }
+          case BLOCKED_ON_INPUT -> {
+            emit(sseSink, LLMResponse.progress(GenPhase.VALIDATING, attempt, "The code compiles and is waiting for user input, as expected."));
+            return new SourceCode(code, true);
+          }
+          case RUNTIME_EXCEPTION -> {
+            feedback = "The code compiles but throws an exception when run. Fix this:\n" + smokeTest.output();
+            emit(sseSink, LLMResponse.retry(attempt, "The code threw an exception while running, asking the model to fix it...", smokeTest.output()));
+          }
+          case DOCKER_UNAVAILABLE -> {
+            skipSandboxChecks = true;
+            emit(sseSink, LLMResponse.progress(GenPhase.VALIDATING, attempt, smokeTest.output()));
+            return new SourceCode(code, true);
+          }
+        }
+      } finally {
+        CompileAndExecUtils.cleanup(compilation.classDir());
       }
     }
     return new SourceCode(code, false);
@@ -320,67 +368,29 @@ public class GeneratorService implements HttpService {
    *
    * @param modelConfig the configuration of the model
    * @param requestText the initial request text
-   * @param errorsText  the text containing errors to be corrected
+   * @param feedback    feedback (compiler errors / runtime exception) to be corrected, or null on the first attempt
    * @param attempt     the current attempt number
    * @return the generated response from the assistant
    * @throws IOException if an I/O error occurs
    */
-  private String generateResponse(ModelConfig modelConfig, String requestText, String errorsText, int attempt)
+  private String generateResponse(ModelConfig modelConfig, String requestText, String feedback, int attempt)
           throws IOException {
     try {
-      return modelConfig.assistant.chat(attempt == 1 ? requestText : errorsText);
+      return modelConfig.assistant.chat(attempt == 1 ? requestText : feedback);
     } catch (RuntimeException e) {
       throw new IOException("Error while asking assistant to generate response.", e.getCause());
     }
   }
 
   /**
-   * Validates the generated source code by attempting to compile it.
+   * Logs a progress message and emits it as an SSE event.
    *
-   * @param code    the generated source code to validate
-   * @param sseSink the server-sent event sink to emit messages
-   * @return true if the code is valid and compiles without errors, false otherwise
-   * @throws ExecutionException   if an execution error occurs during compilation
-   * @throws InterruptedException if the thread is interrupted during compilation
-   * @throws IOException          if an I/O error occurs during compilation
+   * @param sseSink  the server-sent event sink
+   * @param response the response to log and emit
    */
-  private boolean isCodeValid(String code, SseSink sseSink)
-          throws ExecutionException, InterruptedException, IOException {
-    var errors = CompileAndExecUtils.processText(code, CompileAndExecUtils.Operation.COMPILE);
-    if (errors.isEmpty()) {
-      logAndEmit(sseSink, "No errors found in generated code");
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Logs and emits errors found in the generated code.
-   *
-   * @param code    the generated source code
-   * @param sseSink the server-sent event sink
-   * @return the compilation errors
-   * @throws IOException          if an I/O error occurs
-   * @throws ExecutionException   if an execution error occurs
-   * @throws InterruptedException if the thread is interrupted
-   */
-  private String logAndEmitErrors(String code, SseSink sseSink)
-          throws IOException, ExecutionException, InterruptedException {
-    var errors = CompileAndExecUtils.processText(code, CompileAndExecUtils.Operation.COMPILE);
-    LOGGER.info("Errors found in generated code:\n{}", errors);
-    logAndEmit(sseSink, "Errors found in generated code");
-    return errors;
-  }
-
-  /**
-   * Logs a message and emits it as an SSE event.
-   *
-   * @param sseSink the server-sent event sink
-   * @param message the message to log and emit
-   */
-  private void logAndEmit(SseSink sseSink, String message) {
-    LOGGER.info(message);
-    sseSink.emit(SseEvent.create(LLMResponse.generating(message)));
+  private void emit(SseSink sseSink, LLMResponse response) {
+    LOGGER.info("[{}][attempt {}/{}] {}", response.phase, response.attempt, response.maxAttempts, response.message);
+    sseSink.emit(SseEvent.create(response));
   }
 
   /**

@@ -1,35 +1,25 @@
-import {createPrompt, Prompt} from "../interfaces/Prompt";
+import {Prompt} from "../interfaces/Prompt";
 import Config from "../Config";
 import {Utils} from "./Utils";
 import {LLMResponse} from "../interfaces/LLMResponse";
-import {AuthorType} from "../interfaces/AuthorType";
 
 class GeneratorService {
 
     private config: Config = Config.getInstance();
     private apiUrl: string = `${this.config.getBackendUrl()}/api/gen`;
 
-    async generateResponseFromLLM(prompt: Prompt, responseHandler: (llmResponse: LLMResponse, eventSource: EventSource, systemPrompt: Prompt, IndexOfPrompt: number) => number){
-
+    async generateResponseFromLLM(prompt: Prompt, onUpdate: (llmResponse: LLMResponse, eventSource: EventSource) => void) {
         const response = await fetch(`${this.apiUrl}/class`, Utils.createRequestInit(prompt, 'POST'));
         await Utils.showErrorToast(response, "Error during class registration.");
         const registeredPromptId = await response.text().then(id => parseInt(id)).catch(e => console.error(e));
         const eventSource = new EventSource(`${this.apiUrl}/stream/${registeredPromptId}`);
-        let index = -1;
 
         eventSource.onmessage = (event) => {
             const llmResponse: LLMResponse = JSON.parse(event.data);
-            const systemPrompt: Prompt = createPrompt("", AuthorType.SYSTEM, prompt.chatId, false, true);
-            index = responseHandler(llmResponse, eventSource, systemPrompt, index);
+            onUpdate(llmResponse, eventSource);
         }
-    }
-
-    async executeClass(id: number): Promise<string> {
-        const response = await fetch(`${this.config.getBackendUrl()}/api/gen/exec`, Utils.createRequestInit(id, 'POST'));
-        await Utils.showErrorToast(response, "Error during class execution.");
-        return await response.text();
     }
 }
 
-const generatorService =  new GeneratorService();
+const generatorService = new GeneratorService();
 export default generatorService;

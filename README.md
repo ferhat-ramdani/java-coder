@@ -4,9 +4,14 @@ JavaCoder is an advanced, self-contained AI assistant designed specifically to a
 
 ## Core Capabilities
 
-*   **Intelligent Auto-Correction Loop:** JavaCoder doesn't just generate code; it verifies it. The assistant features an internal auto-correction loop that actively compiles the generated Java classes *before* presenting them to you, ensuring the code you receive is structurally sound and immediately usable.
-*   **Agent-Like Streaming Process:** Experience real-time collaboration. JavaCoder utilizes an agent-like streaming architecture that processes and delivers code incrementally, making the interaction feel seamless and highly responsive.
-*   **Zero-Friction, OS-Agnostic Startup:** Say goodbye to complex environment setups. JavaCoder is equipped with a powerful, built-in startup script that automatically detects your operating system, seamlessly installs Ollama, and dynamically pulls the necessary lightweight models entirely on its own. 
+*   **Intelligent Auto-Correction Loop:** JavaCoder doesn't just generate code; it verifies it. Every generated class is compiled, checked for a real `public static void main(String[] args)` entry point, and actually *executed* in an isolated sandbox to catch runtime exceptions - all before it's shown to you. Compiler errors and stack traces are fed straight back to the model so it can fix its own mistakes, up to 3 attempts.
+*   **Sandboxed, Interactive Execution:** Generated code never runs on your machine directly. It's executed inside a throwaway, network-less Docker container with hard memory/CPU/process limits. Programs that read user input (`Scanner`, `System.in`) work as expected: the chat's inline terminal streams output live and lets you type input back, just like a real terminal.
+*   **Agent-Like Streaming Process:** Experience real-time collaboration. JavaCoder streams every step of the generation pipeline (generating, compiling, sandbox-testing, retrying) so you can watch the assistant work, with the full history available on demand.
+*   **Zero-Friction, OS-Agnostic Startup:** Say goodbye to complex environment setups. JavaCoder is equipped with a powerful, built-in startup script that automatically detects your operating system, seamlessly installs Ollama, and dynamically pulls the necessary lightweight models entirely on its own.
+
+### Prerequisite: Docker
+
+Safe code execution (the auto-correction loop's runtime check, and the "Run" button/interactive terminal) requires [Docker](https://www.docker.com/products/docker-desktop/) to be installed and running. JavaCoder detects Docker at startup and pulls its small sandbox runtime image (`eclipse-temurin:21-jre-alpine`) automatically in the background. If Docker isn't available, chat and code generation still work normally - only the execution/sandbox-verification step is skipped, with a clear message explaining why.
 
 ## Dynamic Model Management
 

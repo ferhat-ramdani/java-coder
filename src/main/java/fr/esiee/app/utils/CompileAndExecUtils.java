@@ -1,249 +1,132 @@
 package fr.esiee.app.utils;
 
-import fr.esiee.app.exception.RestApiException;
-import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaFileObject;
 import javax.tools.ToolProvider;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.lang.reflect.Modifier;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Utility class for compiling and executing Java code.
+ * Utility class for compiling Java code and safely inspecting the result. Actually running
+ * generated code never happens here (and never on the host JVM): that responsibility belongs to
+ * the {@code fr.esiee.app.sandbox} package, which executes it in an isolated Docker container.
  */
 public class CompileAndExecUtils {
 
   // We don't have injection, so we need to use this declaration.
   private static final Logger LOGGER = LoggerFactory.getLogger(CompileAndExecUtils.class);
-  static final int EXEC_TIMEOUT_SEC = 5;
 
   /**
-   * Represents the operation to perform on the Java code.
+   * Generated code is always compiled against this release, independent of the host JDK version,
+   * so that the produced class files are guaranteed to run inside the sandbox's JRE image.
    */
-  public enum Operation {
-    COMPILE, EXECUTE
+  static final int SANDBOX_JAVA_RELEASE = 21;
+
+  private CompileAndExecUtils() {
   }
 
   /**
-   * Processes the given Java code by either compiling or executing it based on the specified operation.
+   * The result of compiling a piece of source code: where the artifacts live, the class name
+   * that was extracted from the source, and any compiler errors.
    *
-   * @param code      the Java code to process
-   * @param operation the operation to perform (either COMPILE or EXECUTE)
-   * @return the result of the operation (compilation errors or execution output)
-   * @throws IOException          if an I/O error occurs
-   * @throws InterruptedException if the execution is interrupted
-   * @throws ExecutionException   if an error occurs during execution
+   * @param classDir  the directory containing the source file and, if compilation succeeded, the
+   *                   compiled .class file(s)
+   * @param className the public class name extracted from the source
+   * @param errors    the compiler diagnostics, or an empty string if compilation succeeded
    */
-  public static String processText(String code, Operation operation)
-          throws IOException, InterruptedException, ExecutionException {
-    Objects.requireNonNull(code);
-    var classNameOpt = extractClassName(code);
-    if (classNameOpt.isEmpty()) {
-      throw new IOException("no class name could be extracted");
-    }
+  public record CompilationResult(Path classDir, String className, String errors) {
 
-    var className = classNameOpt.get();
+    public boolean success() {
+      return errors.isEmpty();
+    }
+  }
+
+  /**
+   * Writes the given source code to a fresh temporary directory and compiles it.
+   * <p>
+   * The caller is responsible for calling {@link #cleanup(Path)} on the returned
+   * {@link CompilationResult#classDir()} once it is no longer needed (e.g. once the class has
+   * been executed, or on a failed compile).
+   *
+   * @param code the Java source code to compile
+   * @return the compilation result
+   * @throws IOException if no class name could be extracted from the code, or an I/O error occurs
+   */
+  public static CompilationResult compile(String code) throws IOException {
+    Objects.requireNonNull(code);
+    var className = extractClassName(code)
+            .orElseThrow(() -> new IOException("no class name could be extracted"));
+
     var targetDir = createTempPath();
     var javaFilePath = targetDir.resolve(className + ".java");
-    var classFilePath = targetDir.resolve(className + ".class");
+    Files.writeString(javaFilePath, code);
+    var errors = compileJavaFile(javaFilePath);
+    return new CompilationResult(targetDir, className, errors);
+  }
 
-    try {
-      return switch (operation) {
-        case COMPILE -> compileJavaClass(code, className, javaFilePath);
-        case EXECUTE -> compileAndExecuteJavaCode(code, className, targetDir, javaFilePath, classFilePath);
-      };
-    } finally {
-      deleteFile(javaFilePath);
-      deleteFile(classFilePath);
+  /**
+   * Recursively deletes a compilation's temporary directory (source file, compiled classes,
+   * including any inner/anonymous/lambda-generated .class files).
+   *
+   * @param dir the directory to delete, typically a {@link CompilationResult#classDir()}
+   * @throws IOException if an I/O error occurs while deleting
+   */
+  public static void cleanup(Path dir) throws IOException {
+    if (dir == null || !Files.exists(dir)) {
+      return;
+    }
+    try (var paths = Files.walk(dir)) {
+      paths.sorted(Comparator.reverseOrder()).forEach(p -> {
+        try {
+          Files.delete(p);
+        } catch (IOException e) {
+          LOGGER.warn("Failed to delete {}: {}", p, e.getMessage());
+        }
+      });
     }
   }
 
   /**
-   * Compiles the given Java code and returns the compilation errors.
+   * Checks whether the compiled class exposes a standard {@code public static void main(String[])}
+   * entry point. The class is loaded with {@code initialize=false}, so its static initializers
+   * (and therefore any generated code) never run on the host: this is a pure bytecode/metadata
+   * inspection, not an execution.
    *
-   * @param javaCode     the Java code to compile
-   * @param className    the name of the class to compile
-   * @param javaFilePath the path to the Java file to be compiled
-   * @return the compilation errors, or an empty string if the compilation was successful
-   * @throws IOException if an I/O error occurs
+   * @param classDir  the directory containing the compiled .class file
+   * @param className the class to inspect
+   * @return true if a public static main(String[]) method is present
    */
-  private static String compileJavaClass(String javaCode, String className, Path javaFilePath) throws IOException {
-    Objects.requireNonNull(javaCode);
+  public static boolean hasMainMethod(Path classDir, String className) {
+    Objects.requireNonNull(classDir);
     Objects.requireNonNull(className);
-    Objects.requireNonNull(javaFilePath);
-
-    Files.writeString(javaFilePath, javaCode);
-    return compileJavaFile(javaFilePath);
-  }
-
-  /**
-   * Compiles and executes the given Java code. If the execution takes longer than
-   * <code>EXEC_TIMEOUT_SEC</code> seconds, the execution is stopped (and a message
-   * is appended to the output).
-   *
-   * @param javaCode      the Java code to compile and execute
-   * @param className     the name of the class to compile and execute
-   * @param targetDir     the directory to store the compiled files
-   * @param javaFilePath  the path to the Java file to be compiled
-   * @param classFilePath the path to the compiled class file
-   * @return the output of the executed class
-   * @throws IOException          if an I/O error occurs
-   * @throws InterruptedException if the execution is interrupted
-   * @throws ExecutionException   if an error occurs during execution
-   */
-  private static String compileAndExecuteJavaCode(String javaCode, String className, Path targetDir, Path javaFilePath,
-                                                  Path classFilePath)
-          throws IOException, InterruptedException, ExecutionException {
-    Objects.requireNonNull(javaCode);
-    Objects.requireNonNull(className);
-
-    Files.writeString(javaFilePath, javaCode);
-    var compileErrors = compileJavaFile(javaFilePath);
-    if (!compileErrors.isEmpty()) {
-      return compileErrors;
-    }
-    if (isPosixFamily()) {
-      addExecutePermission(classFilePath);
-    }
-    return executeClassFile(targetDir, className);
-  }
-
-  /**
-   * Checks if the current operating system is a Unix-like system.
-   *
-   * @return true if the operating system is a Unix-like system, false otherwise
-   */
-  private static boolean isPosixFamily() {
-    return SystemUtils.IS_OS_UNIX || SystemUtils.IS_OS_LINUX || SystemUtils.IS_OS_MAC;
-  }
-
-  /**
-   * Executes the compiled Java class file. If the execution takes longer than
-   * <code>EXEC_TIMEOUT_SEC</code> seconds, the execution is stopped (and a message
-   * is appended to the output).
-   *
-   * @param classDirectory the directory containing the compiled class file
-   * @param className      the name of the class to execute
-   * @return the output of the executed class
-   * @throws IOException          if an I/O error occurs
-   * @throws InterruptedException if the execution is interrupted
-   * @throws ExecutionException   if an error occurs during execution
-   */
-  static String executeClassFile(Path classDirectory, String className)
-          throws IOException, InterruptedException, ExecutionException {
-    Objects.requireNonNull(classDirectory);
-    Objects.requireNonNull(className);
-
-    var process = createProcess(classDirectory, className);
-    try (var executor = Executors.newSingleThreadExecutor();
-         var outputStream = new ByteArrayOutputStream()) {
-      var outputFuture = captureProcessOutput(process, executor, outputStream);
-      boolean timeOut;
-
-      if (!awaitProcessCompletion(process)) {
-        handleTimeout(process, className);
-        timeOut = true;
-      } else {
-        outputFuture.get();
-        timeOut = process.isAlive();
-      }
-
-
-      return finalizeOutput(outputStream, timeOut);
+    try (var loader = new URLClassLoader(new URL[]{classDir.toUri().toURL()}, ClassLoader.getSystemClassLoader())) {
+      var cls = Class.forName(className, false, loader);
+      var method = cls.getDeclaredMethod("main", String[].class);
+      var modifiers = method.getModifiers();
+      return Modifier.isPublic(modifiers) && Modifier.isStatic(modifiers);
+    } catch (ClassNotFoundException | NoSuchMethodException | IOException | LinkageError e) {
+      return false;
     }
   }
 
   /**
-   * Creates a new process to execute the compiled Java class.
-   *
-   * @param classDirectory the directory containing the compiled class file
-   * @param className      the name of the class to execute
-   * @return the created process
-   * @throws IOException if an I/O error occurs
-   */
-  private static Process createProcess(Path classDirectory, String className) throws IOException {
-    return new ProcessBuilder("java", "-cp", classDirectory.toString(), className)
-            .redirectErrorStream(true)
-            .start();
-  }
-
-  /**
-   * Captures the output of the given process and writes it to the provided output stream.
-   *
-   * @param process      the process whose output is to be captured
-   * @param executor     the executor service to manage the output capturing task
-   * @param outputStream the output stream to write the process output to
-   * @return a Future representing the result of the output capturing task
-   */
-  private static Future<?> captureProcessOutput(Process process, ExecutorService executor,
-                                                ByteArrayOutputStream outputStream) {
-    return executor.submit(() -> {
-      try (var processOutput = process.getInputStream()) {
-        processOutput.transferTo(outputStream);
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-    });
-  }
-
-  /**
-   * Waits for the process to complete within the specified timeout.
-   *
-   * @param process the process to wait for
-   * @return true if the process completed within the timeout, false if the timeout was reached
-   * @throws InterruptedException if the current thread is interrupted while waiting
-   */
-  private static boolean awaitProcessCompletion(Process process) throws InterruptedException {
-    return process.waitFor(EXEC_TIMEOUT_SEC, TimeUnit.SECONDS);
-  }
-
-  /**
-   * Handles the timeout of a process execution.
-   *
-   * @param process   the process that timed out
-   * @param className the name of the class being executed
-   */
-  private static void handleTimeout(Process process, String className) {
-    LOGGER.warn("Execution of class {} timed out after {} seconds", className, EXEC_TIMEOUT_SEC);
-    process.destroy();
-  }
-
-  /**
-   * Finalizes the output of the executed class by appending a timeout message if the execution timed out.
-   *
-   * @param outputStream the output stream containing the class output
-   * @param timedOut     true if the execution timed out, false otherwise
-   * @return the finalized output
-   */
-  private static String finalizeOutput(ByteArrayOutputStream outputStream, boolean timedOut) {
-    var output = outputStream.toString(StandardCharsets.UTF_8);
-    if (timedOut) {
-      output += "\nExecution timed out after " + EXEC_TIMEOUT_SEC + " seconds.\n";
-    }
-    return output;
-  }
-
-  /**
-   * Compiles the Java file at the specified path.
+   * Compiles the Java file at the specified path against {@link #SANDBOX_JAVA_RELEASE}.
    *
    * @param javaFilePath the path to the Java file to compile
    * @return the compilation errors, or an empty string if the compilation was successful
@@ -254,7 +137,8 @@ public class CompileAndExecUtils {
     var diagnostics = new DiagnosticCollector<JavaFileObject>();
     var fileManager = compiler.getStandardFileManager(diagnostics, Locale.ROOT, StandardCharsets.UTF_8);
     var compilationUnits = fileManager.getJavaFileObjects(javaFilePath);
-    var success = compiler.getTask(null, fileManager, diagnostics, null, null, compilationUnits).call();
+    var options = List.of("--release", String.valueOf(SANDBOX_JAVA_RELEASE));
+    var success = compiler.getTask(null, fileManager, diagnostics, options, null, compilationUnits).call();
     var errors = new ArrayList<String>();
 
     if (!success) {
@@ -269,33 +153,7 @@ public class CompileAndExecUtils {
   }
 
   /**
-   * Adds execute permission to the specified file path.
-   *
-   * @param path the path to the file to add execute permission to
-   * @throws IOException if an I/O error occurs
-   */
-  static void addExecutePermission(Path path) throws IOException {
-    Objects.requireNonNull(path);
-    var permissions = Files.getPosixFilePermissions(path);
-    permissions.add(PosixFilePermission.OWNER_EXECUTE);
-    Files.setPosixFilePermissions(path, permissions);
-  }
-
-  /**
-   * Deletes the specified file if it exists.
-   *
-   * @param filePath the path to the file to be deleted
-   * @throws IOException if an I/O error occurs
-   */
-  private static void deleteFile(Path filePath) throws IOException {
-    Objects.requireNonNull(filePath);
-    if (Files.exists(filePath)) {
-      Files.delete(filePath);
-    }
-  }
-
-  /**
-   * Creates a temporary directory path for storing compiled and executed files.
+   * Creates a temporary directory path for storing compiled files.
    *
    * @return the path to the temporary directory
    * @throws IOException if an I/O error occurs

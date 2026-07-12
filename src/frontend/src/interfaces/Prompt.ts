@@ -1,4 +1,5 @@
 import {AuthorType} from "./AuthorType";
+import {GenerationStep} from "./LLMResponse";
 
 export interface Prompt {
     id : number;
@@ -7,6 +8,8 @@ export interface Prompt {
     chatId: number;
     compile: boolean;
     temporary: boolean;
+    /** Only set on the transient, non-persisted SYSTEM prompt shown while a generation is in flight. */
+    generationHistory?: GenerationStep[];
 }
 
 export function createPrompt(message: string,

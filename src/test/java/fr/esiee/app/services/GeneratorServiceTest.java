@@ -26,7 +26,6 @@ import static io.helidon.http.HeaderValues.ACCEPT_EVENT_STREAM;
 import static io.helidon.http.HttpMediaTypes.PLAINTEXT_UTF_8;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @RoutingTest
 public class GeneratorServiceTest {
@@ -99,25 +98,6 @@ public class GeneratorServiceTest {
       );
     }
     dbManager.deletePromptById(registeredPromptId);
-    dbManager.deleteChatById(chatId);
-  }
-
-  @Test
-  void testExecuteClass() {
-    var chat = new Chat(0, "Title", Timestamp.valueOf("2024-10-31 22:50:25"), 1);
-    dbManager.insertChat(chat);
-    var chatId = dbManager.getChatByParams(chat).id();
-    Prompt prompt = new Prompt(1,
-            "public class PrimeCalculator { public static void main(String[] args) { for (int i = 2; i < 100; i++) { if (isPrime(i)) { System.out.println(i); } } } public static boolean isPrime(int num) { if (num <= 1) return false; for (int i = 2; i <= Math.sqrt(num); i++) { if (num % i == 0) return false; } return true; } }",
-            AuthorType.AI, chatId, true);
-    dbManager.insertPrompt(prompt);
-    var promptId = dbManager.getPromptByPromptInfo(prompt).id();
-    try (var response = client.post("/exec").submit(promptId)) {
-      assertAll(() -> assertEquals(Status.OK_200, response.status()),
-              () -> assertEquals(0, PLAINTEXT_UTF_8.compareTo(response.headers().contentType().orElseThrow())),
-              () -> assertNotNull(response.as(String.class)));
-    }
-    dbManager.deletePromptById(promptId);
     dbManager.deleteChatById(chatId);
   }
 }

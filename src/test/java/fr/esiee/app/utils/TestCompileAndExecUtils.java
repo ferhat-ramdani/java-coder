@@ -1,16 +1,12 @@
 package fr.esiee.app.utils;
 
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.nio.file.attribute.PosixFilePermission;
-import java.time.Duration;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 
 import static fr.esiee.app.utils.CompileAndExecUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -91,7 +87,7 @@ public class TestCompileAndExecUtils {
   }
 
   @Nested
-  class DeleteFileTests {
+  class CreateTempPathTests {
     @Test
     void testCreateTempPath() throws IOException {
       var tempPath = createTempPath();
@@ -100,27 +96,8 @@ public class TestCompileAndExecUtils {
               () -> assertTrue(Files.exists(tempPath), "Temp path should exist"),
               () -> assertTrue(Files.isDirectory(tempPath), "Temp path should be a directory"),
               () -> assertTrue(Files.isReadable(tempPath), "Temp path should be readable"),
-              () -> assertTrue(Files.isWritable(tempPath), "Temp path should be writable"),
-              () -> assertTrue(Files.isExecutable(tempPath), "Temp path should be executable")
+              () -> assertTrue(Files.isWritable(tempPath), "Temp path should be writable")
       );
-    }
-  }
-
-  @Nested
-  class AddExecutePermission {
-    @Test
-    void testAddExecutePermission_AddsExecutePermission() throws IOException {
-      var tempFile = Files.createTempFile("test-file", ".txt");
-      tempFile.toFile().deleteOnExit();
-      Assumptions.assumeTrue(Files.getFileStore(tempFile).supportsFileAttributeView("posix"));
-      addExecutePermission(tempFile);
-      var permissions = Files.getPosixFilePermissions(tempFile);
-      assertTrue(permissions.contains(PosixFilePermission.OWNER_EXECUTE), "File should have execute permission for the owner");
-    }
-
-    @Test
-    void testAddExecutePermission_ThrowsNullPointerExceptionForNullPath() {
-      assertThrows(NullPointerException.class, () -> addExecutePermission(null), "Expected NullPointerException for null path");
     }
   }
 
@@ -167,96 +144,115 @@ public class TestCompileAndExecUtils {
   }
 
   @Nested
-  class ExecuteClassFileTests {
+  class CompileTests {
     @Test
-    void testExecuteClassFile_ValidClassExecution() throws Exception {
-      var tempDir = Files.createTempDirectory("test");
-      tempDir.toFile().deleteOnExit();
-      var javaFile = tempDir.resolve("TestClass.java");
-      var code = "public class TestClass { public static void main(String[] args) { System.out.print(\"Hello, World!\"); } }";
-      Files.writeString(javaFile, code);
-      compileJavaFile(javaFile);
-      var output = executeClassFile(tempDir, "TestClass");
-      assertEquals("Hello, World!", output);
+    void testCompile_SuccessfulCompilationLeavesClassFile() throws IOException {
+      var code = "public class Greeter { public static void main(String[] args) { System.out.println(\"Hi\"); } }";
+      var result = compile(code);
+      try {
+        assertAll(
+                () -> assertTrue(result.success(), "Compilation should succeed"),
+                () -> assertEquals("Greeter", result.className()),
+                () -> assertTrue(Files.exists(result.classDir().resolve("Greeter.class")), "Compiled class file should exist")
+        );
+      } finally {
+        cleanup(result.classDir());
+      }
     }
 
     @Test
-    void testExecuteClassFile_NonExistentClass() throws IOException, ExecutionException, InterruptedException {
-      var tempDir = Files.createTempDirectory("test").toFile();
-      tempDir.deleteOnExit();
-      assertFalse(executeClassFile(tempDir.toPath(), "NonExistentClass").isBlank());
+    void testCompile_WithErrors() throws IOException {
+      var code = "public class Broken { public static void main(String[] args) { System.out.println(\"Hello\" } }";
+      var result = compile(code);
+      try {
+        assertFalse(result.success(), "Compilation should fail with errors");
+      } finally {
+        cleanup(result.classDir());
+      }
     }
 
     @Test
-    void testExecuteClassFile_InterruptedExecution() throws IOException {
-      var tempDir = Files.createTempDirectory("test").toFile();
-      tempDir.deleteOnExit();
-      assertThrows(InterruptedException.class, () -> {
-        Thread.currentThread().interrupt();
-        executeClassFile(tempDir.toPath(), "AnyClass");
-      });
-    }
-
-    @Test
-    void testExecuteClassFile_InvalidClassDirectory() throws IOException, ExecutionException, InterruptedException {
-      var invalidDir = Paths.get("invalid_directory");
-      assertFalse(executeClassFile(invalidDir, "TestClass").isBlank());
-    }
-
-    @Test
-    void testExecuteClassFile_TimedOutExecution() throws Exception {
-      var tempDir = Files.createTempDirectory("test");
-      tempDir.toFile().deleteOnExit();
-      var javaFile = tempDir.resolve("LongRunningClass.java");
-      var code = "public class LongRunningClass { public static void main(String[] args) { try { Thread.sleep(20000); } catch (InterruptedException e) { System.out.print(\"Execution interrupted\"); } } }";
-      Files.writeString(javaFile, code);
-      compileJavaFile(javaFile);
-
-      assertTimeoutPreemptively(Duration.ofSeconds(EXEC_TIMEOUT_SEC+1), () -> {
-        var output = executeClassFile(tempDir, "LongRunningClass");
-        assertTrue(output.contains("Execution timed out after " + EXEC_TIMEOUT_SEC + " seconds"), "Output should indicate timeout");
-      });
+    void testCompile_NoClassNameThrows() {
+      assertThrows(IOException.class, () -> compile("not valid java at all"));
     }
   }
 
   @Nested
-  class ProcessTextTests {
+  class CleanupTests {
     @Test
-    void testProcessText_CompileOperation_SuccessfulCompilation() throws IOException, ExecutionException, InterruptedException {
-      var code = "public class TestClass { public static void main(String[] args) {} }";
-      var result = processText(code, Operation.COMPILE);
-      assertTrue(result.isEmpty(), "Compilation should succeed with no errors");
+    void testCleanup_RemovesDirectoryAndContents() throws IOException {
+      var code = "public class ToClean { public static void main(String[] args) {} }";
+      var result = compile(code);
+      assertTrue(Files.exists(result.classDir()));
+      cleanup(result.classDir());
+      assertFalse(Files.exists(result.classDir()));
     }
 
     @Test
-    void testProcessText_CompileOperation_WithErrors() throws IOException, ExecutionException, InterruptedException {
-      var code = "public class TestClass { public static void main(String[] args) { System.out.println(\"Hello\" } }"; // Missing parenthesis
-      var result = processText(code, Operation.COMPILE);
-      assertFalse(result.isEmpty(), "Compilation should fail with errors");
+    void testCleanup_NonExistentDirectoryIsNoop() {
+      assertDoesNotThrow(() -> cleanup(Paths.get("this-directory-does-not-exist-at-all")));
     }
 
     @Test
-    void testProcessText_ExecuteOperation_ValidExecution() throws IOException, ExecutionException, InterruptedException {
-      var code = "public class TestClass { public static void main(String[] args) { System.out.print(\"Hello, World!\"); } }";
-      var result = processText(code, Operation.EXECUTE);
-      assertEquals("Hello, World!", result);
+    void testCleanup_NullIsNoop() {
+      assertDoesNotThrow(() -> cleanup(null));
+    }
+  }
+
+  @Nested
+  class HasMainMethodTests {
+    @Test
+    void testHasMainMethod_ValidMain() throws IOException {
+      var code = "public class WithMain { public static void main(String[] args) {} }";
+      var result = compile(code);
+      try {
+        assertTrue(hasMainMethod(result.classDir(), result.className()));
+      } finally {
+        cleanup(result.classDir());
+      }
     }
 
     @Test
-    void testProcessText_ExecuteOperation_TimedOutExecution() {
-      var code = "public class LongRunningClass { public static void main(String[] args) { try { Thread.sleep(20000); } catch (InterruptedException e) { System.out.print(\"Execution interrupted\"); } } }";
-
-      assertTimeoutPreemptively(Duration.ofSeconds(EXEC_TIMEOUT_SEC + 2), () -> {
-        var result = processText(code, Operation.EXECUTE);
-        assertTrue(result.contains("Execution timed out after " + EXEC_TIMEOUT_SEC + " seconds"), "Output should indicate timeout");
-      });
+    void testHasMainMethod_NoMain() throws IOException {
+      var code = "public class WithoutMain { public void run() {} }";
+      var result = compile(code);
+      try {
+        assertFalse(hasMainMethod(result.classDir(), result.className()));
+      } finally {
+        cleanup(result.classDir());
+      }
     }
 
     @Test
-    void testProcessText_ExecuteOperation_WithExecutionError() throws IOException, ExecutionException, InterruptedException {
-      var code = "public class TestClass { public static void main(String[] args) { throw new RuntimeException(\"Execution failed\"); } }";
-      assertFalse(processText(code, Operation.EXECUTE).isBlank());
+    void testHasMainMethod_NonPublicMainDoesNotCount() throws IOException {
+      var code = "public class PrivateMain { static void main(String[] args) {} }";
+      var result = compile(code);
+      try {
+        assertFalse(hasMainMethod(result.classDir(), result.className()));
+      } finally {
+        cleanup(result.classDir());
+      }
     }
 
+    @Test
+    void testHasMainMethod_ClassNotFound() throws IOException {
+      var tempDir = Files.createTempDirectory("test");
+      tempDir.toFile().deleteOnExit();
+      assertFalse(hasMainMethod(tempDir, "NoSuchClass"));
+    }
+
+    @Test
+    void testHasMainMethod_DoesNotRunStaticInitializer() throws IOException {
+      var code = "public class WithSideEffect { "
+              + "static { if (true) throw new RuntimeException(\"static init ran\"); } "
+              + "public static void main(String[] args) {} }";
+      var result = compile(code);
+      try {
+        assertDoesNotThrow(() -> hasMainMethod(result.classDir(), result.className()));
+        assertTrue(hasMainMethod(result.classDir(), result.className()));
+      } finally {
+        cleanup(result.classDir());
+      }
+    }
   }
 }

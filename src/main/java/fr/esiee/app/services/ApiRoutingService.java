@@ -39,6 +39,7 @@ public class ApiRoutingService implements HttpService {
     httpRules.register("/llm", new LLMService())
             .register("/chat", new ChatService())
             .register("/gen", new GeneratorService())
+            .register("/sandbox", new SandboxService())
             .register("/prompt", new PromptService());
 
     if (Main.isDebugMode()) {

@@ -5,6 +5,7 @@ import fr.esiee.app.config.mapper.LLMConfigMapper;
 import fr.esiee.app.db.DbManager;
 import fr.esiee.app.exception.RestApiException;
 import fr.esiee.app.llms.OllamaSetupManager;
+import fr.esiee.app.sandbox.DockerManager;
 import fr.esiee.app.services.ApiRoutingService;
 import fr.esiee.app.utils.ErrorUtils;
 import io.helidon.common.context.Contexts;
@@ -76,12 +77,33 @@ public class Main {
     var llmConfig = config.get("provider").as(LLMConfig.class).orElse(LLMConfig.defaultConfig());
     Contexts.globalContext().register(llmConfig);
     OllamaSetupManager.setupAndStartOllama();
+    prepareSandboxImage();
 
     var server = createWebServer(config);
 
     Contexts.globalContext().register(server);
     LOGGER.info("WEB server is up! {}://{}:{}", server.hasTls() ? "https" : "http", server.prototype().host(),
             server.port());
+  }
+
+  /**
+   * Best-effort warm-up of the Docker sandbox image used to safely execute generated code.
+   * Runs in the background so a slow (or missing) Docker install never blocks server startup:
+   * if Docker isn't available yet, execution simply stays disabled until it is, which is checked
+   * again on every generation/run attempt.
+   */
+  private static void prepareSandboxImage() {
+    Thread.ofVirtual().start(() -> {
+      if (!DockerManager.isAvailable()) {
+        LOGGER.warn("Docker is not available: generated code will not be executable until Docker Desktop is installed and running.");
+        return;
+      }
+      try {
+        DockerManager.ensureImagePresent();
+      } catch (IOException | InterruptedException e) {
+        LOGGER.warn("Could not pre-pull the sandbox image, it will be pulled on first use instead: {}", e.getMessage());
+      }
+    });
   }
 
   /**
