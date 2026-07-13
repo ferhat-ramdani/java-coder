@@ -2,6 +2,10 @@
 
 A local, self-hosted coding assistant that doesn't just generate Java — it proves the code works before showing it to you.
 
+<p align="center"> 
+    <img width="800" height="515" alt="javacoder3" src="https://github.com/user-attachments/assets/71853114-3e17-4af6-b09c-d47fdb055d37" />
+</p>
+
 Most LLM coding assistants stop at "here's some code that looks plausible." JavaCoder treats that as the starting point, not the answer: every class it generates gets compiled, checked for a real entry point, and actually executed in a sandboxed container. If it fails, the compiler error or stack trace goes straight back into the conversation and the model gets another shot — up to three times — before you ever see the result. No API keys, no cloud calls: everything runs against a local Ollama model on your own machine.
 
 ## Why this exists
